@@ -23,10 +23,10 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,
 .score-box .lbl{font-size:.7rem;color:var(--dim);text-transform:uppercase}
 .score-box .val{font-size:1.2rem;font-weight:700}
 .new-btn{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:8px 18px;font-size:.9rem;font-weight:700;cursor:pointer}
-#grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;border-radius:12px;padding:8px;width:min(360px,calc(100vw - 20px));aspect-ratio:1}
+#grid{display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(4,1fr);gap:8px;border-radius:12px;padding:8px;width:min(360px,calc(100vw - 20px));aspect-ratio:1}
 html:not(.light) #grid{background:#16213e}
 html.light #grid{background:#ced2d9}
-.tile{border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1.3rem;height:100%}
+.tile{border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1.3rem;min-height:0;overflow:hidden}
 html.xl .tile{font-size:1.6rem}
 html:not(.light) .t0{background:#1a1a2e}
 html.light .t0{background:#b8bec8}
