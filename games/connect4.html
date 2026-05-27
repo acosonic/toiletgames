@@ -31,7 +31,7 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,
 .col-btn{background:var(--surface2);border:none;color:var(--text);border-radius:6px;width:44px;height:32px;font-size:1.1rem;cursor:pointer;-webkit-tap-highlight-color:transparent}
 html.xl .col-btn{width:52px}
 .col-btn:active{background:var(--accent)}
-#grid{border-radius:10px;padding:5px;display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+#grid{border-radius:10px;padding:5px;display:grid;grid-template-columns:repeat(7,1fr);gap:4px;cursor:pointer;-webkit-tap-highlight-color:transparent}
 html:not(.light) #grid{background:#16213e}
 html.light #grid{background:#1a3a8c}
 .hole{width:40px;height:40px;border-radius:50%;background:var(--bg);display:flex;align-items:center;justify-content:center}
@@ -39,6 +39,10 @@ html.light .hole{background:#e0e4ea}
 html.xl .hole{width:48px;height:48px}
 .hole.r{background:#e94560}.hole.y{background:#f1c40f}
 .hole.win-r{background:#e94560;box-shadow:0 0 10px #e94560}.hole.win-y{background:#f1c40f;box-shadow:0 0 10px #f1c40f}
+html.light .hole.r,html.light .hole.win-r{background:#e94560}
+html.light .hole.y,html.light .hole.win-y{background:#f1c40f}
+html.light .hole.win-r{box-shadow:0 0 10px #e94560}
+html.light .hole.win-y{box-shadow:0 0 10px #f1c40f}
 .msg{font-size:1rem;font-weight:700;text-align:center;min-height:1.4em;color:var(--accent)}
 </style>
 </head>
@@ -95,21 +99,68 @@ html.xl .hole{width:48px;height:48px}
   document.getElementById('mai').textContent=t('ai');
 
   const ROWS=6,COLS=7;
-  let board,cur,mode='2p',sr=0,sy=0,over;
+  let board,cur,mode='2p',sr=0,sy=0,over,cells=[];
+  const dbg=(msg,data={})=>console.debug('[connect4]',msg,data);
 
   function setMode(m){mode=m;document.getElementById('m2p').classList.toggle('active',m==='2p');document.getElementById('mai').classList.toggle('active',m==='ai');newGame();}
 
   function newGame(){
+    initGrid();
     board=Array.from({length:ROWS},()=>Array(COLS).fill(0));cur=1;over=false;
     document.getElementById('turn').textContent=t('turn')+'🔴';document.getElementById('msg').textContent='';
+    dbg('newGame',{mode,rows:ROWS,cols:COLS,cells:cells.length});
     render();
   }
 
-  function render(wins=[]){const el=document.getElementById('grid');el.innerHTML='';for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){const h=document.createElement('div');const v=board[r][c];const isWin=wins.some(([wr,wc])=>wr===r&&wc===c);h.className='hole'+(v===1?(isWin?' win-r':' r'):v===2?(isWin?' win-y':' y'):'');el.appendChild(h);}}
+  function initGrid(){
+    if(cells.length)return;
+    const el=document.getElementById('grid');
+    for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
+      const h=document.createElement('div');
+      h.className='hole';
+      h.dataset.col=c;
+      el.appendChild(h);
+      cells.push(h);
+    }
+    dbg('initGrid',{children:el.children.length,cells:cells.length});
+  }
 
-  function drop(c){if(over)return;if(mode==='ai'&&cur===2)return;doMove(c);}
+  function render(wins=[]){
+    for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
+      const h=cells[r*COLS+c];
+      const v=board[r][c];
+      const isWin=wins.some(([wr,wc])=>wr===r&&wc===c);
+      h.className='hole'+(v===1?(isWin?' win-r':' r'):v===2?(isWin?' win-y':' y'):'');
+    }
+    dbg('render',{
+      board:board.map(row=>row.join('')).join('/'),
+      classes:cells.map(h=>h.className).join('|')
+    });
+  }
 
-  function doMove(c){let r=-1;for(let row=ROWS-1;row>=0;row--)if(!board[row][c]){r=row;break;}if(r===-1)return;board[r][c]=cur;const wins=checkWin(r,c);if(wins.length){over=true;if(cur===1){sr++;document.getElementById('sr2').textContent=sr;}else{sy++;document.getElementById('sy2').textContent=sy;}document.getElementById('msg').textContent=(cur===1?'🔴':'🟡')+t('won');document.getElementById('turn').textContent='';render(wins);return;}if(board[0].every(v=>v)){over=true;document.getElementById('msg').textContent=t('draw');render();return;}cur=cur===1?2:1;document.getElementById('turn').textContent=t('turn')+(cur===1?'🔴':'🟡');render();if(mode==='ai'&&cur===2&&!over)setTimeout(aiMove,400);}
+  function drop(c){
+    dbg('drop requested',{col:c,over,mode,cur});
+    if(over)return;
+    if(mode==='ai'&&cur===2)return;
+    doMove(c);
+  }
+
+  function doMove(c){let r=-1;for(let row=ROWS-1;row>=0;row--)if(!board[row][c]){r=row;break;}if(r===-1){dbg('column full',{col:c});return;}board[r][c]=cur;dbg('move applied',{row:r,col:c,player:cur,cellIndex:r*COLS+c});const wins=checkWin(r,c);if(wins.length){over=true;if(cur===1){sr++;document.getElementById('sr2').textContent=sr;}else{sy++;document.getElementById('sy2').textContent=sy;}document.getElementById('msg').textContent=(cur===1?'🔴':'🟡')+t('won');document.getElementById('turn').textContent='';render(wins);logCellStyle(r,c);return;}if(board[0].every(v=>v)){over=true;document.getElementById('msg').textContent=t('draw');render();logCellStyle(r,c);return;}cur=cur===1?2:1;document.getElementById('turn').textContent=t('turn')+(cur===1?'🔴':'🟡');render();logCellStyle(r,c);if(mode==='ai'&&cur===2&&!over)setTimeout(aiMove,400);}
+
+  function logCellStyle(r,c){
+    const cell=cells[r*COLS+c];
+    const style=getComputedStyle(cell);
+    dbg('cell style after render',{
+      row:r,
+      col:c,
+      className:cell.className,
+      backgroundColor:style.backgroundColor,
+      display:style.display,
+      width:style.width,
+      height:style.height,
+      rect:cell.getBoundingClientRect()
+    });
+  }
 
   function aiMove(){for(let c=0;c<COLS;c++){const r=topRow(c);if(r>=0){board[r][c]=2;if(checkWin(r,c).length){board[r][c]=0;doMove(c);return;}board[r][c]=0;}}for(let c=0;c<COLS;c++){const r=topRow(c);if(r>=0){board[r][c]=1;if(checkWin(r,c).length){board[r][c]=0;doMove(c);return;}board[r][c]=0;}}const avail=[];for(let c=0;c<COLS;c++)if(topRow(c)>=0)avail.push(c);doMove(avail[Math.floor(Math.random()*avail.length)]);}
 
@@ -117,6 +168,12 @@ html.xl .hole{width:48px;height:48px}
 
   function checkWin(r,c){const p=board[r][c];const dirs=[[0,1],[1,0],[1,1],[1,-1]];for(const[dr,dc]of dirs){const line=[[r,c]];for(let s=1;s<4;s++){const nr=r+dr*s,nc=c+dc*s;if(nr>=0&&nr<ROWS&&nc>=0&&nc<COLS&&board[nr][nc]===p)line.push([nr,nc]);else break;}for(let s=1;s<4;s++){const nr=r-dr*s,nc=c-dc*s;if(nr>=0&&nr<ROWS&&nc>=0&&nc<COLS&&board[nr][nc]===p)line.push([nr,nc]);else break;}if(line.length>=4)return line;}return[];}
 
+  document.getElementById('grid').addEventListener('click',function(e){
+    const rect=this.getBoundingClientRect();
+    const col=Math.max(0,Math.min(COLS-1,Math.floor((e.clientX-rect.left)*COLS/rect.width)));
+    dbg('grid click',{clientX:e.clientX,gridLeft:rect.left,gridWidth:rect.width,col});
+    drop(col);
+  });
   window.newGame=newGame;window.setMode=setMode;window.drop=drop;
   newGame();
 })();
