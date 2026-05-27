@@ -5,41 +5,44 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Змија — Тоалет Игрице</title>
 <meta name="theme-color" content="#e94560">
+<script>(function(){var t=localStorage.getItem('tg-theme')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');if(t==='light')document.documentElement.classList.add('light');})()</script>
 <style>
 :root{--bg:#0f0f1a;--surface:#1a1a2e;--surface2:#16213e;--accent:#e94560;--text:#e0e0e0;--dim:#888}
+html.light{--bg:#f0f2f5;--surface:#fff;--surface2:#e2e5ea;--text:#1a1a2e;--dim:#666}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html{font-size:18px}
-html.xl{font-size:22px}
-body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,sans-serif;min-height:100dvh;-webkit-tap-highlight-color:transparent;touch-action:none;overflow:hidden}
-.topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--surface);gap:8px}
-.topbar a{color:var(--accent);text-decoration:none;font-size:1rem;font-weight:700;white-space:nowrap}
-.topbar h2{font-size:1rem;font-weight:700;flex:1;text-align:center}
-.font-btn{background:none;border:1px solid var(--dim);color:var(--text);border-radius:6px;padding:5px 9px;font-size:0.8rem;cursor:pointer}
+html{font-size:18px}html.xl{font-size:22px}
+body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,sans-serif;min-height:100dvh;-webkit-tap-highlight-color:transparent;touch-action:none;overflow:hidden;transition:background .2s,color .2s}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--surface);gap:6px;border-bottom:1px solid var(--surface2)}
+.topbar a{color:var(--accent);text-decoration:none;font-size:.95rem;font-weight:700;white-space:nowrap}
+.topbar h2{font-size:.95rem;font-weight:700;flex:1;text-align:center}
+.topbar-btns{display:flex;gap:4px;flex-shrink:0}
+.icon-btn{background:none;border:1px solid var(--dim);color:var(--text);border-radius:6px;padding:5px 8px;font-size:.78rem;cursor:pointer;white-space:nowrap;line-height:1}
 .wrap{padding:8px 10px;max-width:420px;margin:0 auto;display:flex;flex-direction:column;align-items:center;gap:8px}
 .hud{display:flex;align-items:center;justify-content:space-between;width:100%;max-width:360px}
-.score{font-size:1.2rem;font-weight:700}
-.new-btn{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:7px 16px;font-size:0.9rem;font-weight:700;cursor:pointer}
+.score{font-size:1.1rem;font-weight:700}
+.new-btn{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:7px 16px;font-size:.9rem;font-weight:700;cursor:pointer}
 canvas{border-radius:10px;display:block;touch-action:none}
 .dpad{display:grid;grid-template-columns:repeat(3,64px);grid-template-rows:repeat(2,64px);gap:6px;margin-top:8px}
-.dpad button{background:var(--surface);border:none;border-radius:10px;color:var(--text);font-size:1.6rem;cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent;active:scale(0.9)}
+.dpad button{background:var(--surface);border:none;border-radius:10px;color:var(--text);font-size:1.6rem;cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent}
 .dpad button:active{background:var(--accent)}
-.dpad .up{grid-column:2;grid-row:1}
-.dpad .left{grid-column:1;grid-row:2}
-.dpad .down{grid-column:2;grid-row:2}
-.dpad .right{grid-column:3;grid-row:2}
+.dpad .up{grid-column:2;grid-row:1}.dpad .left{grid-column:1;grid-row:2}.dpad .down{grid-column:2;grid-row:2}.dpad .right{grid-column:3;grid-row:2}
 .msg{font-size:1rem;font-weight:700;color:var(--accent)}
 </style>
 </head>
 <body>
 <div class="topbar">
-  <a href="../">← Назад</a>
-  <h2>🐍 Змија</h2>
-  <button class="font-btn" onclick="toggleFont()">Аа</button>
+  <a href="../" class="i18n" data-sr="← Назад" data-en="← Back">← Назад</a>
+  <h2 class="i18n" data-sr="🐍 Змија" data-en="🐍 Snake">🐍 Змија</h2>
+  <div class="topbar-btns">
+    <button class="icon-btn theme-btn" onclick="toggleTheme()">🌙</button>
+    <button class="icon-btn lang-btn" onclick="toggleLang()">EN</button>
+    <button class="icon-btn" onclick="toggleFont()">Аа</button>
+  </div>
 </div>
 <div class="wrap">
   <div class="hud">
     <span class="score" id="score">🍎 0</span>
-    <button class="new-btn" onclick="newGame()">Нова</button>
+    <button class="new-btn i18n" data-sr="Нова" data-en="New" onclick="newGame()">Нова</button>
     <span class="score" id="best">🏆 0</span>
   </div>
   <canvas id="c"></canvas>
@@ -53,103 +56,47 @@ canvas{border-radius:10px;display:block;touch-action:none}
 </div>
 <script>
 (function(){
+  const _lang=()=>localStorage.getItem('tg-lang')||(/^(sr|hr|bs)/i.test(navigator.language)?'sr':'en');
+  const _theme=()=>localStorage.getItem('tg-theme')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');
+  function applyTheme(){const d=_theme()==='dark';document.documentElement.classList.toggle('light',!d);document.querySelectorAll('.theme-btn').forEach(b=>b.textContent=d?'☀️':'🌙');}
+  function applyI18n(){const L=_lang();document.querySelectorAll('[data-'+L+']').forEach(el=>el.textContent=el.dataset[L]);document.querySelectorAll('.lang-btn').forEach(b=>b.textContent=L==='sr'?'EN':'СР');document.documentElement.lang=L;}
+  window.toggleTheme=()=>{localStorage.setItem('tg-theme',_theme()==='dark'?'light':'dark');applyTheme();draw();};
+  window.toggleLang=()=>{localStorage.setItem('tg-lang',_lang()==='sr'?'en':'sr');location.reload();};
+  window.toggleFont=()=>{const xl=document.documentElement.classList.toggle('xl');localStorage.setItem('tg-xl',xl?'1':'0');};
+  if(localStorage.getItem('tg-xl')==='1')document.documentElement.classList.add('xl');
+  applyTheme();applyI18n();
+  const L=_lang();
+  const gameOver=s=>L==='sr'?'💀 Крај! Резултат: '+s:'💀 Game over! Score: '+s;
+
   const COLS=20,ROWS=20;
   let snake,dir,nextDir,food,score,best=+localStorage.getItem('tg-snake-best')||0,interval,over,canvas,ctx,cell;
-
-  function toggleFont(){const xl=document.documentElement.classList.toggle('xl');localStorage.setItem('tg-xl',xl?'1':'0');}
-  if(localStorage.getItem('tg-xl')==='1')document.documentElement.classList.add('xl');
   document.getElementById('best').textContent='🏆 '+best;
 
-  function setup(){
-    canvas=document.getElementById('c');
-    const w=Math.min(360,window.innerWidth-20);
-    cell=Math.floor(w/COLS);
-    canvas.width=cell*COLS;canvas.height=cell*ROWS;
-    ctx=canvas.getContext('2d');
-  }
+  function setup(){canvas=document.getElementById('c');const w=Math.min(360,window.innerWidth-20);cell=Math.floor(w/COLS);canvas.width=cell*COLS;canvas.height=cell*ROWS;ctx=canvas.getContext('2d');}
 
-  function newGame(){
-    clearInterval(interval);
-    snake=[{x:10,y:10},{x:9,y:10},{x:8,y:10}];
-    dir={x:1,y:0};nextDir={x:1,y:0};
-    score=0;over=false;
-    placeFood();
-    document.getElementById('score').textContent='🍎 0';
-    document.getElementById('msg').textContent='';
-    interval=setInterval(tick,160);
-    draw();
-  }
+  function newGame(){clearInterval(interval);snake=[{x:10,y:10},{x:9,y:10},{x:8,y:10}];dir={x:1,y:0};nextDir={x:1,y:0};score=0;over=false;placeFood();document.getElementById('score').textContent='🍎 0';document.getElementById('msg').textContent='';interval=setInterval(tick,160);draw();}
 
-  function placeFood(){
-    let pos;
-    do{pos={x:Math.floor(Math.random()*COLS),y:Math.floor(Math.random()*ROWS)};}
-    while(snake.some(s=>s.x===pos.x&&s.y===pos.y));
-    food=pos;
-  }
+  function placeFood(){let p;do{p={x:Math.floor(Math.random()*COLS),y:Math.floor(Math.random()*ROWS)};}while(snake.some(s=>s.x===p.x&&s.y===p.y));food=p;}
 
-  function tick(){
-    if(over)return;
-    dir=nextDir;
-    const head={x:(snake[0].x+dir.x+COLS)%COLS,y:(snake[0].y+dir.y+ROWS)%ROWS};
-    if(snake.some(s=>s.x===head.x&&s.y===head.y)){
-      over=true;clearInterval(interval);
-      document.getElementById('msg').textContent='💀 Крај! Резултат: '+score;
-      draw();return;
-    }
-    snake.unshift(head);
-    if(head.x===food.x&&head.y===food.y){
-      score++;
-      if(score>best){best=score;localStorage.setItem('tg-snake-best',best);document.getElementById('best').textContent='🏆 '+best;}
-      document.getElementById('score').textContent='🍎 '+score;
-      placeFood();
-    } else {
-      snake.pop();
-    }
-    draw();
-  }
+  function tick(){if(over)return;dir=nextDir;const h={x:(snake[0].x+dir.x+COLS)%COLS,y:(snake[0].y+dir.y+ROWS)%ROWS};if(snake.some(s=>s.x===h.x&&s.y===h.y)){over=true;clearInterval(interval);document.getElementById('msg').textContent=gameOver(score);draw();return;}snake.unshift(h);if(h.x===food.x&&h.y===food.y){score++;if(score>best){best=score;localStorage.setItem('tg-snake-best',best);document.getElementById('best').textContent='🏆 '+best;}document.getElementById('score').textContent='🍎 '+score;placeFood();}else snake.pop();draw();}
 
   function draw(){
-    ctx.fillStyle='#0f0f1a';ctx.fillRect(0,0,canvas.width,canvas.height);
-    // food
-    ctx.fillStyle='#e94560';
-    ctx.beginPath();ctx.arc(food.x*cell+cell/2,food.y*cell+cell/2,cell/2-2,0,Math.PI*2);ctx.fill();
-    // snake
-    snake.forEach((s,i)=>{
-      ctx.fillStyle=i===0?'#5cb85c':'#27ae60';
-      ctx.beginPath();ctx.roundRect(s.x*cell+1,s.y*cell+1,cell-2,cell-2,4);ctx.fill();
-    });
-    if(over){
-      ctx.fillStyle='rgba(0,0,0,0.5)';ctx.fillRect(0,0,canvas.width,canvas.height);
-      ctx.fillStyle='#e94560';ctx.font='bold '+cell*1.5+'px system-ui';
-      ctx.textAlign='center';ctx.fillText('💀',canvas.width/2,canvas.height/2+cell/2);
-    }
+    const light=_theme()==='light';
+    ctx.fillStyle=light?'#e8eaed':'#0f0f1a';ctx.fillRect(0,0,canvas.width,canvas.height);
+    ctx.fillStyle='#e94560';ctx.beginPath();ctx.arc(food.x*cell+cell/2,food.y*cell+cell/2,cell/2-2,0,Math.PI*2);ctx.fill();
+    snake.forEach((s,i)=>{ctx.fillStyle=i===0?'#5cb85c':'#27ae60';ctx.beginPath();ctx.roundRect(s.x*cell+1,s.y*cell+1,cell-2,cell-2,4);ctx.fill();});
+    if(over){ctx.fillStyle='rgba(0,0,0,0.4)';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.fillStyle='#e94560';ctx.font='bold '+cell*1.5+'px system-ui';ctx.textAlign='center';ctx.fillText('💀',canvas.width/2,canvas.height/2+cell/2);}
   }
 
-  function setDir(dx,dy){
-    if(dir.x===-dx&&dir.y===-dy)return;
-    nextDir={x:dx,y:dy};
-  }
+  function setDir(dx,dy){if(dir.x===-dx&&dir.y===-dy)return;nextDir={x:dx,y:dy};}
 
-  // Touch swipe
   let tx,ty;
   canvas.addEventListener('touchstart',e=>{tx=e.touches[0].clientX;ty=e.touches[0].clientY;},{passive:true});
-  canvas.addEventListener('touchend',e=>{
-    const dx=e.changedTouches[0].clientX-tx,dy=e.changedTouches[0].clientY-ty;
-    if(Math.max(Math.abs(dx),Math.abs(dy))<15)return;
-    if(Math.abs(dx)>Math.abs(dy))setDir(dx>0?1:-1,0);
-    else setDir(0,dy>0?1:-1);
-  },{passive:true});
+  canvas.addEventListener('touchend',e=>{const dx=e.changedTouches[0].clientX-tx,dy=e.changedTouches[0].clientY-ty;if(Math.max(Math.abs(dx),Math.abs(dy))<15)return;if(Math.abs(dx)>Math.abs(dy))setDir(dx>0?1:-1,0);else setDir(0,dy>0?1:-1);},{passive:true});
+  document.addEventListener('keydown',e=>{const m={ArrowLeft:[-1,0],ArrowRight:[1,0],ArrowUp:[0,-1],ArrowDown:[0,1]};if(m[e.key]){e.preventDefault();setDir(...m[e.key]);}});
 
-  document.addEventListener('keydown',e=>{
-    const map={ArrowLeft:[-1,0],ArrowRight:[1,0],ArrowUp:[0,-1],ArrowDown:[0,1]};
-    if(map[e.key]){e.preventDefault();setDir(...map[e.key]);}
-  });
-
-  window.toggleFont=toggleFont;
-  window.newGame=newGame;
-  window.setDir=setDir;
-  setup();newGame();
-  window.addEventListener('resize',()=>{setup();draw();});
+  window.newGame=newGame;window.setDir=setDir;
+  setup();newGame();window.addEventListener('resize',()=>{setup();draw();});
 })();
 </script>
 </body>

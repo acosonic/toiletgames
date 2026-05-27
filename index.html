@@ -5,99 +5,110 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Тоалет Игрице</title>
 <meta name="theme-color" content="#e94560">
-<meta name="description" content="Дванаест бесплатних игрица за телефон">
+<meta name="description" content="12 free mobile games — 12 бесплатних мобилних игрица">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Тоалет Игрице">
-<meta property="og:description" content="Дванаест бесплатних игрица за телефон">
+<meta property="og:description" content="12 free mobile games">
 <meta property="og:url" content="https://acosonic.github.io/toiletgames/">
 <meta property="og:image" content="https://acosonic.github.io/toiletgames/web-app-manifest-512x512.png">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Тоалет Игрице">
-<meta name="twitter:description" content="Дванаест бесплатних игрица за телефон">
+<meta name="twitter:description" content="12 free mobile games">
 <meta name="twitter:image" content="https://acosonic.github.io/toiletgames/web-app-manifest-512x512.png">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="icon" href="favicon-96x96.png" sizes="96x96" type="image/png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="stylesheet" href="style.css">
+<!-- prevent theme flash -->
+<script>
+(function(){
+  var t=localStorage.getItem('tg-theme')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');
+  if(t==='light')document.documentElement.classList.add('light');
+})();
+</script>
 </head>
 <body>
 <div class="wrap">
   <header>
     <div class="brand">
-      <img src="favicon.svg" alt="" width="40" height="40">
-      <h1>Тоалет Игрице</h1>
+      <img src="favicon.svg" alt="" width="36" height="36">
+      <h1 class="i18n" data-sr="Тоалет Игрице" data-en="Toilet Games">Тоалет Игрице</h1>
     </div>
-    <button id="installBtn" class="installbtn">Инсталирај</button>
+    <div class="header-btns">
+      <button class="icon-btn theme-btn" onclick="toggleTheme()" title="Toggle theme">🌙</button>
+      <button class="icon-btn lang-btn" onclick="toggleLang()" title="Language">EN</button>
+      <button class="icon-btn installbtn" id="installBtn" data-sr="Инсталирај" data-en="Install">Инсталирај</button>
+    </div>
   </header>
 
   <main>
     <div class="games-grid">
       <a href="games/minesweeper.html" class="game-card">
         <span class="game-icon">💣</span>
-        <span class="game-name">Минерски</span>
-        <span class="game-desc">Нађи мине</span>
+        <span class="game-name i18n" data-sr="Минерски" data-en="Minesweeper">Минерски</span>
+        <span class="game-desc i18n" data-sr="Нађи мине" data-en="Find the mines">Нађи мине</span>
       </a>
       <a href="games/2048.html" class="game-card">
         <span class="game-icon">🔢</span>
         <span class="game-name">2048</span>
-        <span class="game-desc">Споји плочице</span>
+        <span class="game-desc i18n" data-sr="Споји плочице" data-en="Merge the tiles">Споји плочице</span>
       </a>
       <a href="games/snake.html" class="game-card">
         <span class="game-icon">🐍</span>
-        <span class="game-name">Змија</span>
-        <span class="game-desc">Не удари зид</span>
+        <span class="game-name i18n" data-sr="Змија" data-en="Snake">Змија</span>
+        <span class="game-desc i18n" data-sr="Не удари зид" data-en="Don't hit the wall">Не удари зид</span>
       </a>
       <a href="games/tictactoe.html" class="game-card">
         <span class="game-icon">❌</span>
-        <span class="game-name">Икс-Нула</span>
-        <span class="game-desc">Три у низ</span>
+        <span class="game-name i18n" data-sr="Икс-Нула" data-en="Tic-Tac-Toe">Икс-Нула</span>
+        <span class="game-desc i18n" data-sr="Три у низ" data-en="Three in a row">Три у низ</span>
       </a>
       <a href="games/simon.html" class="game-card">
         <span class="game-icon">🎵</span>
-        <span class="game-name">Сајмон</span>
-        <span class="game-desc">Памти редослед</span>
+        <span class="game-name i18n" data-sr="Сајмон" data-en="Simon">Сајмон</span>
+        <span class="game-desc i18n" data-sr="Памти редослед" data-en="Remember the sequence">Памти редослед</span>
       </a>
       <a href="games/connect4.html" class="game-card">
         <span class="game-icon">🔴</span>
-        <span class="game-name">Четири у низ</span>
-        <span class="game-desc">Победи противника</span>
+        <span class="game-name i18n" data-sr="Четири у низ" data-en="Connect Four">Четири у низ</span>
+        <span class="game-desc i18n" data-sr="Победи противника" data-en="Beat the opponent">Победи противника</span>
       </a>
       <a href="games/memory.html" class="game-card">
         <span class="game-icon">🃏</span>
-        <span class="game-name">Мемори</span>
-        <span class="game-desc">Нађи парове</span>
+        <span class="game-name i18n" data-sr="Мемори" data-en="Memory">Мемори</span>
+        <span class="game-desc i18n" data-sr="Нађи парове" data-en="Find the pairs">Нађи парове</span>
       </a>
       <a href="games/sudoku.html" class="game-card">
         <span class="game-icon">🔢</span>
-        <span class="game-name">Судоку</span>
-        <span class="game-desc">Попуни бројеве</span>
+        <span class="game-name i18n" data-sr="Судоку" data-en="Sudoku">Судоку</span>
+        <span class="game-desc i18n" data-sr="Попуни бројеве" data-en="Fill in numbers">Попуни бројеве</span>
       </a>
       <a href="games/wordle.html" class="game-card">
         <span class="game-icon">📝</span>
-        <span class="game-name">Вордле</span>
-        <span class="game-desc">Погоди реч</span>
+        <span class="game-name i18n" data-sr="Вордле" data-en="Wordle">Вордле</span>
+        <span class="game-desc i18n" data-sr="Погоди реч" data-en="Guess the word">Погоди реч</span>
       </a>
       <a href="games/hangman.html" class="game-card">
         <span class="game-icon">🎪</span>
-        <span class="game-name">Вешала</span>
-        <span class="game-desc">Слово по слово</span>
+        <span class="game-name i18n" data-sr="Вешала" data-en="Hangman">Вешала</span>
+        <span class="game-desc i18n" data-sr="Слово по слово" data-en="Letter by letter">Слово по слово</span>
       </a>
       <a href="games/blackjack.html" class="game-card">
         <span class="game-icon">🃏</span>
-        <span class="game-name">Блекџек</span>
-        <span class="game-desc">21 — победи дилера</span>
+        <span class="game-name i18n" data-sr="Блекџек" data-en="Blackjack">Блекџек</span>
+        <span class="game-desc i18n" data-sr="21 — победи дилера" data-en="21 — beat the dealer">21 — победи дилера</span>
       </a>
       <a href="games/sliding.html" class="game-card">
         <span class="game-icon">🧩</span>
-        <span class="game-name">Слагалица</span>
-        <span class="game-desc">Поређај плочице</span>
+        <span class="game-name i18n" data-sr="Слагалица" data-en="Sliding Puzzle">Слагалица</span>
+        <span class="game-desc i18n" data-sr="Поређај плочице" data-en="Sort the tiles">Поређај плочице</span>
       </a>
     </div>
   </main>
 
   <footer>
-    <a href="https://github.com/acosonic/toiletgames" target="_blank" rel="noopener">изворни код ↗</a>
+    <a href="https://github.com/acosonic/toiletgames" target="_blank" rel="noopener">GitHub ↗</a>
   </footer>
 </div>
 <script src="app.js"></script>

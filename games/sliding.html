@@ -5,110 +5,81 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Слагалица — Тоалет Игрице</title>
 <meta name="theme-color" content="#e94560">
+<script>(function(){var t=localStorage.getItem('tg-theme')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');if(t==='light')document.documentElement.classList.add('light');})()</script>
 <style>
 :root{--bg:#0f0f1a;--surface:#1a1a2e;--surface2:#16213e;--accent:#e94560;--text:#e0e0e0;--dim:#888}
+html.light{--bg:#f0f2f5;--surface:#fff;--surface2:#e2e5ea;--text:#1a1a2e;--dim:#666}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html{font-size:18px}html.xl{font-size:22px}
-body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,sans-serif;min-height:100dvh;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
-.topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--surface);gap:8px}
-.topbar a{color:var(--accent);text-decoration:none;font-size:1rem;font-weight:700;white-space:nowrap}
-.topbar h2{font-size:1rem;font-weight:700;flex:1;text-align:center}
-.font-btn{background:none;border:1px solid var(--dim);color:var(--text);border-radius:6px;padding:5px 9px;font-size:0.8rem;cursor:pointer}
+body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,sans-serif;min-height:100dvh;-webkit-tap-highlight-color:transparent;touch-action:manipulation;transition:background .2s,color .2s}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--surface);gap:6px;border-bottom:1px solid var(--surface2)}
+.topbar a{color:var(--accent);text-decoration:none;font-size:.95rem;font-weight:700;white-space:nowrap}
+.topbar h2{font-size:.95rem;font-weight:700;flex:1;text-align:center}
+.topbar-btns{display:flex;gap:4px;flex-shrink:0}
+.icon-btn{background:none;border:1px solid var(--dim);color:var(--text);border-radius:6px;padding:5px 8px;font-size:.78rem;cursor:pointer;white-space:nowrap;line-height:1}
 .wrap{padding:16px 12px 32px;max-width:420px;margin:0 auto;display:flex;flex-direction:column;align-items:center;gap:14px}
 .hud{display:flex;align-items:center;justify-content:space-between;width:100%;gap:8px}
 .moves{font-size:1rem;font-weight:700}
-.new-btn{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:8px 20px;font-size:0.95rem;font-weight:700;cursor:pointer}
-#puzzle{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;width:min(320px,calc(100vw - 24px));aspect-ratio:1;background:#16213e;border-radius:12px;padding:6px}
-.tile{border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:2rem;font-weight:800;cursor:pointer;background:var(--surface);user-select:none;transition:background 0.1s;aspect-ratio:1}
+.new-btn{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:8px 20px;font-size:.95rem;font-weight:700;cursor:pointer}
+#puzzle{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;width:min(320px,calc(100vw - 24px));aspect-ratio:1;border-radius:12px;padding:6px}
+html:not(.light) #puzzle{background:#16213e}
+html.light #puzzle{background:#ced2d9}
+.tile{border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:2rem;font-weight:800;cursor:pointer;background:var(--surface);user-select:none;transition:background .1s;aspect-ratio:1}
 html.xl .tile{font-size:2.4rem}
-.tile:active{background:var(--surface2)}
-.tile.empty{background:var(--bg);cursor:default}
+.tile:active{background:var(--surface2)}.tile.empty{background:var(--bg);cursor:default}
+html.light .tile.empty{background:#e2e5ea}
 .tile.solved{background:#1a3a1a;color:#5cb85c}
-.msg{font-size:1.1rem;font-weight:700;text-align:center;color:var(--accent);min-height:1.4em}
+html.light .tile.solved{background:#d4edda;color:#155724}
+.msg{font-size:1.05rem;font-weight:700;text-align:center;color:var(--accent);min-height:1.4em}
 </style>
 </head>
 <body>
 <div class="topbar">
-  <a href="../">← Назад</a>
-  <h2>🧩 Слагалица</h2>
-  <button class="font-btn" onclick="toggleFont()">Аа</button>
+  <a href="../" class="i18n" data-sr="← Назад" data-en="← Back">← Назад</a>
+  <h2 class="i18n" data-sr="🧩 Слагалица" data-en="🧩 Sliding Puzzle">🧩 Слагалица</h2>
+  <div class="topbar-btns">
+    <button class="icon-btn theme-btn" onclick="toggleTheme()">🌙</button>
+    <button class="icon-btn lang-btn" onclick="toggleLang()">EN</button>
+    <button class="icon-btn" onclick="toggleFont()">Аа</button>
+  </div>
 </div>
 <div class="wrap">
   <div class="hud">
-    <span class="moves">Потези: <span id="moves">0</span></span>
-    <button class="new-btn" onclick="newGame()">Нова</button>
-    <span class="moves">Рекорд: <span id="best">—</span></span>
+    <span class="moves"><span class="i18n" data-sr="Потези: " data-en="Moves: ">Потези: </span><span id="moves">0</span></span>
+    <button class="new-btn i18n" data-sr="Нова" data-en="New" onclick="newGame()">Нова</button>
+    <span class="moves"><span class="i18n" data-sr="Рекорд: " data-en="Best: ">Рекорд: </span><span id="best">—</span></span>
   </div>
   <div id="puzzle"></div>
   <div class="msg" id="msg"></div>
 </div>
 <script>
 (function(){
+  const _lang=()=>localStorage.getItem('tg-lang')||(/^(sr|hr|bs)/i.test(navigator.language)?'sr':'en');
+  const _theme=()=>localStorage.getItem('tg-theme')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');
+  function applyTheme(){const d=_theme()==='dark';document.documentElement.classList.toggle('light',!d);document.querySelectorAll('.theme-btn').forEach(b=>b.textContent=d?'☀️':'🌙');}
+  function applyI18n(){const L=_lang();document.querySelectorAll('[data-'+L+']').forEach(el=>el.textContent=el.dataset[L]);document.querySelectorAll('.lang-btn').forEach(b=>b.textContent=L==='sr'?'EN':'СР');document.documentElement.lang=L;}
+  window.toggleTheme=()=>{localStorage.setItem('tg-theme',_theme()==='dark'?'light':'dark');applyTheme();};
+  window.toggleLang=()=>{localStorage.setItem('tg-lang',_lang()==='sr'?'en':'sr');location.reload();};
+  window.toggleFont=()=>{const xl=document.documentElement.classList.toggle('xl');localStorage.setItem('tg-xl',xl?'1':'0');};
+  if(localStorage.getItem('tg-xl')==='1')document.documentElement.classList.add('xl');
+  applyTheme();applyI18n();
+  const L=_lang();
+  const winMsg=n=>L==='sr'?'🎉 Победа за '+n+' потеза!':'🎉 Solved in '+n+' moves!';
+
   let tiles,moves,over,best=+localStorage.getItem('tg-slide-best')||0;
   if(best)document.getElementById('best').textContent=best;
 
-  function toggleFont(){const xl=document.documentElement.classList.toggle('xl');localStorage.setItem('tg-xl',xl?'1':'0');}
-  if(localStorage.getItem('tg-xl')==='1')document.documentElement.classList.add('xl');
+  function newGame(){tiles=[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,0];shuffle();moves=0;over=false;document.getElementById('moves').textContent=0;document.getElementById('msg').textContent='';render();}
 
-  function newGame(){
-    tiles=[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,0];
-    shuffle();
-    moves=0;over=false;
-    document.getElementById('moves').textContent=0;
-    document.getElementById('msg').textContent='';
-    render();
-  }
+  function shuffle(){let empty=15;for(let i=0;i<500;i++){const ns=neighbors(empty);const n=ns[Math.floor(Math.random()*ns.length)];tiles[empty]=tiles[n];tiles[n]=0;empty=n;}}
 
-  function shuffle(){
-    // Shuffle by making random valid moves (ensures solvability)
-    let empty=15;
-    for(let i=0;i<500;i++){
-      const ns=neighbors(empty);
-      const n=ns[Math.floor(Math.random()*ns.length)];
-      tiles[empty]=tiles[n];tiles[n]=0;empty=n;
-    }
-  }
+  function neighbors(i){const r=Math.floor(i/4),c=i%4,ns=[];if(r>0)ns.push(i-4);if(r<3)ns.push(i+4);if(c>0)ns.push(i-1);if(c<3)ns.push(i+1);return ns;}
 
-  function neighbors(i){
-    const r=Math.floor(i/4),c=i%4,ns=[];
-    if(r>0)ns.push(i-4);if(r<3)ns.push(i+4);
-    if(c>0)ns.push(i-1);if(c<3)ns.push(i+1);
-    return ns;
-  }
+  function render(solved=false){const el=document.getElementById('puzzle');el.innerHTML='';tiles.forEach((v,i)=>{const t=document.createElement('div');t.className='tile'+(v===0?' empty':solved?' solved':'');t.textContent=v||'';t.addEventListener('click',()=>move(i));el.appendChild(t);});}
 
-  function render(solved=false){
-    const el=document.getElementById('puzzle');
-    el.innerHTML='';
-    tiles.forEach((v,i)=>{
-      const t=document.createElement('div');
-      t.className='tile'+(v===0?' empty':solved?' solved':'');
-      t.textContent=v||'';
-      t.addEventListener('click',()=>move(i));
-      el.appendChild(t);
-    });
-  }
+  function move(i){if(over)return;const empty=tiles.indexOf(0);if(!neighbors(empty).includes(i))return;tiles[empty]=tiles[i];tiles[i]=0;moves++;document.getElementById('moves').textContent=moves;const won=tiles.every((v,i)=>v===(i===15?0:i+1));if(won){over=true;if(!best||moves<best){best=moves;localStorage.setItem('tg-slide-best',best);document.getElementById('best').textContent=best;}document.getElementById('msg').textContent=winMsg(moves);render(true);}else render();}
 
-  function move(i){
-    if(over)return;
-    const empty=tiles.indexOf(0);
-    if(!neighbors(empty).includes(i))return;
-    tiles[empty]=tiles[i];tiles[i]=0;
-    moves++;
-    document.getElementById('moves').textContent=moves;
-    const won=tiles.every((v,i)=>v===(i===15?0:i+1));
-    if(won){
-      over=true;
-      if(!best||moves<best){best=moves;localStorage.setItem('tg-slide-best',best);document.getElementById('best').textContent=best;}
-      document.getElementById('msg').textContent='🎉 Победа за '+moves+' потеза!';
-      render(true);
-    } else {
-      render();
-    }
-  }
-
-  window.toggleFont=toggleFont;
-  window.newGame=newGame;
-  newGame();
+  window.newGame=newGame;newGame();
 })();
 </script>
 </body>

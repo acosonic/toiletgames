@@ -5,179 +5,123 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Блекџек — Тоалет Игрице</title>
 <meta name="theme-color" content="#e94560">
+<script>(function(){var t=localStorage.getItem('tg-theme')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');if(t==='light')document.documentElement.classList.add('light');})()</script>
 <style>
 :root{--bg:#0f0f1a;--surface:#1a1a2e;--surface2:#16213e;--accent:#e94560;--text:#e0e0e0;--dim:#888}
+html.light{--bg:#f0f2f5;--surface:#fff;--surface2:#e2e5ea;--text:#1a1a2e;--dim:#666}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html{font-size:18px}html.xl{font-size:22px}
-body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,sans-serif;min-height:100dvh;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
-.topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--surface);gap:8px}
-.topbar a{color:var(--accent);text-decoration:none;font-size:1rem;font-weight:700;white-space:nowrap}
-.topbar h2{font-size:1rem;font-weight:700;flex:1;text-align:center}
-.font-btn{background:none;border:1px solid var(--dim);color:var(--text);border-radius:6px;padding:5px 9px;font-size:0.8rem;cursor:pointer}
+body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,sans-serif;min-height:100dvh;-webkit-tap-highlight-color:transparent;touch-action:manipulation;transition:background .2s,color .2s}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--surface);gap:6px;border-bottom:1px solid var(--surface2)}
+.topbar a{color:var(--accent);text-decoration:none;font-size:.95rem;font-weight:700;white-space:nowrap}
+.topbar h2{font-size:.95rem;font-weight:700;flex:1;text-align:center}
+.topbar-btns{display:flex;gap:4px;flex-shrink:0}
+.icon-btn{background:none;border:1px solid var(--dim);color:var(--text);border-radius:6px;padding:5px 8px;font-size:.78rem;cursor:pointer;white-space:nowrap;line-height:1}
 .wrap{padding:16px 12px 32px;max-width:420px;margin:0 auto;display:flex;flex-direction:column;align-items:center;gap:14px}
 .scorebar{display:flex;gap:12px}
 .sc{background:var(--surface);border-radius:8px;padding:6px 16px;text-align:center}
-.sc .lbl{font-size:0.7rem;color:var(--dim)}
-.sc .val{font-size:1.2rem;font-weight:700}
+.sc .lbl{font-size:.7rem;color:var(--dim)}.sc .val{font-size:1.2rem;font-weight:700}
 .hand-area{background:var(--surface);border-radius:12px;padding:14px;width:100%;display:flex;flex-direction:column;gap:8px}
-.hand-lbl{font-size:0.8rem;color:var(--dim);font-weight:600}
+html.light .hand-area{box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.hand-lbl{font-size:.8rem;color:var(--dim);font-weight:600}
 .hand-score{font-size:1.1rem;font-weight:700;color:var(--accent)}
 .cards{display:flex;gap:6px;flex-wrap:wrap;min-height:80px;align-items:center}
-.card{background:#fff;color:#111;border-radius:8px;width:52px;height:72px;display:flex;flex-direction:column;justify-content:space-between;padding:4px;font-size:1.1rem;font-weight:800;box-shadow:0 2px 8px rgba(0,0,0,0.4);flex-shrink:0}
+.card{background:#fff;color:#111;border-radius:8px;width:52px;height:72px;display:flex;flex-direction:column;justify-content:space-between;padding:4px;font-size:1.1rem;font-weight:800;box-shadow:0 2px 8px rgba(0,0,0,.3);flex-shrink:0}
 html.xl .card{width:64px;height:90px;font-size:1.35rem}
 .card.red{color:#c0392b}
 .card.back{background:var(--surface2);color:var(--dim);font-size:1.8rem;align-items:center;justify-content:center}
-.card .corner-tl{align-self:flex-start;line-height:1}
-.card .corner-br{align-self:flex-end;transform:rotate(180deg);line-height:1}
+.card .corner-tl{align-self:flex-start;line-height:1}.card .corner-br{align-self:flex-end;transform:rotate(180deg);line-height:1}
 .action-row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
 .btn{border:none;border-radius:10px;padding:12px 28px;font-size:1.1rem;font-weight:700;cursor:pointer;-webkit-tap-highlight-color:transparent;min-width:100px}
 html.xl .btn{padding:14px 34px;font-size:1.3rem}
-.btn-hit{background:#27ae60;color:#fff}
-.btn-stand{background:#2980b9;color:#fff}
-.btn-deal{background:var(--accent);color:#fff}
-.btn:disabled{opacity:0.4;cursor:default}
-.msg{font-size:1.1rem;font-weight:700;text-align:center;min-height:1.6em;padding:8px 16px;border-radius:8px}
-.msg.win{background:#1a3a1a;color:#5cb85c}
-.msg.lose{background:#3a1a1a;color:#e94560}
-.msg.push{background:#1a1a3a;color:#60a3fc}
+.btn-hit{background:#27ae60;color:#fff}.btn-stand{background:#2980b9;color:#fff}.btn-deal{background:var(--accent);color:#fff}
+.btn:disabled{opacity:.4;cursor:default}
+.msg{font-size:1.05rem;font-weight:700;text-align:center;min-height:1.6em;padding:8px 16px;border-radius:8px}
+.msg.win{background:#1a3a1a;color:#5cb85c}.msg.lose{background:#3a1a1a;color:#e94560}.msg.push{background:#1a1a3a;color:#60a3fc}
+html.light .msg.win{background:#d4edda;color:#155724}
+html.light .msg.lose{background:#f8d7da;color:#721c24}
+html.light .msg.push{background:#cce5ff;color:#004085}
 </style>
 </head>
 <body>
 <div class="topbar">
-  <a href="../">← Назад</a>
-  <h2>🃏 Блекџек</h2>
-  <button class="font-btn" onclick="toggleFont()">Аа</button>
+  <a href="../" class="i18n" data-sr="← Назад" data-en="← Back">← Назад</a>
+  <h2 class="i18n" data-sr="🃏 Блекџек" data-en="🃏 Blackjack">🃏 Блекџек</h2>
+  <div class="topbar-btns">
+    <button class="icon-btn theme-btn" onclick="toggleTheme()">🌙</button>
+    <button class="icon-btn lang-btn" onclick="toggleLang()">EN</button>
+    <button class="icon-btn" onclick="toggleFont()">Аа</button>
+  </div>
 </div>
 <div class="wrap">
   <div class="scorebar">
-    <div class="sc"><div class="lbl">Победе</div><div class="val" id="wins">0</div></div>
-    <div class="sc"><div class="lbl">Пораз</div><div class="val" id="losses">0</div></div>
-    <div class="sc"><div class="lbl">Нерешено</div><div class="val" id="pushes">0</div></div>
+    <div class="sc"><div class="lbl i18n" data-sr="Победе" data-en="Wins">Победе</div><div class="val" id="wins">0</div></div>
+    <div class="sc"><div class="lbl i18n" data-sr="Пораз" data-en="Losses">Пораз</div><div class="val" id="losses">0</div></div>
+    <div class="sc"><div class="lbl i18n" data-sr="Нерешено" data-en="Draws">Нерешено</div><div class="val" id="pushes">0</div></div>
   </div>
-
   <div class="hand-area">
     <div style="display:flex;justify-content:space-between;align-items:center">
-      <span class="hand-lbl">Дилер</span>
+      <span class="hand-lbl i18n" data-sr="Дилер" data-en="Dealer">Дилер</span>
       <span class="hand-score" id="dealerScore"></span>
     </div>
     <div class="cards" id="dealerCards"></div>
   </div>
-
   <div class="hand-area">
     <div style="display:flex;justify-content:space-between;align-items:center">
-      <span class="hand-lbl">Ти</span>
+      <span class="hand-lbl i18n" data-sr="Ти" data-en="You">Ти</span>
       <span class="hand-score" id="playerScore"></span>
     </div>
     <div class="cards" id="playerCards"></div>
   </div>
-
   <div id="msg" class="msg" style="visibility:hidden">_</div>
-
   <div class="action-row">
-    <button class="btn btn-hit" id="btnHit" onclick="hit()" disabled>Карта (Hit)</button>
-    <button class="btn btn-stand" id="btnStand" onclick="stand()" disabled>Стани (Stand)</button>
-    <button class="btn btn-deal" id="btnDeal" onclick="deal()">Подели</button>
+    <button class="btn btn-hit" id="btnHit" onclick="hit()" disabled></button>
+    <button class="btn btn-stand" id="btnStand" onclick="stand()" disabled></button>
+    <button class="btn btn-deal" id="btnDeal" onclick="deal()"></button>
   </div>
 </div>
 <script>
 (function(){
+  const _lang=()=>localStorage.getItem('tg-lang')||(/^(sr|hr|bs)/i.test(navigator.language)?'sr':'en');
+  const _theme=()=>localStorage.getItem('tg-theme')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');
+  function applyTheme(){const d=_theme()==='dark';document.documentElement.classList.toggle('light',!d);document.querySelectorAll('.theme-btn').forEach(b=>b.textContent=d?'☀️':'🌙');}
+  function applyI18n(){const L=_lang();document.querySelectorAll('[data-'+L+']').forEach(el=>el.textContent=el.dataset[L]);document.querySelectorAll('.lang-btn').forEach(b=>b.textContent=L==='sr'?'EN':'СР');document.documentElement.lang=L;}
+  window.toggleTheme=()=>{localStorage.setItem('tg-theme',_theme()==='dark'?'light':'dark');applyTheme();};
+  window.toggleLang=()=>{localStorage.setItem('tg-lang',_lang()==='sr'?'en':'sr');location.reload();};
+  window.toggleFont=()=>{const xl=document.documentElement.classList.toggle('xl');localStorage.setItem('tg-xl',xl?'1':'0');};
+  if(localStorage.getItem('tg-xl')==='1')document.documentElement.classList.add('xl');
+  applyTheme();applyI18n();
+  const L=_lang();
+  const T={sr:{hit:'Карта (Hit)',stand:'Стани (Stand)',deal:'Подели',win:'🎉 Победа! (%s vs %s)',lose:'💀 Губитак! (%s vs %s)',push:'🤝 Нерешено! (%s)',bust:'💀 Преко 21! Губитак!'},en:{hit:'Hit',stand:'Stand',deal:'Deal',win:'🎉 You win! (%s vs %s)',lose:'💀 You lose! (%s vs %s)',push:'🤝 Push! (%s)',bust:'💀 Bust! You lose!'}};
+  const t=(k,a,b)=>(T[L][k]||T.sr[k]).replace('%s',a).replace('%s',b||'');
+  document.getElementById('btnHit').textContent=t('hit');
+  document.getElementById('btnStand').textContent=t('stand');
+  document.getElementById('btnDeal').textContent=t('deal');
+
   const SUITS=['♠','♥','♦','♣'],RANKS=['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
   let deck=[],player=[],dealer=[],gameOn=false,wins=0,losses=0,pushes=0;
 
-  function toggleFont(){const xl=document.documentElement.classList.toggle('xl');localStorage.setItem('tg-xl',xl?'1':'0');}
-  if(localStorage.getItem('tg-xl')==='1')document.documentElement.classList.add('xl');
-
-  function buildDeck(){
-    deck=[];
-    for(const s of SUITS)for(const r of RANKS)deck.push({rank:r,suit:s});
-    for(let i=deck.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[deck[i],deck[j]]=[deck[j],deck[i]];}
-  }
+  function buildDeck(){deck=[];for(const s of SUITS)for(const r of RANKS)deck.push({rank:r,suit:s});for(let i=deck.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[deck[i],deck[j]]=[deck[j],deck[i]];}}
 
   function draw(){if(deck.length<10)buildDeck();return deck.pop();}
 
-  function value(hand){
-    let total=0,aces=0;
-    for(const c of hand){
-      if(c==='?')continue;
-      if(c.rank==='A'){total+=11;aces++;}
-      else if(['J','Q','K'].includes(c.rank))total+=10;
-      else total+=+c.rank;
-    }
-    while(total>21&&aces>0){total-=10;aces--;}
-    return total;
-  }
+  function value(hand){let total=0,aces=0;for(const c of hand){if(c==='?')continue;if(c.rank==='A'){total+=11;aces++;}else if(['J','Q','K'].includes(c.rank))total+=10;else total+=+c.rank;}while(total>21&&aces>0){total-=10;aces--;}return total;}
 
-  function cardEl(c){
-    const el=document.createElement('div');
-    const red=c.suit==='♥'||c.suit==='♦';
-    el.className='card'+(c==='?'?' back':red?' red':'');
-    if(c==='?'){el.textContent='🂠';return el;}
-    el.innerHTML=`<div class="corner-tl">${c.rank}<br>${c.suit}</div><div class="corner-br">${c.rank}<br>${c.suit}</div>`;
-    return el;
-  }
+  function cardEl(c){const el=document.createElement('div');const red=c.suit==='♥'||c.suit==='♦';el.className='card'+(c==='?'?' back':red?' red':'');if(c==='?'){el.textContent='🂠';return el;}el.innerHTML=`<div class="corner-tl">${c.rank}<br>${c.suit}</div><div class="corner-br">${c.rank}<br>${c.suit}</div>`;return el;}
 
-  function render(hideDealer=true){
-    const dc=document.getElementById('dealerCards');
-    const pc=document.getElementById('playerCards');
-    dc.innerHTML='';pc.innerHTML='';
-    const dHand=hideDealer?[dealer[0],'?']:dealer;
-    dHand.forEach(c=>dc.appendChild(cardEl(c)));
-    player.forEach(c=>pc.appendChild(cardEl(c)));
-    document.getElementById('playerScore').textContent=value(player);
-    document.getElementById('dealerScore').textContent=hideDealer?'?':value(dealer);
-  }
+  function render(hideDealer=true){const dc=document.getElementById('dealerCards');const pc=document.getElementById('playerCards');dc.innerHTML='';pc.innerHTML='';const dHand=hideDealer?[dealer[0],'?']:dealer;dHand.forEach(c=>dc.appendChild(cardEl(c)));player.forEach(c=>pc.appendChild(cardEl(c)));document.getElementById('playerScore').textContent=value(player);document.getElementById('dealerScore').textContent=hideDealer?'?':value(dealer);}
 
-  function setMsg(text,type=''){
-    const el=document.getElementById('msg');
-    el.textContent=text;el.className='msg'+(type?' '+type:'');el.style.visibility='visible';
-  }
+  function setMsg(text,type=''){const el=document.getElementById('msg');el.textContent=text;el.className='msg'+(type?' '+type:'');el.style.visibility='visible';}
 
-  function deal(){
-    if(deck.length<15)buildDeck();
-    player=[draw(),draw()];dealer=[draw(),draw()];
-    gameOn=true;
-    document.getElementById('btnHit').disabled=false;
-    document.getElementById('btnStand').disabled=false;
-    document.getElementById('btnDeal').disabled=true;
-    document.getElementById('msg').style.visibility='hidden';
-    render(true);
-    if(value(player)===21){stand();}// natural blackjack
-  }
+  function deal(){if(deck.length<15)buildDeck();player=[draw(),draw()];dealer=[draw(),draw()];gameOn=true;setButtons(true);document.getElementById('msg').style.visibility='hidden';render(true);if(value(player)===21)stand();}
 
-  function hit(){
-    if(!gameOn)return;
-    player.push(draw());
-    render(true);
-    if(value(player)>21){
-      gameOn=false;setButtons(false);
-      render(false);
-      losses++;document.getElementById('losses').textContent=losses;
-      setMsg('💀 Преко 21! Губитак!','lose');
-    } else if(value(player)===21){stand();}
-  }
+  function hit(){if(!gameOn)return;player.push(draw());render(true);if(value(player)>21){gameOn=false;setButtons(false);render(false);losses++;document.getElementById('losses').textContent=losses;setMsg(t('bust'),'lose');}else if(value(player)===21)stand();}
 
-  function stand(){
-    if(!gameOn&&value(player)!==21)return;
-    gameOn=false;setButtons(false);
-    while(value(dealer)<17)dealer.push(draw());
-    render(false);
-    const p=value(player),d=value(dealer);
-    if(d>21||p>d){wins++;document.getElementById('wins').textContent=wins;setMsg('🎉 Победа! ('+p+' vs '+d+')','win');}
-    else if(p===d){pushes++;document.getElementById('pushes').textContent=pushes;setMsg('🤝 Нерешено! ('+p+')','push');}
-    else{losses++;document.getElementById('losses').textContent=losses;setMsg('💀 Губитак! ('+p+' vs '+d+')','lose');}
-  }
+  function stand(){if(!gameOn&&value(player)!==21)return;gameOn=false;setButtons(false);while(value(dealer)<17)dealer.push(draw());render(false);const p=value(player),d=value(dealer);if(d>21||p>d){wins++;document.getElementById('wins').textContent=wins;setMsg(t('win',p,d),'win');}else if(p===d){pushes++;document.getElementById('pushes').textContent=pushes;setMsg(t('push',p),'push');}else{losses++;document.getElementById('losses').textContent=losses;setMsg(t('lose',p,d),'lose');}}
 
-  function setButtons(on){
-    document.getElementById('btnHit').disabled=!on;
-    document.getElementById('btnStand').disabled=!on;
-    document.getElementById('btnDeal').disabled=on;
-  }
+  function setButtons(on){document.getElementById('btnHit').disabled=!on;document.getElementById('btnStand').disabled=!on;document.getElementById('btnDeal').disabled=on;}
 
-  window.toggleFont=toggleFont;
-  window.deal=deal;
-  window.hit=hit;
-  window.stand=stand;
-  buildDeck();
+  window.deal=deal;window.hit=hit;window.stand=stand;buildDeck();
 })();
 </script>
 </body>

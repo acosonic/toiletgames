@@ -5,52 +5,60 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Вешала — Тоалет Игрице</title>
 <meta name="theme-color" content="#e94560">
+<script>(function(){var t=localStorage.getItem('tg-theme')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');if(t==='light')document.documentElement.classList.add('light');})()</script>
 <style>
 :root{--bg:#0f0f1a;--surface:#1a1a2e;--surface2:#16213e;--accent:#e94560;--text:#e0e0e0;--dim:#888}
+html.light{--bg:#f0f2f5;--surface:#fff;--surface2:#e2e5ea;--text:#1a1a2e;--dim:#666}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html{font-size:18px}html.xl{font-size:22px}
-body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,sans-serif;min-height:100dvh;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
-.topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--surface);gap:8px}
-.topbar a{color:var(--accent);text-decoration:none;font-size:1rem;font-weight:700;white-space:nowrap}
-.topbar h2{font-size:1rem;font-weight:700;flex:1;text-align:center}
-.font-btn{background:none;border:1px solid var(--dim);color:var(--text);border-radius:6px;padding:5px 9px;font-size:0.8rem;cursor:pointer}
+body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,sans-serif;min-height:100dvh;-webkit-tap-highlight-color:transparent;touch-action:manipulation;transition:background .2s,color .2s}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--surface);gap:6px;border-bottom:1px solid var(--surface2)}
+.topbar a{color:var(--accent);text-decoration:none;font-size:.95rem;font-weight:700;white-space:nowrap}
+.topbar h2{font-size:.95rem;font-weight:700;flex:1;text-align:center}
+.topbar-btns{display:flex;gap:4px;flex-shrink:0}
+.icon-btn{background:none;border:1px solid var(--dim);color:var(--text);border-radius:6px;padding:5px 8px;font-size:.78rem;cursor:pointer;white-space:nowrap;line-height:1}
 .wrap{padding:12px 10px 24px;max-width:420px;margin:0 auto;display:flex;flex-direction:column;align-items:center;gap:12px}
 .hud{display:flex;align-items:center;justify-content:space-between;width:100%;gap:8px}
-.new-btn{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:7px 16px;font-size:0.9rem;font-weight:700;cursor:pointer}
+.new-btn{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:7px 16px;font-size:.9rem;font-weight:700;cursor:pointer}
 .lives{font-size:1rem;font-weight:700}
 svg.gallows{width:min(200px,55vw);height:min(200px,55vw)}
+.gallows-stroke{stroke:#555}
+html.light .gallows-stroke{stroke:#aaa}
 .word-row{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;padding:4px}
 .letter{font-size:1.6rem;font-weight:800;min-width:30px;text-align:center;border-bottom:3px solid var(--text);padding-bottom:2px;text-transform:uppercase;letter-spacing:1px}
 html.xl .letter{font-size:2rem;min-width:36px}
 .letter.blank{color:transparent}
-.wrong-letters{font-size:0.9rem;color:#e94560;text-align:center;min-height:1.4em;letter-spacing:3px;text-transform:uppercase}
+.wrong-letters{font-size:.9rem;color:#e94560;text-align:center;min-height:1.4em;letter-spacing:3px;text-transform:uppercase}
 #keyboard{display:flex;flex-wrap:wrap;gap:5px;justify-content:center;max-width:360px}
 .key{background:var(--surface);border:none;color:var(--text);border-radius:8px;width:40px;height:40px;font-size:1rem;font-weight:700;cursor:pointer;text-transform:uppercase;-webkit-tap-highlight-color:transparent}
 html.xl .key{width:48px;height:48px;font-size:1.2rem}
 .key.used-correct{background:#538d4e;color:#fff;cursor:default}
 .key.used-wrong{background:#3a3a3c;color:#666;cursor:default}
+html.light .key.used-wrong{background:#787c7e;color:#fff}
 .msg{font-size:1rem;font-weight:700;text-align:center;color:var(--accent);min-height:1.4em}
 </style>
 </head>
 <body>
 <div class="topbar">
-  <a href="../">← Назад</a>
-  <h2>🎪 Вешала</h2>
-  <button class="font-btn" onclick="toggleFont()">Аа</button>
+  <a href="../" class="i18n" data-sr="← Назад" data-en="← Back">← Назад</a>
+  <h2 class="i18n" data-sr="🎪 Вешала" data-en="🎪 Hangman">🎪 Вешала</h2>
+  <div class="topbar-btns">
+    <button class="icon-btn theme-btn" onclick="toggleTheme()">🌙</button>
+    <button class="icon-btn lang-btn" onclick="toggleLang()">EN</button>
+    <button class="icon-btn" onclick="toggleFont()">Аа</button>
+  </div>
 </div>
 <div class="wrap">
   <div class="hud">
-    <span class="lives" id="lives">❤️ 7</span>
-    <button class="new-btn" onclick="newGame()">Нова</button>
+    <span class="lives" id="lives">❤️ 6</span>
+    <button class="new-btn i18n" data-sr="Нова" data-en="New" onclick="newGame()">Нова</button>
     <span class="lives" id="score">✅ 0</span>
   </div>
   <svg class="gallows" viewBox="0 0 200 200" id="gallows">
-    <!-- gallows frame - always visible -->
-    <line x1="20" y1="190" x2="180" y2="190" stroke="#555" stroke-width="4" stroke-linecap="round"/>
-    <line x1="60" y1="190" x2="60" y2="20" stroke="#555" stroke-width="4" stroke-linecap="round"/>
-    <line x1="60" y1="20" x2="130" y2="20" stroke="#555" stroke-width="4" stroke-linecap="round"/>
-    <line x1="130" y1="20" x2="130" y2="40" stroke="#555" stroke-width="4" stroke-linecap="round"/>
-    <!-- body parts - shown as errors accumulate -->
+    <line x1="20" y1="190" x2="180" y2="190" class="gallows-stroke" stroke-width="4" stroke-linecap="round"/>
+    <line x1="60" y1="190" x2="60" y2="20" class="gallows-stroke" stroke-width="4" stroke-linecap="round"/>
+    <line x1="60" y1="20" x2="130" y2="20" class="gallows-stroke" stroke-width="4" stroke-linecap="round"/>
+    <line x1="130" y1="20" x2="130" y2="40" class="gallows-stroke" stroke-width="4" stroke-linecap="round"/>
     <circle id="hg-head" cx="130" cy="55" r="14" fill="none" stroke="#e94560" stroke-width="4" style="display:none"/>
     <line id="hg-body" x1="130" y1="69" x2="130" y2="120" stroke="#e94560" stroke-width="4" stroke-linecap="round" style="display:none"/>
     <line id="hg-arm1" x1="130" y1="80" x2="105" y2="105" stroke="#e94560" stroke-width="4" stroke-linecap="round" style="display:none"/>
@@ -65,78 +73,43 @@ html.xl .key{width:48px;height:48px;font-size:1.2rem}
 </div>
 <script>
 (function(){
+  const _lang=()=>localStorage.getItem('tg-lang')||(/^(sr|hr|bs)/i.test(navigator.language)?'sr':'en');
+  const _theme=()=>localStorage.getItem('tg-theme')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');
+  function applyTheme(){const d=_theme()==='dark';document.documentElement.classList.toggle('light',!d);document.querySelectorAll('.theme-btn').forEach(b=>b.textContent=d?'☀️':'🌙');}
+  function applyI18n(){const L=_lang();document.querySelectorAll('[data-'+L+']').forEach(el=>el.textContent=el.dataset[L]);document.querySelectorAll('.lang-btn').forEach(b=>b.textContent=L==='sr'?'EN':'СР');document.documentElement.lang=L;}
+  window.toggleTheme=()=>{localStorage.setItem('tg-theme',_theme()==='dark'?'light':'dark');applyTheme();};
+  window.toggleLang=()=>{localStorage.setItem('tg-lang',_lang()==='sr'?'en':'sr');location.reload();};
+  window.toggleFont=()=>{const xl=document.documentElement.classList.toggle('xl');localStorage.setItem('tg-xl',xl?'1':'0');};
+  if(localStorage.getItem('tg-xl')==='1')document.documentElement.classList.add('xl');
+  applyTheme();applyI18n();
+  const L=_lang();
+  const T={sr:{lose:'💀 Реч: ',win:'🎉 Победа!'},en:{lose:'💀 Word was: ',win:'🎉 You won!'}};
+  const t=k=>T[L][k];
+
   const WORDS=['AIRPLANE','ALLIGATOR','APPLE','BALLOON','BANANA','BICYCLE','BLANKET','BUTTERFLY','CACTUS','CANDLE','CASTLE','CHICKEN','CHOCOLATE','COMPASS','COMPUTER','CROCODILE','CRYSTAL','DOLPHIN','DRAGON','ELEPHANT','FIREPLACE','FLAMINGO','FOOTBALL','GIRAFFE','GLACIER','HAMMER','HELICOPTER','ICEBERG','JAGUAR','KEYBOARD','LANTERN','LIBRARY','LIGHTNING','LOBSTER','MAGNET','MAMMOTH','MANGO','MICROWAVE','MOUNTAIN','MUSHROOM','NOTEBOOK','PENGUIN','PINEAPPLE','PIRATE','RAINBOW','ROCKET','SCORPION','SNOWFLAKE','SPIDER','STARFISH','SUBMARINE','SUNFLOWER','TELESCOPE','TORNADO','TREASURE','UMBRELLA','VOLCANO','WATERFALL','WINDMILL','ZOMBIE'];
   const PARTS=['hg-head','hg-body','hg-arm1','hg-arm2','hg-leg1','hg-leg2'];
 
   let word,guessed,wrong,over,wins=0;
 
-  function toggleFont(){const xl=document.documentElement.classList.toggle('xl');localStorage.setItem('tg-xl',xl?'1':'0');}
-  if(localStorage.getItem('tg-xl')==='1')document.documentElement.classList.add('xl');
+  function newGame(){word=WORDS[Math.floor(Math.random()*WORDS.length)];guessed=new Set();wrong=[];over=false;PARTS.forEach(id=>document.getElementById(id).style.display='none');document.getElementById('msg').textContent='';renderWord();renderKeyboard();updateLives();}
 
-  function newGame(){
-    word=WORDS[Math.floor(Math.random()*WORDS.length)];
-    guessed=new Set();wrong=[];over=false;
-    PARTS.forEach(id=>document.getElementById(id).style.display='none');
-    document.getElementById('msg').textContent='';
-    renderWord();renderKeyboard();updateLives();
-  }
+  function renderWord(){const el=document.getElementById('wordRow');el.innerHTML='';for(const ch of word){const s=document.createElement('span');s.className='letter'+(guessed.has(ch)?'':' blank');s.textContent=ch;el.appendChild(s);}document.getElementById('wrongLetters').textContent=wrong.join(' ');}
 
-  function renderWord(){
-    const el=document.getElementById('wordRow');
-    el.innerHTML='';
-    for(const ch of word){
-      const s=document.createElement('span');
-      s.className='letter'+(guessed.has(ch)?'':' blank');
-      s.textContent=ch;
-      el.appendChild(s);
-    }
-    document.getElementById('wrongLetters').textContent=wrong.join(' ');
-  }
-
-  function renderKeyboard(){
-    const el=document.getElementById('keyboard');
-    el.innerHTML='';
-    for(let i=65;i<=90;i++){
-      const ch=String.fromCharCode(i);
-      const b=document.createElement('button');
-      b.className='key'+(guessed.has(ch)?(word.includes(ch)?' used-correct':' used-wrong'):'');
-      b.textContent=ch;
-      b.addEventListener('click',()=>guess(ch));
-      el.appendChild(b);
-    }
-  }
+  function renderKeyboard(){const el=document.getElementById('keyboard');el.innerHTML='';for(let i=65;i<=90;i++){const ch=String.fromCharCode(i);const b=document.createElement('button');b.className='key'+(guessed.has(ch)?(word.includes(ch)?' used-correct':' used-wrong'):'');b.textContent=ch;b.addEventListener('click',()=>guess(ch));el.appendChild(b);}}
 
   function guess(ch){
-    if(over||guessed.has(ch))return;
-    guessed.add(ch);
-    if(!word.includes(ch)){
-      wrong.push(ch);
-      if(wrong.length<=PARTS.length)document.getElementById(PARTS[wrong.length-1]).style.display='';
-      if(wrong.length>=PARTS.length){
-        over=true;
-        document.getElementById('msg').textContent='💀 Реч: '+word;
-      }
-    }
+    if(over||guessed.has(ch))return;guessed.add(ch);
+    if(!word.includes(ch)){wrong.push(ch);if(wrong.length<=PARTS.length)document.getElementById(PARTS[wrong.length-1]).style.display='';if(wrong.length>=PARTS.length){over=true;document.getElementById('msg').textContent=t('lose')+word;}}
     const solved=word.split('').every(c=>guessed.has(c));
-    if(solved&&!over){
-      over=true;wins++;
-      document.getElementById('score').textContent='✅ '+wins;
-      document.getElementById('msg').textContent='🎉 Победа!';
-    }
+    if(solved&&!over){over=true;wins++;document.getElementById('score').textContent='✅ '+wins;document.getElementById('msg').textContent=t('win');}
     renderWord();renderKeyboard();updateLives();
   }
 
-  function updateLives(){
-    document.getElementById('lives').textContent='❤️ '+(PARTS.length-wrong.length);
-  }
+  function updateLives(){document.getElementById('lives').textContent='❤️ '+(PARTS.length-wrong.length);}
 
-  document.addEventListener('keydown',e=>{
-    if(!over&&/^[a-zA-Z]$/.test(e.key))guess(e.key.toUpperCase());
-  });
+  document.addEventListener('keydown',e=>{if(!over&&/^[a-zA-Z]$/.test(e.key))guess(e.key.toUpperCase());});
 
-  window.toggleFont=toggleFont;
-  window.newGame=newGame;
-  newGame();
+  window.newGame=newGame;newGame();
 })();
 </script>
 </body>

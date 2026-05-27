@@ -5,55 +5,63 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Судоку — Тоалет Игрице</title>
 <meta name="theme-color" content="#e94560">
+<script>(function(){var t=localStorage.getItem('tg-theme')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');if(t==='light')document.documentElement.classList.add('light');})()</script>
 <style>
 :root{--bg:#0f0f1a;--surface:#1a1a2e;--surface2:#16213e;--accent:#e94560;--text:#e0e0e0;--dim:#888}
+html.light{--bg:#f0f2f5;--surface:#fff;--surface2:#e2e5ea;--text:#1a1a2e;--dim:#666}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html{font-size:18px}html.xl{font-size:22px}
-body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,sans-serif;min-height:100dvh;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
-.topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--surface);gap:8px}
-.topbar a{color:var(--accent);text-decoration:none;font-size:1rem;font-weight:700;white-space:nowrap}
-.topbar h2{font-size:1rem;font-weight:700;flex:1;text-align:center}
-.font-btn{background:none;border:1px solid var(--dim);color:var(--text);border-radius:6px;padding:5px 9px;font-size:0.8rem;cursor:pointer}
+body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,sans-serif;min-height:100dvh;-webkit-tap-highlight-color:transparent;touch-action:manipulation;transition:background .2s,color .2s}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--surface);gap:6px;border-bottom:1px solid var(--surface2)}
+.topbar a{color:var(--accent);text-decoration:none;font-size:.95rem;font-weight:700;white-space:nowrap}
+.topbar h2{font-size:.95rem;font-weight:700;flex:1;text-align:center}
+.topbar-btns{display:flex;gap:4px;flex-shrink:0}
+.icon-btn{background:none;border:1px solid var(--dim);color:var(--text);border-radius:6px;padding:5px 8px;font-size:.78rem;cursor:pointer;white-space:nowrap;line-height:1}
 .wrap{padding:10px 8px 32px;max-width:420px;margin:0 auto;display:flex;flex-direction:column;align-items:center;gap:10px}
 .hud{display:flex;align-items:center;justify-content:space-between;width:100%;gap:8px}
-.new-btn,.check-btn{border:none;border-radius:8px;padding:7px 14px;font-size:0.88rem;font-weight:700;cursor:pointer}
+.new-btn,.check-btn{border:none;border-radius:8px;padding:7px 14px;font-size:.88rem;font-weight:700;cursor:pointer}
 .new-btn{background:var(--accent);color:#fff}
 .check-btn{background:var(--surface2);color:var(--text);border:1px solid var(--dim)}
 #sudoku{display:grid;grid-template-columns:repeat(9,1fr);border:2px solid var(--accent);border-radius:4px;width:min(360px,calc(100vw - 16px));aspect-ratio:1}
-.cell{border:1px solid #333;display:flex;align-items:center;justify-content:center;font-size:1.1rem;font-weight:700;cursor:pointer;background:var(--bg);user-select:none;position:relative}
+.cell{border:1px solid #333;display:flex;align-items:center;justify-content:center;font-size:1.1rem;font-weight:700;cursor:pointer;background:var(--bg);user-select:none}
+html.light .cell{border-color:#ccc;background:#f9f9fb}
 html.xl .cell{font-size:1.4rem}
 .cell.given{color:var(--dim);cursor:default}
-.cell.selected{background:#1a1a2e}
-.cell.highlight{background:#16213e}
-.cell.error{color:#e94560}
-.cell.correct{color:#5cb85c}
-/* thick borders for 3x3 boxes */
+.cell.selected{background:var(--surface)}
+html.light .cell.selected{background:#e8eaed}
+.cell.highlight{background:var(--surface2)}
+html.light .cell.highlight{background:#eceef2}
+.cell.error{color:#e94560}.cell.correct{color:#5cb85c}
+html.light .cell.correct{color:#27ae60}
 .cell:nth-child(9n+1){border-left:2px solid var(--accent)}
-.cell:nth-child(9n+4){border-left:2px solid #555}
-.cell:nth-child(9n+7){border-left:2px solid #555}
+.cell:nth-child(9n+4),.cell:nth-child(9n+7){border-left:2px solid #555}
+html.light .cell:nth-child(9n+4),html.light .cell:nth-child(9n+7){border-left-color:#aaa}
 .cell:nth-child(-n+9){border-top:2px solid var(--accent)}
-.cell:nth-child(n+19):nth-child(-n+27){border-top:2px solid #555}
+.cell:nth-child(n+19):nth-child(-n+27),.cell:nth-child(n+37):nth-child(-n+45),.cell:nth-child(n+55):nth-child(-n+63),.cell:nth-child(n+73):nth-child(-n+81){border-top-color:#555}
 .cell:nth-child(n+37):nth-child(-n+45){border-top:2px solid var(--accent)}
-.cell:nth-child(n+55):nth-child(-n+63){border-top:2px solid #555}
-.cell:nth-child(n+73):nth-child(-n+81){border-top:2px solid #555}
+html.light .cell:nth-child(n+19):nth-child(-n+27),html.light .cell:nth-child(n+55):nth-child(-n+63),html.light .cell:nth-child(n+73):nth-child(-n+81){border-top-color:#aaa}
 .numpad{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;width:min(360px,calc(100vw - 16px))}
 .num-btn{background:var(--surface);border:none;color:var(--text);border-radius:8px;padding:12px 0;font-size:1.2rem;font-weight:700;cursor:pointer}
 html.xl .num-btn{font-size:1.5rem;padding:14px 0}
-.num-btn:active{background:var(--accent)}
-.num-btn.erase{background:var(--surface2);font-size:0.9rem}
-.msg{font-size:0.95rem;font-weight:700;text-align:center;min-height:1.4em;color:var(--accent)}
+.num-btn:active{background:var(--accent);color:#fff}
+.num-btn.erase{background:var(--surface2);font-size:.9rem}
+.msg{font-size:.95rem;font-weight:700;text-align:center;min-height:1.4em;color:var(--accent)}
 </style>
 </head>
 <body>
 <div class="topbar">
-  <a href="../">← Назад</a>
-  <h2>🔢 Судоку</h2>
-  <button class="font-btn" onclick="toggleFont()">Аа</button>
+  <a href="../" class="i18n" data-sr="← Назад" data-en="← Back">← Назад</a>
+  <h2 class="i18n" data-sr="🔢 Судоку" data-en="🔢 Sudoku">🔢 Судоку</h2>
+  <div class="topbar-btns">
+    <button class="icon-btn theme-btn" onclick="toggleTheme()">🌙</button>
+    <button class="icon-btn lang-btn" onclick="toggleLang()">EN</button>
+    <button class="icon-btn" onclick="toggleFont()">Аа</button>
+  </div>
 </div>
 <div class="wrap">
   <div class="hud">
-    <button class="new-btn" onclick="newGame()">Нова игра</button>
-    <button class="check-btn" onclick="checkSolution()">Провери</button>
+    <button class="new-btn i18n" data-sr="Нова игра" data-en="New game" onclick="newGame()">Нова игра</button>
+    <button class="check-btn i18n" data-sr="Провери" data-en="Check" onclick="checkSolution()">Провери</button>
   </div>
   <div id="sudoku"></div>
   <div class="numpad" id="numpad"></div>
@@ -61,86 +69,51 @@ html.xl .num-btn{font-size:1.5rem;padding:14px 0}
 </div>
 <script>
 (function(){
-  // puzzle: 0 = empty
+  const _lang=()=>localStorage.getItem('tg-lang')||(/^(sr|hr|bs)/i.test(navigator.language)?'sr':'en');
+  const _theme=()=>localStorage.getItem('tg-theme')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');
+  function applyTheme(){const d=_theme()==='dark';document.documentElement.classList.toggle('light',!d);document.querySelectorAll('.theme-btn').forEach(b=>b.textContent=d?'☀️':'🌙');}
+  function applyI18n(){const L=_lang();document.querySelectorAll('[data-'+L+']').forEach(el=>el.textContent=el.dataset[L]);document.querySelectorAll('.lang-btn').forEach(b=>b.textContent=L==='sr'?'EN':'СР');document.documentElement.lang=L;}
+  window.toggleTheme=()=>{localStorage.setItem('tg-theme',_theme()==='dark'?'light':'dark');applyTheme();};
+  window.toggleLang=()=>{localStorage.setItem('tg-lang',_lang()==='sr'?'en':'sr');location.reload();};
+  window.toggleFont=()=>{const xl=document.documentElement.classList.toggle('xl');localStorage.setItem('tg-xl',xl?'1':'0');};
+  if(localStorage.getItem('tg-xl')==='1')document.documentElement.classList.add('xl');
+  applyTheme();applyI18n();
+  const L=_lang();
+  const T={sr:{fill:'❗ Попуни све ћелије!',ok:'🎉 Тачно! Браво!',err:'❌ Постоје грешке (означено црвеном)'},en:{fill:'❗ Fill all cells!',ok:'🎉 Correct! Well done!',err:'❌ There are errors (shown in red)'}};
+  const t=k=>T[L][k];
+
   const PUZZLES=[
-    {p:[5,3,0,0,7,0,0,0,0,6,0,0,1,9,5,0,0,0,0,9,8,0,0,0,0,6,0,8,0,0,0,6,0,0,0,3,4,0,0,8,0,3,0,0,1,7,0,0,0,2,0,0,0,6,0,6,0,0,0,0,2,8,0,0,0,0,4,1,9,0,0,5,0,0,0,0,8,0,0,7,9],
-     s:[5,3,4,6,7,8,9,1,2,6,7,2,1,9,5,3,4,8,1,9,8,3,4,2,5,6,7,8,5,9,7,6,1,4,2,3,4,2,6,8,5,3,7,9,1,7,1,3,9,2,4,8,5,6,9,6,1,5,3,7,2,8,4,2,8,7,4,1,9,6,3,5,3,4,5,2,8,6,1,7,9]},
-    {p:[0,0,0,2,6,0,7,0,1,6,8,0,0,7,0,0,9,0,1,9,0,0,0,4,5,0,0,8,2,0,1,0,0,0,4,0,0,0,4,6,0,2,9,0,0,0,5,0,0,0,3,0,2,8,0,0,9,3,0,0,0,7,4,0,4,0,0,5,0,0,3,6,7,0,3,0,1,8,0,0,0],
-     s:[4,3,5,2,6,9,7,8,1,6,8,2,5,7,1,4,9,3,1,9,7,8,3,4,5,6,2,8,2,6,1,9,5,3,4,7,3,7,4,6,8,2,9,1,5,9,5,1,7,4,3,6,2,8,5,1,9,3,2,6,8,7,4,2,4,8,9,5,7,1,3,6,7,6,3,4,1,8,2,5,9]},
-    {p:[0,2,0,6,0,8,0,0,0,5,8,0,0,0,9,7,0,0,0,0,0,0,4,0,0,0,0,3,7,0,0,0,0,5,0,0,6,0,0,0,0,0,0,0,4,0,0,8,0,0,0,0,1,3,0,0,0,0,2,0,0,0,0,0,0,9,8,0,0,0,3,6,0,0,0,3,0,6,0,9,0],
-     s:[1,2,3,6,7,8,9,4,5,5,8,4,2,3,9,7,6,1,9,6,7,1,4,5,3,2,8,3,7,2,4,6,1,5,8,9,6,9,1,5,8,3,2,7,4,4,5,8,7,9,2,6,1,3,8,3,6,9,2,4,1,5,7,2,1,9,8,5,7,4,3,6,7,4,5,3,1,6,8,9,2]},
+    {p:[5,3,0,0,7,0,0,0,0,6,0,0,1,9,5,0,0,0,0,9,8,0,0,0,0,6,0,8,0,0,0,6,0,0,0,3,4,0,0,8,0,3,0,0,1,7,0,0,0,2,0,0,0,6,0,6,0,0,0,0,2,8,0,0,0,0,4,1,9,0,0,5,0,0,0,0,8,0,0,7,9],s:[5,3,4,6,7,8,9,1,2,6,7,2,1,9,5,3,4,8,1,9,8,3,4,2,5,6,7,8,5,9,7,6,1,4,2,3,4,2,6,8,5,3,7,9,1,7,1,3,9,2,4,8,5,6,9,6,1,5,3,7,2,8,4,2,8,7,4,1,9,6,3,5,3,4,5,2,8,6,1,7,9]},
+    {p:[0,0,0,2,6,0,7,0,1,6,8,0,0,7,0,0,9,0,1,9,0,0,0,4,5,0,0,8,2,0,1,0,0,0,4,0,0,0,4,6,0,2,9,0,0,0,5,0,0,0,3,0,2,8,0,0,9,3,0,0,0,7,4,0,4,0,0,5,0,0,3,6,7,0,3,0,1,8,0,0,0],s:[4,3,5,2,6,9,7,8,1,6,8,2,5,7,1,4,9,3,1,9,7,8,3,4,5,6,2,8,2,6,1,9,5,3,4,7,3,7,4,6,8,2,9,1,5,9,5,1,7,4,3,6,2,8,5,1,9,3,2,6,8,7,4,2,4,8,9,5,7,1,3,6,7,6,3,4,1,8,2,5,9]},
+    {p:[0,2,0,6,0,8,0,0,0,5,8,0,0,0,9,7,0,0,0,0,0,0,4,0,0,0,0,3,7,0,0,0,0,5,0,0,6,0,0,0,0,0,0,0,4,0,0,8,0,0,0,0,1,3,0,0,0,0,2,0,0,0,0,0,0,9,8,0,0,0,3,6,0,0,0,3,0,6,0,9,0],s:[1,2,3,6,7,8,9,4,5,5,8,4,2,3,9,7,6,1,9,6,7,1,4,5,3,2,8,3,7,2,4,6,1,5,8,9,6,9,1,5,8,3,2,7,4,4,5,8,7,9,2,6,1,3,8,3,6,9,2,4,1,5,7,2,1,9,8,5,7,4,3,6,7,4,5,3,1,6,8,9,2]},
   ];
   let puzzle,solution,userGrid,selected=null,pi=0;
 
-  function toggleFont(){const xl=document.documentElement.classList.toggle('xl');localStorage.setItem('tg-xl',xl?'1':'0');}
-  if(localStorage.getItem('tg-xl')==='1')document.documentElement.classList.add('xl');
-
-  function newGame(){
-    pi=(pi+1)%PUZZLES.length;
-    puzzle=[...PUZZLES[pi].p];
-    solution=[...PUZZLES[pi].s];
-    userGrid=puzzle.map(v=>v);
-    selected=null;
-    document.getElementById('msg').textContent='';
-    render();
-  }
+  function newGame(){pi=(pi+1)%PUZZLES.length;puzzle=[...PUZZLES[pi].p];solution=[...PUZZLES[pi].s];userGrid=puzzle.map(v=>v);selected=null;document.getElementById('msg').textContent='';render();}
 
   function render(){
-    const el=document.getElementById('sudoku');
-    el.innerHTML='';
+    const el=document.getElementById('sudoku');el.innerHTML='';
     for(let i=0;i<81;i++){
-      const c=document.createElement('div');
-      c.className='cell';
-      const r=Math.floor(i/9),col=i%9;
+      const c=document.createElement('div');c.className='cell';const r=Math.floor(i/9),col=i%9;
       if(puzzle[i]){c.classList.add('given');c.textContent=puzzle[i];}
-      else if(userGrid[i]){
-        c.textContent=userGrid[i];
-        if(userGrid[i]===solution[i])c.classList.add('correct');
-        else c.classList.add('error');
-      }
+      else if(userGrid[i]){c.textContent=userGrid[i];c.classList.add(userGrid[i]===solution[i]?'correct':'error');}
       if(selected===i)c.classList.add('selected');
-      else if(selected!==null){
-        const sr=Math.floor(selected/9),sc=selected%9;
-        const sb=Math.floor(sr/3)*3+Math.floor(sc/3);
-        const tb=Math.floor(r/3)*3+Math.floor(col/3);
-        if(r===sr||col===sc||sb===tb)c.classList.add('highlight');
-      }
+      else if(selected!==null){const sr=Math.floor(selected/9),sc=selected%9;const sb=Math.floor(sr/3)*3+Math.floor(sc/3);const tb=Math.floor(r/3)*3+Math.floor(col/3);if(r===sr||col===sc||sb===tb)c.classList.add('highlight');}
       c.addEventListener('click',()=>{if(!puzzle[i]){selected=i;render();}});
       el.appendChild(c);
     }
-    // numpad
     const np=document.getElementById('numpad');
     if(!np.children.length){
-      for(let n=1;n<=9;n++){
-        const b=document.createElement('button');
-        b.className='num-btn';b.textContent=n;
-        b.addEventListener('click',()=>enter(n));
-        np.appendChild(b);
-      }
-      const e=document.createElement('button');
-      e.className='num-btn erase';e.textContent='⌫';
-      e.addEventListener('click',()=>enter(0));
-      np.appendChild(e);
+      for(let n=1;n<=9;n++){const b=document.createElement('button');b.className='num-btn';b.textContent=n;b.addEventListener('click',()=>enter(n));np.appendChild(b);}
+      const e=document.createElement('button');e.className='num-btn erase';e.textContent='⌫';e.addEventListener('click',()=>enter(0));np.appendChild(e);
     }
   }
 
-  function enter(n){
-    if(selected===null||puzzle[selected])return;
-    userGrid[selected]=n;
-    render();
-  }
+  function enter(n){if(selected===null||puzzle[selected])return;userGrid[selected]=n;render();}
 
-  function checkSolution(){
-    const filled=userGrid.every(v=>v>0);
-    const correct=userGrid.every((v,i)=>v===solution[i]);
-    if(!filled)document.getElementById('msg').textContent='❗ Попуни све ћелије!';
-    else if(correct)document.getElementById('msg').textContent='🎉 Тачно! Браво!';
-    else document.getElementById('msg').textContent='❌ Постоје грешке (означено црвеном)';
-  }
+  function checkSolution(){const filled=userGrid.every(v=>v>0);const correct=userGrid.every((v,i)=>v===solution[i]);if(!filled)document.getElementById('msg').textContent=t('fill');else if(correct)document.getElementById('msg').textContent=t('ok');else document.getElementById('msg').textContent=t('err');}
 
-  window.toggleFont=toggleFont;
-  window.newGame=newGame;
-  window.checkSolution=checkSolution;
+  window.newGame=newGame;window.checkSolution=checkSolution;
   newGame();
 })();
 </script>
