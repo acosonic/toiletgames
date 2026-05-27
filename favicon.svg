@@ -1,45 +1,115 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="Тоалет Игрице">
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="-20 0 200 200" width="512" height="512" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <clipPath id="rounded"><rect width="512" height="512" rx="108"/></clipPath>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#1a1a2e"/>
+    <linearGradient id="bgG" x1="0" y1="0" x2="0.4" y2="1">
+      <stop offset="0%" stop-color="#1e2d52"/>
       <stop offset="100%" stop-color="#0f0f1a"/>
     </linearGradient>
+    <linearGradient id="toiletG" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#c4d8ea"/>
+    </linearGradient>
+    <linearGradient id="phoneG" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1e3060"/>
+      <stop offset="100%" stop-color="#0b1225"/>
+    </linearGradient>
+    <linearGradient id="screenG" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#5dd4f4"/>
+      <stop offset="100%" stop-color="#1565c0"/>
+    </linearGradient>
+    <radialGradient id="faceG" cx="50%" cy="40%" r="60%">
+      <stop offset="0%" stop-color="#ffd09b"/>
+      <stop offset="100%" stop-color="#e8956d"/>
+    </radialGradient>
   </defs>
 
-  <g clip-path="url(#rounded)">
-    <rect width="512" height="512" fill="url(#bg)"/>
-  </g>
+  <!-- Background -->
+  <rect x="-20" y="0" width="200" height="200" rx="32" fill="url(#bgG)"/>
 
-  <!-- White rounded panel -->
-  <rect x="72" y="100" width="368" height="312" rx="48"
-        fill="#ffffff" stroke="#e94560" stroke-width="18" stroke-linejoin="round" paint-order="stroke fill"/>
+  <!-- Toilet bowl -->
+  <path style="stroke-width:0.422446"
+    d="M 98.649662,147.98469 H 38.10108 v -46.15756 c 0,-5.418607 -4.95712,-9.811627
+       -11.072523,-9.811627 h -6.522881 c -6.114951,0 -11.0725162,4.39262
+       -11.0725162,9.811627 0,12.71022 0,82.27166 0,90.26794 0,3.83948
+       3.5125242,6.95201 7.8454082,6.95201 h 46.003479 c 3.250448,0
+       6.164766,-1.77638 7.326635,-4.46659 l 8.388419,-19.41846
+       c 12.530571,-4.86545 21.384819,-13.55765 23.038539,-23.71644
+       0.29709,-1.82211 -1.29784,-3.4609 -3.385978,-3.4609 z"
+    fill="url(#toiletG)" stroke="#8aafc8" stroke-width="2.4"/>
 
-  <!-- Game controller body (oval) -->
-  <ellipse cx="256" cy="268" rx="130" ry="88" fill="#1a1a2e"/>
+  <!-- Body / red shirt -->
+  <path d="m 82.17,95.317 c 0.047,-0.334 0.098,-0.665 0.146,-0.997 L 62.877,71.3
+     c -1.723,-2.039 -2.548,-4.629 -2.324,-7.291 0.226,-2.662 1.472,-5.076
+     3.511,-6.8 1.803,-1.521 4.095,-2.36 6.45,-2.36 2.951,0 5.738,1.292
+     7.645,3.546 l 20.607,24.406 29.236,-12.184 c 1.229,-0.511 2.521,-0.217309
+     3.842,-0.217309 1.135,0 2.227,0.996559 3.259,0.601478 l -0.46812,0.08487
+     c 3.538,-2.645 -11.40875,5.13485 -3.9474,-3.774149 -6.43388,3.72394
+     -0.39205,-5.486816 -3.93205,-2.842816 L 101.846,75.286 83.291,50.104
+     C 82.045,48.414 80.26,47.364 78.35,47 78.013,46.879 77.671,46.768
+     77.318,46.68 68.78,44.55 56.405,49.187 51.37,63.83 c -3.282,9.73
+     -5.309,17.823 -6.252,26.086 -1.011,8.869 -0.769,17.933 0.57,29.434
+     3.129,16.102 14.164,17.754 23.328,17.637 0.612,-0.008 1.201,-0.02
+     1.769,-0.039 0.133,0.004 0.262,0.02 0.394,0.02 h 8.086 30.394
+     l 5.263,50.666 c 0.668,6.43 6.098,11.212 12.421,11.212 0.431,0
+     0.865,-0.022 1.304,-0.068 6.867,-0.715 11.856,-6.858 11.144,-13.727
+     l -6.429,-61.877 c -0.664,-6.377 -6.02,-11.208 -12.433,-11.208
+     l -33.355648,-2.84241 -3.257294,1.26329
+     C 84.335058,104.86288 81.396,100.806 82.17,95.317 Z"
+    fill="#e94560"/>
 
-  <!-- Left bumper -->
-  <rect x="100" y="188" width="68" height="28" rx="14" fill="#1a1a2e"/>
-  <!-- Right bumper -->
-  <rect x="344" y="188" width="68" height="28" rx="14" fill="#1a1a2e"/>
+  <!-- Arm (skin) -->
+  <path d="M 128.772,72.464 98.182,85.211 76.63,59.688
+     c -2.852,-3.375 -7.899,-3.801 -11.274,-0.951
+     -3.375,2.852 -3.801,7.898 -0.949,11.275 h -0.002
+     l 25.335,30 c 1.551,1.837 3.813,2.836 6.123,2.836
+     1.032,0 2.074,-0.2 3.066,-0.613 l 35.998,-15.001
+     c 4.078,-1.7 6.007,-6.384 4.308,-10.462
+     -1.701,-4.079 -6.384,-6.006 -10.463,-4.308 z"
+    fill="url(#faceG)"/>
 
-  <!-- D-pad left -->
-  <rect x="148" y="248" width="52" height="18" rx="6" fill="#e94560"/>
-  <rect x="165" y="231" width="18" height="52" rx="6" fill="#e94560"/>
+  <!-- Face background (shows through hair ring's evenodd hole) -->
+  <circle cx="96.38" cy="29.02" r="17.6" fill="url(#faceG)"/>
 
-  <!-- ABXY buttons right -->
-  <circle cx="330" cy="248" r="11" fill="#e94560"/>
-  <circle cx="356" cy="268" r="11" fill="#533483"/>
-  <circle cx="330" cy="288" r="11" fill="#0c4076"/>
-  <circle cx="304" cy="268" r="11" fill="#2d7a3a"/>
+  <!-- Hair ring + face features (evenodd: ring=hair, hole=face, rects=eyebrows) -->
+  <path style="stroke-width:3.03666" fill-rule="evenodd"
+    d="M 108.50744,31.964803 A 12.540195,11.794829 0 0 1 96.377424,40.799881
+       12.540195,11.794829 0 0 1 84.247409,31.964803 Z
+       M 71.328345,29.019777 c 0,-13.011125 11.240775,-23.5602081
+       25.049079,-23.5602081 13.833356,0 25.049086,10.5726441
+       25.049086,23.5602081 0,13.011126 -11.24078,23.560209
+       -25.049086,23.560209 -13.833354,0 -25.049079,-10.572644
+       -25.049079,-23.560209 z
+       m 6.26227,0 c 0,9.739202 8.410229,17.670156 18.786809,17.670156
+       10.354656,0 18.786816,-7.91034 18.786816,-17.670156
+       0,-9.739201 -8.41023,-17.670156 -18.786816,-17.670156
+       -10.354662,0 -18.786809,7.91034 -18.786809,17.670156 z
+       m 9.393405,-8.835078 h 6.262267 v 5.890052 H 86.98402 Z
+       m 12.524543,0 h 6.262267 v 5.890052 h -6.262267 z"
+    fill="#3d2510"/>
 
-  <!-- Start/select center bars -->
-  <rect x="232" y="263" width="22" height="8" rx="4" fill="#555"/>
-  <rect x="258" y="263" width="22" height="8" rx="4" fill="#555"/>
+  <!-- Phone screen glow (behind phone body, visible through evenodd cutout) -->
+  <rect x="131.2" y="41.2" width="15.8" height="17.5" rx="1.5"
+    fill="url(#screenG)"/>
 
-  <!-- Toilet paper roll top (small, above controller) -->
-  <ellipse cx="256" cy="148" rx="38" ry="22" fill="#fff" stroke="#e94560" stroke-width="6"/>
-  <rect x="218" y="148" width="76" height="20" rx="0" fill="#fff"/>
-  <ellipse cx="256" cy="168" rx="38" ry="22" fill="#f0f0f0" stroke="#ccc" stroke-width="3"/>
-  <ellipse cx="256" cy="148" rx="20" ry="12" fill="#e0e0e0"/>
+  <!-- Phone body (evenodd frame: fills outer rect, cuts screen, fills bottom bar) -->
+  <path style="stroke-width:1.65374" fill-rule="evenodd" clip-rule="evenodd"
+    d="m 150.27596,42.207299 c 0,-2.739994 -2.22114,-4.961217
+       -4.96122,-4.961217 h -13.22991 c -2.74,0 -4.96122,2.221223
+       -4.96122,4.961217 v 26.45983 c 0,2.74008 2.22122,4.96122
+       4.96122,4.96122 h 13.22991 c 2.74008,0 4.96122,-2.22114
+       4.96122,-4.96122 z
+       m -3.30748,0 c 0,-0.913328 -0.74038,-1.653739
+       -1.65374,-1.653739 h -13.22991 c -0.91333,0
+       -1.65374,0.740411 -1.65374,1.653739 v 18.191135 h 16.53739 z
+       m -16.53739,26.45983 v -4.961217 h 16.53739 v 4.961217
+       c 0,0.91336 -0.74038,1.65374 -1.65374,1.65374 h -13.22991
+       c -0.91333,0 -1.65374,-0.74038 -1.65374,-1.65374 z"
+    fill="url(#phoneG)" stroke="#3d78c8" stroke-width="1.2"/>
+
+  <!-- Phone home button -->
+  <circle cx="139.33" cy="67.33" r="2" fill="#5baee8"/>
+
+  <!-- Accent border ring -->
+  <rect x="-17" y="3" width="194" height="194" rx="29"
+    fill="none" stroke="#e94560" stroke-width="6"/>
 </svg>
