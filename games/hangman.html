@@ -35,6 +35,8 @@ html.xl .key{width:48px;height:48px;font-size:1.2rem}
 .key.used-correct{background:#538d4e;color:#fff;cursor:default}
 .key.used-wrong{background:#3a3a3c;color:#666;cursor:default}
 html.light .key.used-wrong{background:#787c7e;color:#fff}
+.hint-box{font-size:1rem;text-align:center;color:var(--dim);min-height:1.4em;letter-spacing:.02em}
+.hint-box strong{color:var(--text)}
 .msg{font-size:1rem;font-weight:700;text-align:center;color:var(--accent);min-height:1.4em}
 </style>
 </head>
@@ -66,6 +68,7 @@ html.light .key.used-wrong{background:#787c7e;color:#fff}
     <line id="hg-leg1" x1="130" y1="120" x2="105" y2="150" stroke="#e94560" stroke-width="4" stroke-linecap="round" style="display:none"/>
     <line id="hg-leg2" x1="130" y1="120" x2="155" y2="150" stroke="#e94560" stroke-width="4" stroke-linecap="round" style="display:none"/>
   </svg>
+  <div class="hint-box" id="hintBox"></div>
   <div class="word-row" id="wordRow"></div>
   <div class="wrong-letters" id="wrongLetters"></div>
   <div id="keyboard"></div>
@@ -83,15 +86,37 @@ html.light .key.used-wrong{background:#787c7e;color:#fff}
   if(localStorage.getItem('tg-xl')==='1')document.documentElement.classList.add('xl');
   applyTheme();applyI18n();
   const L=_lang();
-  const T={sr:{lose:'💀 Реч: ',win:'🎉 Победа!'},en:{lose:'💀 Word was: ',win:'🎉 You won!'}};
+  const T={sr:{lose:'💀 Реч: ',win:'🎉 Победа!',hint:'Тема: '},en:{lose:'💀 Word was: ',win:'🎉 You won!',hint:'Category: '}};
   const t=k=>T[L][k];
 
-  const WORDS=['AIRPLANE','ALLIGATOR','APPLE','BALLOON','BANANA','BICYCLE','BLANKET','BUTTERFLY','CACTUS','CANDLE','CASTLE','CHICKEN','CHOCOLATE','COMPASS','COMPUTER','CROCODILE','CRYSTAL','DOLPHIN','DRAGON','ELEPHANT','FIREPLACE','FLAMINGO','FOOTBALL','GIRAFFE','GLACIER','HAMMER','HELICOPTER','ICEBERG','JAGUAR','KEYBOARD','LANTERN','LIBRARY','LIGHTNING','LOBSTER','MAGNET','MAMMOTH','MANGO','MICROWAVE','MOUNTAIN','MUSHROOM','NOTEBOOK','PENGUIN','PINEAPPLE','PIRATE','RAINBOW','ROCKET','SCORPION','SNOWFLAKE','SPIDER','STARFISH','SUBMARINE','SUNFLOWER','TELESCOPE','TORNADO','TREASURE','UMBRELLA','VOLCANO','WATERFALL','WINDMILL','ZOMBIE'];
+  const WORDS=[
+    {w:'ALLIGATOR',c:'🐾 Animal'},{w:'BUTTERFLY',c:'🐾 Animal'},{w:'CHICKEN',c:'🐾 Animal'},
+    {w:'CROCODILE',c:'🐾 Animal'},{w:'DOLPHIN',c:'🐾 Animal'},{w:'ELEPHANT',c:'🐾 Animal'},
+    {w:'FLAMINGO',c:'🐾 Animal'},{w:'GIRAFFE',c:'🐾 Animal'},{w:'JAGUAR',c:'🐾 Animal'},
+    {w:'LOBSTER',c:'🐾 Animal'},{w:'MAMMOTH',c:'🐾 Animal'},{w:'PENGUIN',c:'🐾 Animal'},
+    {w:'SCORPION',c:'🐾 Animal'},{w:'SPIDER',c:'🐾 Animal'},{w:'STARFISH',c:'🐾 Animal'},
+    {w:'AIRPLANE',c:'🔧 Object'},{w:'BALLOON',c:'🔧 Object'},{w:'BICYCLE',c:'🔧 Object'},
+    {w:'BLANKET',c:'🔧 Object'},{w:'CANDLE',c:'🔧 Object'},{w:'COMPASS',c:'🔧 Object'},
+    {w:'COMPUTER',c:'🔧 Object'},{w:'HAMMER',c:'🔧 Object'},{w:'HELICOPTER',c:'🔧 Object'},
+    {w:'KEYBOARD',c:'🔧 Object'},{w:'LANTERN',c:'🔧 Object'},{w:'MAGNET',c:'🔧 Object'},
+    {w:'MICROWAVE',c:'🔧 Object'},{w:'NOTEBOOK',c:'🔧 Object'},{w:'ROCKET',c:'🔧 Object'},
+    {w:'TELESCOPE',c:'🔧 Object'},{w:'UMBRELLA',c:'🔧 Object'},{w:'SUBMARINE',c:'🔧 Object'},
+    {w:'APPLE',c:'🍎 Food'},{w:'BANANA',c:'🍎 Food'},{w:'CHOCOLATE',c:'🍎 Food'},
+    {w:'MANGO',c:'🍎 Food'},{w:'PINEAPPLE',c:'🍎 Food'},
+    {w:'CACTUS',c:'🌿 Nature'},{w:'CRYSTAL',c:'🌿 Nature'},{w:'GLACIER',c:'🌿 Nature'},
+    {w:'ICEBERG',c:'🌿 Nature'},{w:'LIGHTNING',c:'🌿 Nature'},{w:'MOUNTAIN',c:'🌿 Nature'},
+    {w:'MUSHROOM',c:'🌿 Nature'},{w:'RAINBOW',c:'🌿 Nature'},{w:'SNOWFLAKE',c:'🌿 Nature'},
+    {w:'SUNFLOWER',c:'🌿 Nature'},{w:'TORNADO',c:'🌿 Nature'},{w:'VOLCANO',c:'🌿 Nature'},
+    {w:'WATERFALL',c:'🌿 Nature'},{w:'WINDMILL',c:'🌿 Nature'},
+    {w:'CASTLE',c:'⚔️ Fantasy'},{w:'DRAGON',c:'⚔️ Fantasy'},{w:'PIRATE',c:'⚔️ Fantasy'},
+    {w:'TREASURE',c:'⚔️ Fantasy'},{w:'ZOMBIE',c:'⚔️ Fantasy'},{w:'FIREPLACE',c:'🏠 Place'},
+    {w:'LIBRARY',c:'🏠 Place'},{w:'FOOTBALL',c:'⚽ Sport'},
+  ];
   const PARTS=['hg-head','hg-body','hg-arm1','hg-arm2','hg-leg1','hg-leg2'];
 
-  let word,guessed,wrong,over,wins=0;
+  let word,category,guessed,wrong,over,wins=0;
 
-  function newGame(){word=WORDS[Math.floor(Math.random()*WORDS.length)];guessed=new Set();wrong=[];over=false;PARTS.forEach(id=>document.getElementById(id).style.display='none');document.getElementById('msg').textContent='';renderWord();renderKeyboard();updateLives();}
+  function newGame(){const entry=WORDS[Math.floor(Math.random()*WORDS.length)];word=entry.w;category=entry.c;guessed=new Set();wrong=[];over=false;PARTS.forEach(id=>document.getElementById(id).style.display='none');document.getElementById('msg').textContent='';document.getElementById('hintBox').innerHTML=t('hint')+'<strong>'+category+'</strong>';renderWord();renderKeyboard();updateLives();}
 
   function renderWord(){const el=document.getElementById('wordRow');el.innerHTML='';for(const ch of word){const s=document.createElement('span');s.className='letter'+(guessed.has(ch)?'':' blank');s.textContent=ch;el.appendChild(s);}document.getElementById('wrongLetters').textContent=wrong.join(' ');}
 
