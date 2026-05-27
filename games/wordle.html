@@ -35,8 +35,8 @@ html.light .tile.absent{background:#787c7e;border-color:#787c7e;color:#fff}
 .key{background:var(--surface2);border:none;color:var(--text);border-radius:6px;height:46px;min-width:32px;font-size:.85rem;font-weight:700;cursor:pointer;flex:1;max-width:40px;text-transform:uppercase;-webkit-tap-highlight-color:transparent}
 html.light .key{background:#d3d6da;color:#1a1a2e}
 html.xl .key{height:54px;font-size:1rem}
-.key.wide{max-width:60px;font-size:.75rem}
-html.xl .key.wide{max-width:72px}
+.key.wide{max-width:72px;font-size:.68rem}
+html.xl .key.wide{max-width:86px;font-size:.82rem}
 .key.correct{background:#538d4e;color:#fff}
 .key.present{background:#b59f3b;color:#fff}
 .key.absent{background:#3a3a3c;color:#666}
@@ -102,8 +102,9 @@ html.light .key.absent{background:#787c7e;color:#fff}
 
   function renderKeyboard(){
     const el=document.getElementById('keyboard');el.innerHTML='';
-    const rows=['qwertyuiop','asdfghjkl','↵zxcvbnm⌫'];
-    rows.forEach(row=>{const div=document.createElement('div');div.className='kb-row';for(const ch of row){const b=document.createElement('button');b.className='key'+(ch==='↵'||ch==='⌫'?' wide':'');b.textContent=ch.toUpperCase();if(keyState[ch])b.classList.add(keyState[ch]);b.addEventListener('click',()=>keyPress(ch));div.appendChild(b);}el.appendChild(div);});
+    const rows=[['q','w','e','r','t','y','u','i','o','p'],['a','s','d','f','g','h','j','k','l'],['↵','z','x','c','v','b','n','m','⌫']];
+    const lbl={'↵':'ENTER','⌫':'⌫'};
+    rows.forEach(row=>{const div=document.createElement('div');div.className='kb-row';row.forEach(ch=>{const b=document.createElement('button');b.className='key'+(ch==='↵'||ch==='⌫'?' wide':'');b.textContent=lbl[ch]||ch.toUpperCase();if(keyState[ch])b.classList.add(keyState[ch]);b.addEventListener('click',()=>keyPress(ch));div.appendChild(b);});el.appendChild(div);});
   }
 
   function keyPress(ch){if(over)return;if(ch==='⌫')current=current.slice(0,-1);else if(ch==='↵')submit();else if(current.length<5&&/[a-z]/.test(ch))current+=ch;renderGrid();}
