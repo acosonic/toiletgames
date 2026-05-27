@@ -84,7 +84,7 @@ canvas{border-radius:10px;display:block;touch-action:none}
     const light=_theme()==='light';
     ctx.fillStyle=light?'#e8eaed':'#0f0f1a';ctx.fillRect(0,0,canvas.width,canvas.height);
     ctx.fillStyle='#e94560';ctx.beginPath();ctx.arc(food.x*cell+cell/2,food.y*cell+cell/2,cell/2-2,0,Math.PI*2);ctx.fill();
-    snake.forEach((s,i)=>{ctx.fillStyle=i===0?'#5cb85c':'#27ae60';ctx.beginPath();ctx.roundRect(s.x*cell+1,s.y*cell+1,cell-2,cell-2,4);ctx.fill();});
+    snake.forEach((s,i)=>{ctx.fillStyle=i===0?'#5cb85c':'#27ae60';ctx.fillRect(s.x*cell+1,s.y*cell+1,cell-2,cell-2);});
     if(over){ctx.fillStyle='rgba(0,0,0,0.4)';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.fillStyle='#e94560';ctx.font='bold '+cell*1.5+'px system-ui';ctx.textAlign='center';ctx.fillText('💀',canvas.width/2,canvas.height/2+cell/2);}
   }
 
