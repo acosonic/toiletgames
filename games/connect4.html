@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Четири у низ — Тоалет Игрице</title>
+<meta name="theme-color" content="#e94560">
+<style>
+:root{--bg:#0f0f1a;--surface:#1a1a2e;--surface2:#16213e;--accent:#e94560;--text:#e0e0e0;--dim:#888}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:18px}html.xl{font-size:22px}
+body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,sans-serif;min-height:100dvh;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--surface);gap:8px}
+.topbar a{color:var(--accent);text-decoration:none;font-size:1rem;font-weight:700;white-space:nowrap}
+.topbar h2{font-size:1rem;font-weight:700;flex:1;text-align:center}
+.font-btn{background:none;border:1px solid var(--dim);color:var(--text);border-radius:6px;padding:5px 9px;font-size:0.8rem;cursor:pointer}
+.wrap{padding:12px 10px 32px;max-width:420px;margin:0 auto;display:flex;flex-direction:column;align-items:center;gap:10px}
+.hud{display:flex;align-items:center;justify-content:space-between;width:100%;gap:8px}
+.turn{font-size:1rem;font-weight:700}
+.new-btn{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:7px 16px;font-size:0.9rem;font-weight:700;cursor:pointer}
+.mode-row{display:flex;gap:8px}
+.mode-btn{background:var(--surface);border:1px solid var(--dim);color:var(--text);border-radius:8px;padding:6px 12px;font-size:0.82rem;cursor:pointer}
+.mode-btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
+#arena{position:relative}
+.col-btns{display:flex;gap:4px;justify-content:center;margin-bottom:4px}
+.col-btn{background:var(--surface2);border:none;color:var(--text);border-radius:6px;width:44px;height:32px;font-size:1.1rem;cursor:pointer;-webkit-tap-highlight-color:transparent}
+html.xl .col-btn{width:52px}
+.col-btn:active{background:var(--accent)}
+#grid{background:#16213e;border-radius:10px;padding:5px;display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.hole{width:40px;height:40px;border-radius:50%;background:var(--bg);display:flex;align-items:center;justify-content:center}
+html.xl .hole{width:48px;height:48px}
+.hole.r{background:#e94560}
+.hole.y{background:#f1c40f}
+.hole.win-r{background:#e94560;box-shadow:0 0 10px #e94560}
+.hole.win-y{background:#f1c40f;box-shadow:0 0 10px #f1c40f}
+.msg{font-size:1rem;font-weight:700;text-align:center;min-height:1.4em;color:var(--accent)}
+.scorebar{display:flex;gap:10px}
+.sc{background:var(--surface);border-radius:8px;padding:6px 14px;text-align:center}
+.sc .lbl{font-size:0.68rem;color:var(--dim)}
+.sc .val{font-size:1.1rem;font-weight:700}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <a href="../">← Назад</a>
+  <h2>🔴 Четири у низ</h2>
+  <button class="font-btn" onclick="toggleFont()">Аа</button>
+</div>
+<div class="wrap">
+  <div class="mode-row">
+    <button class="mode-btn active" id="m2p" onclick="setMode('2p')">2 играча</button>
+    <button class="mode-btn" id="mai" onclick="setMode('ai')">Против АИ</button>
+  </div>
+  <div class="scorebar">
+    <div class="sc"><div class="lbl">🔴 Победе</div><div class="val" id="sr">0</div></div>
+    <div class="sc"><div class="lbl">🟡 Победе</div><div class="val" id="sy">0</div></div>
+  </div>
+  <div class="hud">
+    <span class="turn" id="turn">Ред: 🔴</span>
+    <button class="new-btn" onclick="newGame()">Нова</button>
+  </div>
+  <div id="arena">
+    <div class="col-btns" id="colBtns"></div>
+    <div id="grid"></div>
+  </div>
+  <div class="msg" id="msg"></div>
+</div>
+<script>
+(function(){
+  const ROWS=6,COLS=7;
+  let board,cur,mode='2p',sr=0,sy=0,over;
+
+  function toggleFont(){const xl=document.documentElement.classList.toggle('xl');localStorage.setItem('tg-xl',xl?'1':'0');}
+  if(localStorage.getItem('tg-xl')==='1')document.documentElement.classList.add('xl');
+
+  function setMode(m){mode=m;document.getElementById('m2p').classList.toggle('active',m==='2p');document.getElementById('mai').classList.toggle('active',m==='ai');newGame();}
+
+  function newGame(){
+    board=Array.from({length:ROWS},()=>Array(COLS).fill(0));
+    cur=1;over=false;
+    document.getElementById('turn').textContent='Ред: 🔴';
+    document.getElementById('msg').textContent='';
+    renderBtns();render();
+  }
+
+  function renderBtns(){
+    const el=document.getElementById('colBtns');
+    el.innerHTML='';
+    for(let c=0;c<COLS;c++){
+      const b=document.createElement('button');
+      b.className='col-btn';b.textContent='▼';
+      b.addEventListener('click',()=>drop(c));
+      el.appendChild(b);
+    }
+  }
+
+  function render(wins=[]){
+    const el=document.getElementById('grid');
+    el.innerHTML='';
+    for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
+      const h=document.createElement('div');
+      const v=board[r][c];
+      const isWin=wins.some(([wr,wc])=>wr===r&&wc===c);
+      h.className='hole'+(v===1?(isWin?' win-r':' r'):v===2?(isWin?' win-y':' y'):'');
+      el.appendChild(h);
+    }
+  }
+
+  function drop(c){
+    if(over)return;
+    if(mode==='ai'&&cur===2)return;
+    doMove(c);
+  }
+
+  function doMove(c){
+    let r=-1;
+    for(let row=ROWS-1;row>=0;row--){if(!board[row][c]){r=row;break;}}
+    if(r===-1)return;
+    board[r][c]=cur;
+    const wins=checkWin(r,c);
+    if(wins.length){
+      over=true;
+      if(cur===1){sr++;document.getElementById('sr').textContent=sr;}
+      else{sy++;document.getElementById('sy').textContent=sy;}
+      document.getElementById('msg').textContent=(cur===1?'🔴':'🟡')+' победио!';
+      document.getElementById('turn').textContent='';
+      render(wins);return;
+    }
+    if(board[0].every(v=>v)){
+      over=true;document.getElementById('msg').textContent='🤝 Нерешено!';render();return;
+    }
+    cur=cur===1?2:1;
+    document.getElementById('turn').textContent='Ред: '+(cur===1?'🔴':'🟡');
+    render();
+    if(mode==='ai'&&cur===2&&!over)setTimeout(aiMove,400);
+  }
+
+  function aiMove(){
+    // Try to win, else block, else random
+    for(let c=0;c<COLS;c++){const r=topRow(c);if(r>=0){board[r][c]=2;if(checkWin(r,c).length){board[r][c]=0;doMove(c);return;}board[r][c]=0;}}
+    for(let c=0;c<COLS;c++){const r=topRow(c);if(r>=0){board[r][c]=1;if(checkWin(r,c).length){board[r][c]=0;doMove(c);return;}board[r][c]=0;}}
+    const avail=[];for(let c=0;c<COLS;c++)if(topRow(c)>=0)avail.push(c);
+    doMove(avail[Math.floor(Math.random()*avail.length)]);
+  }
+
+  function topRow(c){for(let r=ROWS-1;r>=0;r--)if(!board[r][c])return r;return -1;}
+
+  function checkWin(r,c){
+    const p=board[r][c];
+    const dirs=[[0,1],[1,0],[1,1],[1,-1]];
+    for(const [dr,dc] of dirs){
+      const line=[[r,c]];
+      for(let s=1;s<4;s++){const nr=r+dr*s,nc=c+dc*s;if(nr>=0&&nr<ROWS&&nc>=0&&nc<COLS&&board[nr][nc]===p)line.push([nr,nc]);else break;}
+      for(let s=1;s<4;s++){const nr=r-dr*s,nc=c-dc*s;if(nr>=0&&nr<ROWS&&nc>=0&&nc<COLS&&board[nr][nc]===p)line.push([nr,nc]);else break;}
+      if(line.length>=4)return line;
+    }
+    return[];
+  }
+
+  window.toggleFont=toggleFont;
+  window.newGame=newGame;
+  window.setMode=setMode;
+  window.drop=drop;
+  newGame();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Минерски — Тоалет Игрице</title>
+<meta name="theme-color" content="#e94560">
+<style>
+:root{--bg:#0f0f1a;--surface:#1a1a2e;--surface2:#16213e;--accent:#e94560;--text:#e0e0e0;--dim:#888;--r:10px}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:18px}
+html.xl{font-size:22px}
+body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,sans-serif;min-height:100dvh;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--surface);position:sticky;top:0;z-index:10;gap:8px}
+.topbar a{color:var(--accent);text-decoration:none;font-size:1rem;font-weight:700;white-space:nowrap}
+.topbar h2{font-size:1rem;font-weight:700;flex:1;text-align:center}
+.font-btn,.diff-btn{background:none;border:1px solid var(--dim);color:var(--text);border-radius:6px;padding:5px 9px;font-size:0.8rem;cursor:pointer;white-space:nowrap}
+.wrap{padding:12px 10px 32px;max-width:480px;margin:0 auto}
+.status{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;font-size:1rem;gap:8px}
+.status .mines{font-size:1.2rem;font-weight:700;color:var(--accent)}
+.status .timer{font-weight:700}
+.new-btn{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:0.95rem;font-weight:700;cursor:pointer}
+#board{display:inline-grid;gap:3px;margin:8px auto;display:grid}
+.cell{width:40px;height:40px;background:var(--surface);border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;font-weight:700;cursor:pointer;user-select:none;border:2px solid var(--surface2);transition:background 0.1s}
+html.xl .cell{width:48px;height:48px;font-size:1.3rem}
+.cell.revealed{background:var(--bg);border-color:transparent;cursor:default}
+.cell.mine-hit{background:#e94560}
+.cell.flagged{background:var(--surface2)}
+.cell[data-n="1"]{color:#60a3fc}
+.cell[data-n="2"]{color:#5cb85c}
+.cell[data-n="3"]{color:#e94560}
+.cell[data-n="4"]{color:#9b59b6}
+.cell[data-n="5"]{color:#e67e22}
+.cell[data-n="6"]{color:#1abc9c}
+.cell[data-n="7"]{color:#e74c3c}
+.cell[data-n="8"]{color:var(--dim)}
+.msg{text-align:center;font-size:1.1rem;font-weight:700;padding:10px;border-radius:8px;margin-top:8px}
+.msg.win{background:#1a3a1a;color:#5cb85c}
+.msg.lose{background:#3a1a1a;color:#e94560}
+.diff-row{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+.diff-btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
+.hint{font-size:0.75rem;color:var(--dim);text-align:center;margin-top:6px}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <a href="../">← Назад</a>
+  <h2>💣 Минерски</h2>
+  <button class="font-btn" onclick="toggleFont()">Аа</button>
+</div>
+<div class="wrap">
+  <div class="diff-row">
+    <button class="diff-btn active" onclick="setDiff(0)" id="d0">Лако 9×9</button>
+    <button class="diff-btn" onclick="setDiff(1)" id="d1">Средње 12×9</button>
+  </div>
+  <div class="status">
+    <span class="mines" id="mineCount">💣 10</span>
+    <button class="new-btn" onclick="newGame()">Нова игра</button>
+    <span class="timer" id="timer">⏱ 0</span>
+  </div>
+  <div id="board"></div>
+  <div id="msg" class="msg" style="display:none"></div>
+  <p class="hint">Дуго притисни да означиш заставицом 🚩</p>
+</div>
+<script>
+(function(){
+  const DIFFS=[{cols:9,rows:9,mines:10},{cols:12,rows:9,mines:20}];
+  let diff=0,cols,rows,mines,board,revealed,flagged,started,over,timerEl,timerInterval,t;
+
+  function toggleFont(){const xl=document.documentElement.classList.toggle('xl');localStorage.setItem('tg-xl',xl?'1':'0');}
+  if(localStorage.getItem('tg-xl')==='1')document.documentElement.classList.add('xl');
+
+  function setDiff(d){
+    diff=d;
+    document.querySelectorAll('.diff-btn').forEach((b,i)=>b.classList.toggle('active',i===d));
+    newGame();
+  }
+
+  function newGame(){
+    const cfg=DIFFS[diff];
+    cols=cfg.cols;rows=cfg.rows;mines=cfg.mines;
+    board=Array(rows*cols).fill(0);
+    revealed=Array(rows*cols).fill(false);
+    flagged=Array(rows*cols).fill(false);
+    started=false;over=false;t=0;
+    clearInterval(timerInterval);
+    document.getElementById('timer').textContent='⏱ 0';
+    document.getElementById('mineCount').textContent='💣 '+mines;
+    document.getElementById('msg').style.display='none';
+    render();
+  }
+
+  function render(){
+    const el=document.getElementById('board');
+    el.style.gridTemplateColumns=`repeat(${cols},1fr)`;
+    el.innerHTML='';
+    for(let i=0;i<rows*cols;i++){
+      const c=document.createElement('div');
+      c.className='cell';
+      if(revealed[i]){
+        c.classList.add('revealed');
+        if(board[i]===-1){c.classList.add('mine-hit');c.textContent='💣';}
+        else if(board[i]>0){c.textContent=board[i];c.dataset.n=board[i];}
+      } else if(flagged[i]){
+        c.classList.add('flagged');c.textContent='🚩';
+      }
+      c.addEventListener('click',()=>reveal(i));
+      c.addEventListener('contextmenu',(e)=>{e.preventDefault();flag(i);});
+      let pressTimer;
+      c.addEventListener('touchstart',()=>{pressTimer=setTimeout(()=>flag(i),500);},{passive:true});
+      c.addEventListener('touchend',()=>clearTimeout(pressTimer));
+      c.addEventListener('touchmove',()=>clearTimeout(pressTimer));
+      el.appendChild(c);
+    }
+  }
+
+  function placeMines(avoid){
+    let placed=0;
+    while(placed<mines){
+      const idx=Math.floor(Math.random()*rows*cols);
+      if(board[idx]===0&&idx!==avoid){board[idx]=-1;placed++;}
+    }
+    for(let i=0;i<rows*cols;i++){
+      if(board[i]===-1)continue;
+      board[i]=neighbors(i).filter(n=>board[n]===-1).length;
+    }
+  }
+
+  function neighbors(i){
+    const r=Math.floor(i/cols),c=i%cols,ns=[];
+    for(let dr=-1;dr<=1;dr++)for(let dc=-1;dc<=1;dc++){
+      if(!dr&&!dc)continue;
+      const nr=r+dr,nc=c+dc;
+      if(nr>=0&&nr<rows&&nc>=0&&nc<cols)ns.push(nr*cols+nc);
+    }
+    return ns;
+  }
+
+  function reveal(i){
+    if(over||revealed[i]||flagged[i])return;
+    if(!started){placeMines(i);started=true;timerInterval=setInterval(()=>{t++;document.getElementById('timer').textContent='⏱ '+t;},1000);}
+    flood(i);
+    checkWin();
+    render();
+  }
+
+  function flood(i){
+    if(revealed[i]||flagged[i])return;
+    revealed[i]=true;
+    if(board[i]===-1){over=true;clearInterval(timerInterval);showAllMines();showMsg('lose','💥 Погодио минуте!');}
+    else if(board[i]===0)neighbors(i).forEach(flood);
+  }
+
+  function showAllMines(){
+    for(let i=0;i<rows*cols;i++){if(board[i]===-1)revealed[i]=true;}
+  }
+
+  function flag(i){
+    if(over||revealed[i])return;
+    flagged[i]=!flagged[i];
+    const cnt=mines-flagged.filter(Boolean).length;
+    document.getElementById('mineCount').textContent='💣 '+cnt;
+    render();
+  }
+
+  function checkWin(){
+    const safe=board.filter(v=>v!==-1).length;
+    if(revealed.filter(Boolean).length>=safe){
+      over=true;clearInterval(timerInterval);
+      showMsg('win','🎉 Победа за '+t+' секунди!');
+    }
+  }
+
+  function showMsg(type,text){
+    const el=document.getElementById('msg');
+    el.className='msg '+type;el.textContent=text;el.style.display='block';
+  }
+
+  window.toggleFont=toggleFont;
+  window.newGame=newGame;
+  window.setDiff=setDiff;
+  newGame();
+})();
+</script>
+</body>
+</html>

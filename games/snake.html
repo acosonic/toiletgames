@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Змија — Тоалет Игрице</title>
+<meta name="theme-color" content="#e94560">
+<style>
+:root{--bg:#0f0f1a;--surface:#1a1a2e;--surface2:#16213e;--accent:#e94560;--text:#e0e0e0;--dim:#888}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:18px}
+html.xl{font-size:22px}
+body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,sans-serif;min-height:100dvh;-webkit-tap-highlight-color:transparent;touch-action:none;overflow:hidden}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--surface);gap:8px}
+.topbar a{color:var(--accent);text-decoration:none;font-size:1rem;font-weight:700;white-space:nowrap}
+.topbar h2{font-size:1rem;font-weight:700;flex:1;text-align:center}
+.font-btn{background:none;border:1px solid var(--dim);color:var(--text);border-radius:6px;padding:5px 9px;font-size:0.8rem;cursor:pointer}
+.wrap{padding:8px 10px;max-width:420px;margin:0 auto;display:flex;flex-direction:column;align-items:center;gap:8px}
+.hud{display:flex;align-items:center;justify-content:space-between;width:100%;max-width:360px}
+.score{font-size:1.2rem;font-weight:700}
+.new-btn{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:7px 16px;font-size:0.9rem;font-weight:700;cursor:pointer}
+canvas{border-radius:10px;display:block;touch-action:none}
+.dpad{display:grid;grid-template-columns:repeat(3,64px);grid-template-rows:repeat(2,64px);gap:6px;margin-top:8px}
+.dpad button{background:var(--surface);border:none;border-radius:10px;color:var(--text);font-size:1.6rem;cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent;active:scale(0.9)}
+.dpad button:active{background:var(--accent)}
+.dpad .up{grid-column:2;grid-row:1}
+.dpad .left{grid-column:1;grid-row:2}
+.dpad .down{grid-column:2;grid-row:2}
+.dpad .right{grid-column:3;grid-row:2}
+.msg{font-size:1rem;font-weight:700;color:var(--accent)}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <a href="../">← Назад</a>
+  <h2>🐍 Змија</h2>
+  <button class="font-btn" onclick="toggleFont()">Аа</button>
+</div>
+<div class="wrap">
+  <div class="hud">
+    <span class="score" id="score">🍎 0</span>
+    <button class="new-btn" onclick="newGame()">Нова</button>
+    <span class="score" id="best">🏆 0</span>
+  </div>
+  <canvas id="c"></canvas>
+  <div class="dpad">
+    <button class="up" onclick="setDir(0,-1)">▲</button>
+    <button class="left" onclick="setDir(-1,0)">◄</button>
+    <button class="down" onclick="setDir(0,1)">▼</button>
+    <button class="right" onclick="setDir(1,0)">►</button>
+  </div>
+  <div class="msg" id="msg"></div>
+</div>
+<script>
+(function(){
+  const COLS=20,ROWS=20;
+  let snake,dir,nextDir,food,score,best=+localStorage.getItem('tg-snake-best')||0,interval,over,canvas,ctx,cell;
+
+  function toggleFont(){const xl=document.documentElement.classList.toggle('xl');localStorage.setItem('tg-xl',xl?'1':'0');}
+  if(localStorage.getItem('tg-xl')==='1')document.documentElement.classList.add('xl');
+  document.getElementById('best').textContent='🏆 '+best;
+
+  function setup(){
+    canvas=document.getElementById('c');
+    const w=Math.min(360,window.innerWidth-20);
+    cell=Math.floor(w/COLS);
+    canvas.width=cell*COLS;canvas.height=cell*ROWS;
+    ctx=canvas.getContext('2d');
+  }
+
+  function newGame(){
+    clearInterval(interval);
+    snake=[{x:10,y:10},{x:9,y:10},{x:8,y:10}];
+    dir={x:1,y:0};nextDir={x:1,y:0};
+    score=0;over=false;
+    placeFood();
+    document.getElementById('score').textContent='🍎 0';
+    document.getElementById('msg').textContent='';
+    interval=setInterval(tick,160);
+    draw();
+  }
+
+  function placeFood(){
+    let pos;
+    do{pos={x:Math.floor(Math.random()*COLS),y:Math.floor(Math.random()*ROWS)};}
+    while(snake.some(s=>s.x===pos.x&&s.y===pos.y));
+    food=pos;
+  }
+
+  function tick(){
+    if(over)return;
+    dir=nextDir;
+    const head={x:(snake[0].x+dir.x+COLS)%COLS,y:(snake[0].y+dir.y+ROWS)%ROWS};
+    if(snake.some(s=>s.x===head.x&&s.y===head.y)){
+      over=true;clearInterval(interval);
+      document.getElementById('msg').textContent='💀 Крај! Резултат: '+score;
+      draw();return;
+    }
+    snake.unshift(head);
+    if(head.x===food.x&&head.y===food.y){
+      score++;
+      if(score>best){best=score;localStorage.setItem('tg-snake-best',best);document.getElementById('best').textContent='🏆 '+best;}
+      document.getElementById('score').textContent='🍎 '+score;
+      placeFood();
+    } else {
+      snake.pop();
+    }
+    draw();
+  }
+
+  function draw(){
+    ctx.fillStyle='#0f0f1a';ctx.fillRect(0,0,canvas.width,canvas.height);
+    // food
+    ctx.fillStyle='#e94560';
+    ctx.beginPath();ctx.arc(food.x*cell+cell/2,food.y*cell+cell/2,cell/2-2,0,Math.PI*2);ctx.fill();
+    // snake
+    snake.forEach((s,i)=>{
+      ctx.fillStyle=i===0?'#5cb85c':'#27ae60';
+      ctx.beginPath();ctx.roundRect(s.x*cell+1,s.y*cell+1,cell-2,cell-2,4);ctx.fill();
+    });
+    if(over){
+      ctx.fillStyle='rgba(0,0,0,0.5)';ctx.fillRect(0,0,canvas.width,canvas.height);
+      ctx.fillStyle='#e94560';ctx.font='bold '+cell*1.5+'px system-ui';
+      ctx.textAlign='center';ctx.fillText('💀',canvas.width/2,canvas.height/2+cell/2);
+    }
+  }
+
+  function setDir(dx,dy){
+    if(dir.x===-dx&&dir.y===-dy)return;
+    nextDir={x:dx,y:dy};
+  }
+
+  // Touch swipe
+  let tx,ty;
+  canvas.addEventListener('touchstart',e=>{tx=e.touches[0].clientX;ty=e.touches[0].clientY;},{passive:true});
+  canvas.addEventListener('touchend',e=>{
+    const dx=e.changedTouches[0].clientX-tx,dy=e.changedTouches[0].clientY-ty;
+    if(Math.max(Math.abs(dx),Math.abs(dy))<15)return;
+    if(Math.abs(dx)>Math.abs(dy))setDir(dx>0?1:-1,0);
+    else setDir(0,dy>0?1:-1);
+  },{passive:true});
+
+  document.addEventListener('keydown',e=>{
+    const map={ArrowLeft:[-1,0],ArrowRight:[1,0],ArrowUp:[0,-1],ArrowDown:[0,1]};
+    if(map[e.key]){e.preventDefault();setDir(...map[e.key]);}
+  });
+
+  window.toggleFont=toggleFont;
+  window.newGame=newGame;
+  window.setDir=setDir;
+  setup();newGame();
+  window.addEventListener('resize',()=>{setup();draw();});
+})();
+</script>
+</body>
+</html>

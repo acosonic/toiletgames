@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Сајмон — Тоалет Игрице</title>
+<meta name="theme-color" content="#e94560">
+<style>
+:root{--bg:#0f0f1a;--surface:#1a1a2e;--accent:#e94560;--text:#e0e0e0;--dim:#888}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:18px}html.xl{font-size:22px}
+body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,sans-serif;min-height:100dvh;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--surface);gap:8px}
+.topbar a{color:var(--accent);text-decoration:none;font-size:1rem;font-weight:700;white-space:nowrap}
+.topbar h2{font-size:1rem;font-weight:700;flex:1;text-align:center}
+.font-btn{background:none;border:1px solid var(--dim);color:var(--text);border-radius:6px;padding:5px 9px;font-size:0.8rem;cursor:pointer}
+.wrap{padding:16px 14px 32px;max-width:400px;margin:0 auto;display:flex;flex-direction:column;align-items:center;gap:16px}
+.info{display:flex;align-items:center;justify-content:space-between;width:100%;max-width:320px}
+.level{font-size:1.2rem;font-weight:700}
+.new-btn{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:8px 20px;font-size:0.95rem;font-weight:700;cursor:pointer}
+.status{font-size:1rem;font-weight:700;min-height:1.4em;text-align:center;color:var(--accent)}
+.simon{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:14px;width:min(320px,calc(100vw-32px));aspect-ratio:1}
+.btn{border-radius:20px;cursor:pointer;opacity:0.7;transition:opacity 0.1s,transform 0.1s;border:4px solid transparent;user-select:none}
+.btn:active,.btn.lit{opacity:1;transform:scale(0.95);border-color:rgba(255,255,255,0.6)}
+.btn.disabled{cursor:not-allowed}
+#b0{background:#c0392b}
+#b1{background:#2980b9}
+#b2{background:#27ae60}
+#b3{background:#f39c12}
+.labels{display:grid;grid-template-columns:1fr 1fr;gap:14px;width:min(320px,calc(100vw-32px));text-align:center;font-size:0.8rem;color:var(--dim)}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <a href="../">← Назад</a>
+  <h2>🎵 Сајмон</h2>
+  <button class="font-btn" onclick="toggleFont()">Аа</button>
+</div>
+<div class="wrap">
+  <div class="info">
+    <span class="level">Ниво: <span id="level">0</span></span>
+    <button class="new-btn" onclick="startGame()">Старт</button>
+    <span class="level">Рекорд: <span id="best">0</span></span>
+  </div>
+  <div class="status" id="status">Притисни Старт</div>
+  <div class="simon">
+    <div id="b0" class="btn" onclick="press(0)"></div>
+    <div id="b1" class="btn" onclick="press(1)"></div>
+    <div id="b2" class="btn" onclick="press(2)"></div>
+    <div id="b3" class="btn" onclick="press(3)"></div>
+  </div>
+  <div class="labels"><span>Звук 1</span><span>Звук 2</span><span>Звук 3</span><span>Звук 4</span></div>
+</div>
+<script>
+(function(){
+  let seq=[],step,accepting,best=+localStorage.getItem('tg-simon-best')||0,ac;
+  const FREQS=[261,329,392,523]; // C4 E4 G4 C5
+
+  document.getElementById('best').textContent=best;
+
+  function toggleFont(){const xl=document.documentElement.classList.toggle('xl');localStorage.setItem('tg-xl',xl?'1':'0');}
+  if(localStorage.getItem('tg-xl')==='1')document.documentElement.classList.add('xl');
+
+  function getAC(){if(!ac)ac=new(window.AudioContext||window.webkitAudioContext)();return ac;}
+
+  function playTone(i,dur=0.3){
+    const ctx=getAC();
+    const o=ctx.createOscillator(),g=ctx.createGain();
+    o.connect(g);g.connect(ctx.destination);
+    o.type='sine';o.frequency.value=FREQS[i];
+    g.gain.setValueAtTime(0.5,ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.01,ctx.currentTime+dur);
+    o.start();o.stop(ctx.currentTime+dur);
+  }
+
+  function flash(i,dur=300){
+    const el=document.getElementById('b'+i);
+    el.classList.add('lit');
+    playTone(i,dur/1000);
+    setTimeout(()=>el.classList.remove('lit'),dur);
+  }
+
+  function startGame(){
+    seq=[];step=0;accepting=false;
+    setDisabled(true);
+    document.getElementById('level').textContent=0;
+    nextRound();
+  }
+
+  function nextRound(){
+    seq.push(Math.floor(Math.random()*4));
+    document.getElementById('level').textContent=seq.length;
+    document.getElementById('status').textContent='Гледај...';
+    setDisabled(true);
+    let i=0;
+    function playNext(){
+      if(i>=seq.length){
+        setTimeout(()=>{
+          accepting=true;step=0;setDisabled(false);
+          document.getElementById('status').textContent='Твој ред! ('+seq.length+' корака)';
+        },400);
+        return;
+      }
+      flash(seq[i]);
+      i++;
+      setTimeout(playNext,600);
+    }
+    setTimeout(playNext,500);
+  }
+
+  function press(i){
+    if(!accepting)return;
+    flash(i,200);
+    if(seq[step]!==i){
+      accepting=false;setDisabled(true);
+      playFail();
+      document.getElementById('status').textContent='❌ Погрешно! Ниво: '+seq.length;
+      if(seq.length>best){best=seq.length;localStorage.setItem('tg-simon-best',best);document.getElementById('best').textContent=best;}
+      return;
+    }
+    step++;
+    if(step>=seq.length){
+      accepting=false;setDisabled(true);
+      document.getElementById('status').textContent='✅ Тачно!';
+      setTimeout(nextRound,800);
+    }
+  }
+
+  function playFail(){
+    const ctx=getAC();
+    const o=ctx.createOscillator(),g=ctx.createGain();
+    o.connect(g);g.connect(ctx.destination);
+    o.type='sawtooth';o.frequency.value=150;
+    g.gain.setValueAtTime(0.4,ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.01,ctx.currentTime+0.6);
+    o.start();o.stop(ctx.currentTime+0.6);
+  }
+
+  function setDisabled(d){
+    [0,1,2,3].forEach(i=>document.getElementById('b'+i).classList.toggle('disabled',d));
+  }
+
+  window.toggleFont=toggleFont;
+  window.startGame=startGame;
+  window.press=press;
+})();
+</script>
+</body>
+</html>

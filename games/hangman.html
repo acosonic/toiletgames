@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Вешала — Тоалет Игрице</title>
+<meta name="theme-color" content="#e94560">
+<style>
+:root{--bg:#0f0f1a;--surface:#1a1a2e;--surface2:#16213e;--accent:#e94560;--text:#e0e0e0;--dim:#888}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:18px}html.xl{font-size:22px}
+body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,sans-serif;min-height:100dvh;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--surface);gap:8px}
+.topbar a{color:var(--accent);text-decoration:none;font-size:1rem;font-weight:700;white-space:nowrap}
+.topbar h2{font-size:1rem;font-weight:700;flex:1;text-align:center}
+.font-btn{background:none;border:1px solid var(--dim);color:var(--text);border-radius:6px;padding:5px 9px;font-size:0.8rem;cursor:pointer}
+.wrap{padding:12px 10px 24px;max-width:420px;margin:0 auto;display:flex;flex-direction:column;align-items:center;gap:12px}
+.hud{display:flex;align-items:center;justify-content:space-between;width:100%;gap:8px}
+.new-btn{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:7px 16px;font-size:0.9rem;font-weight:700;cursor:pointer}
+.lives{font-size:1rem;font-weight:700}
+svg.gallows{width:min(200px,55vw);height:min(200px,55vw)}
+.word-row{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;padding:4px}
+.letter{font-size:1.6rem;font-weight:800;min-width:30px;text-align:center;border-bottom:3px solid var(--text);padding-bottom:2px;text-transform:uppercase;letter-spacing:1px}
+html.xl .letter{font-size:2rem;min-width:36px}
+.letter.blank{color:transparent}
+.wrong-letters{font-size:0.9rem;color:#e94560;text-align:center;min-height:1.4em;letter-spacing:3px;text-transform:uppercase}
+#keyboard{display:flex;flex-wrap:wrap;gap:5px;justify-content:center;max-width:360px}
+.key{background:var(--surface);border:none;color:var(--text);border-radius:8px;width:40px;height:40px;font-size:1rem;font-weight:700;cursor:pointer;text-transform:uppercase;-webkit-tap-highlight-color:transparent}
+html.xl .key{width:48px;height:48px;font-size:1.2rem}
+.key.used-correct{background:#538d4e;color:#fff;cursor:default}
+.key.used-wrong{background:#3a3a3c;color:#666;cursor:default}
+.msg{font-size:1rem;font-weight:700;text-align:center;color:var(--accent);min-height:1.4em}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <a href="../">← Назад</a>
+  <h2>🎪 Вешала</h2>
+  <button class="font-btn" onclick="toggleFont()">Аа</button>
+</div>
+<div class="wrap">
+  <div class="hud">
+    <span class="lives" id="lives">❤️ 7</span>
+    <button class="new-btn" onclick="newGame()">Нова</button>
+    <span class="lives" id="score">✅ 0</span>
+  </div>
+  <svg class="gallows" viewBox="0 0 200 200" id="gallows">
+    <!-- gallows frame - always visible -->
+    <line x1="20" y1="190" x2="180" y2="190" stroke="#555" stroke-width="4" stroke-linecap="round"/>
+    <line x1="60" y1="190" x2="60" y2="20" stroke="#555" stroke-width="4" stroke-linecap="round"/>
+    <line x1="60" y1="20" x2="130" y2="20" stroke="#555" stroke-width="4" stroke-linecap="round"/>
+    <line x1="130" y1="20" x2="130" y2="40" stroke="#555" stroke-width="4" stroke-linecap="round"/>
+    <!-- body parts - shown as errors accumulate -->
+    <circle id="hg-head" cx="130" cy="55" r="14" fill="none" stroke="#e94560" stroke-width="4" style="display:none"/>
+    <line id="hg-body" x1="130" y1="69" x2="130" y2="120" stroke="#e94560" stroke-width="4" stroke-linecap="round" style="display:none"/>
+    <line id="hg-arm1" x1="130" y1="80" x2="105" y2="105" stroke="#e94560" stroke-width="4" stroke-linecap="round" style="display:none"/>
+    <line id="hg-arm2" x1="130" y1="80" x2="155" y2="105" stroke="#e94560" stroke-width="4" stroke-linecap="round" style="display:none"/>
+    <line id="hg-leg1" x1="130" y1="120" x2="105" y2="150" stroke="#e94560" stroke-width="4" stroke-linecap="round" style="display:none"/>
+    <line id="hg-leg2" x1="130" y1="120" x2="155" y2="150" stroke="#e94560" stroke-width="4" stroke-linecap="round" style="display:none"/>
+  </svg>
+  <div class="word-row" id="wordRow"></div>
+  <div class="wrong-letters" id="wrongLetters"></div>
+  <div id="keyboard"></div>
+  <div class="msg" id="msg"></div>
+</div>
+<script>
+(function(){
+  const WORDS=['AIRPLANE','ALLIGATOR','APPLE','BALLOON','BANANA','BICYCLE','BLANKET','BUTTERFLY','CACTUS','CANDLE','CASTLE','CHICKEN','CHOCOLATE','COMPASS','COMPUTER','CROCODILE','CRYSTAL','DOLPHIN','DRAGON','ELEPHANT','FIREPLACE','FLAMINGO','FOOTBALL','GIRAFFE','GLACIER','HAMMER','HELICOPTER','ICEBERG','JAGUAR','KEYBOARD','LANTERN','LIBRARY','LIGHTNING','LOBSTER','MAGNET','MAMMOTH','MANGO','MICROWAVE','MOUNTAIN','MUSHROOM','NOTEBOOK','PENGUIN','PINEAPPLE','PIRATE','RAINBOW','ROCKET','SCORPION','SNOWFLAKE','SPIDER','STARFISH','SUBMARINE','SUNFLOWER','TELESCOPE','TORNADO','TREASURE','UMBRELLA','VOLCANO','WATERFALL','WINDMILL','ZOMBIE'];
+  const PARTS=['hg-head','hg-body','hg-arm1','hg-arm2','hg-leg1','hg-leg2'];
+
+  let word,guessed,wrong,over,wins=0;
+
+  function toggleFont(){const xl=document.documentElement.classList.toggle('xl');localStorage.setItem('tg-xl',xl?'1':'0');}
+  if(localStorage.getItem('tg-xl')==='1')document.documentElement.classList.add('xl');
+
+  function newGame(){
+    word=WORDS[Math.floor(Math.random()*WORDS.length)];
+    guessed=new Set();wrong=[];over=false;
+    PARTS.forEach(id=>document.getElementById(id).style.display='none');
+    document.getElementById('msg').textContent='';
+    renderWord();renderKeyboard();updateLives();
+  }
+
+  function renderWord(){
+    const el=document.getElementById('wordRow');
+    el.innerHTML='';
+    for(const ch of word){
+      const s=document.createElement('span');
+      s.className='letter'+(guessed.has(ch)?'':' blank');
+      s.textContent=ch;
+      el.appendChild(s);
+    }
+    document.getElementById('wrongLetters').textContent=wrong.join(' ');
+  }
+
+  function renderKeyboard(){
+    const el=document.getElementById('keyboard');
+    el.innerHTML='';
+    for(let i=65;i<=90;i++){
+      const ch=String.fromCharCode(i);
+      const b=document.createElement('button');
+      b.className='key'+(guessed.has(ch)?(word.includes(ch)?' used-correct':' used-wrong'):'');
+      b.textContent=ch;
+      b.addEventListener('click',()=>guess(ch));
+      el.appendChild(b);
+    }
+  }
+
+  function guess(ch){
+    if(over||guessed.has(ch))return;
+    guessed.add(ch);
+    if(!word.includes(ch)){
+      wrong.push(ch);
+      if(wrong.length<=PARTS.length)document.getElementById(PARTS[wrong.length-1]).style.display='';
+      if(wrong.length>=PARTS.length){
+        over=true;
+        document.getElementById('msg').textContent='💀 Реч: '+word;
+      }
+    }
+    const solved=word.split('').every(c=>guessed.has(c));
+    if(solved&&!over){
+      over=true;wins++;
+      document.getElementById('score').textContent='✅ '+wins;
+      document.getElementById('msg').textContent='🎉 Победа!';
+    }
+    renderWord();renderKeyboard();updateLives();
+  }
+
+  function updateLives(){
+    document.getElementById('lives').textContent='❤️ '+(PARTS.length-wrong.length);
+  }
+
+  document.addEventListener('keydown',e=>{
+    if(!over&&/^[a-zA-Z]$/.test(e.key))guess(e.key.toUpperCase());
+  });
+
+  window.toggleFont=toggleFont;
+  window.newGame=newGame;
+  newGame();
+})();
+</script>
+</body>
+</html>

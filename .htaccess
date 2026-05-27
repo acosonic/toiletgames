@@ -1,0 +1,26 @@
+DirectoryIndex index.html
+
+# Only needed if the app uses WebAssembly
+AddType application/wasm .wasm
+
+# Service worker — never cached (otherwise users get stuck on stale code)
+<Files "service-worker.js">
+    Header set Cache-Control "no-cache, no-store, must-revalidate"
+</Files>
+<Files "manifest.json">
+    Header set Cache-Control "no-cache"
+</Files>
+
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+    Header set Referrer-Policy "same-origin"
+</IfModule>
+
+# Block dotfiles from being served
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>
+
+# If you have a PHP upload helper and need bigger photos (mod_php only):
+# php_value upload_max_filesize 25M
+# php_value post_max_size 30M

@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Мемори — Тоалет Игрице</title>
+<meta name="theme-color" content="#e94560">
+<style>
+:root{--bg:#0f0f1a;--surface:#1a1a2e;--surface2:#16213e;--accent:#e94560;--text:#e0e0e0;--dim:#888}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:18px}html.xl{font-size:22px}
+body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,sans-serif;min-height:100dvh;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--surface);gap:8px}
+.topbar a{color:var(--accent);text-decoration:none;font-size:1rem;font-weight:700;white-space:nowrap}
+.topbar h2{font-size:1rem;font-weight:700;flex:1;text-align:center}
+.font-btn{background:none;border:1px solid var(--dim);color:var(--text);border-radius:6px;padding:5px 9px;font-size:0.8rem;cursor:pointer}
+.wrap{padding:12px 10px 32px;max-width:420px;margin:0 auto;display:flex;flex-direction:column;align-items:center;gap:12px}
+.hud{display:flex;align-items:center;justify-content:space-between;width:100%;gap:8px}
+.moves{font-size:1rem;font-weight:700}
+.new-btn{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:8px 18px;font-size:0.95rem;font-weight:700;cursor:pointer}
+.size-row{display:flex;gap:8px}
+.size-btn{background:var(--surface);border:1px solid var(--dim);color:var(--text);border-radius:8px;padding:6px 12px;font-size:0.82rem;cursor:pointer}
+.size-btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
+#board{display:grid;gap:8px;justify-content:center}
+.card{aspect-ratio:1;background:var(--surface);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:2.2rem;cursor:pointer;user-select:none;transition:transform 0.2s,background 0.2s;position:relative;overflow:hidden}
+html.xl .card{font-size:2.8rem}
+.card .back{position:absolute;inset:0;background:var(--surface);border-radius:inherit;display:flex;align-items:center;justify-content:center;font-size:1.4rem;color:var(--dim);transition:transform 0.25s;backface-visibility:hidden}
+.card .front{position:absolute;inset:0;background:var(--surface2);border-radius:inherit;display:flex;align-items:center;justify-content:center;transform:rotateY(180deg);transition:transform 0.25s;backface-visibility:hidden}
+.card.flipped .back{transform:rotateY(180deg)}
+.card.flipped .front{transform:rotateY(0deg)}
+.card.matched{background:#1a3a1a;cursor:default}
+.card.matched .front{background:#1a3a1a}
+.msg{font-size:1.1rem;font-weight:700;text-align:center;color:var(--accent);min-height:1.4em}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <a href="../">← Назад</a>
+  <h2>🃏 Мемори</h2>
+  <button class="font-btn" onclick="toggleFont()">Аа</button>
+</div>
+<div class="wrap">
+  <div class="size-row">
+    <button class="size-btn active" id="s4" onclick="setSize(4)">4×4 (16)</button>
+    <button class="size-btn" id="s5" onclick="setSize(5)">4×5 (20)</button>
+  </div>
+  <div class="hud">
+    <span class="moves">Потези: <span id="moves">0</span></span>
+    <button class="new-btn" onclick="newGame()">Нова</button>
+    <span class="moves">Пари: <span id="pairs">0</span>/<span id="total">8</span></span>
+  </div>
+  <div id="board"></div>
+  <div class="msg" id="msg"></div>
+</div>
+<script>
+(function(){
+  const EMOJIS=['🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯'];
+  let cards,flipped,matched,moves,pairs,cols,rows,gridSize=4,locked;
+
+  function toggleFont(){const xl=document.documentElement.classList.toggle('xl');localStorage.setItem('tg-xl',xl?'1':'0');}
+  if(localStorage.getItem('tg-xl')==='1')document.documentElement.classList.add('xl');
+
+  function setSize(n){
+    gridSize=n;
+    document.getElementById('s4').classList.toggle('active',n===4);
+    document.getElementById('s5').classList.toggle('active',n===5);
+    newGame();
+  }
+
+  function newGame(){
+    cols=4;rows=gridSize;
+    const total=cols*rows/2;
+    const pool=EMOJIS.slice(0,total);
+    cards=[...pool,...pool].sort(()=>Math.random()-0.5);
+    flipped=[];matched=new Set();moves=0;pairs=0;locked=false;
+    document.getElementById('moves').textContent=0;
+    document.getElementById('pairs').textContent=0;
+    document.getElementById('total').textContent=total;
+    document.getElementById('msg').textContent='';
+    render();
+  }
+
+  function render(){
+    const el=document.getElementById('board');
+    el.style.gridTemplateColumns=`repeat(${cols},1fr)`;
+    el.style.width=`min(360px,calc(100vw - 20px))`;
+    el.innerHTML='';
+    cards.forEach((emoji,i)=>{
+      const c=document.createElement('div');
+      c.className='card'+(flipped.includes(i)||matched.has(i)?' flipped':'')+(matched.has(i)?' matched':'');
+      c.innerHTML=`<div class="back">🂠</div><div class="front">${emoji}</div>`;
+      c.addEventListener('click',()=>flip(i));
+      el.appendChild(c);
+    });
+  }
+
+  function flip(i){
+    if(locked||flipped.includes(i)||matched.has(i))return;
+    flipped.push(i);
+    render();
+    if(flipped.length===2){
+      moves++;
+      document.getElementById('moves').textContent=moves;
+      locked=true;
+      setTimeout(check,700);
+    }
+  }
+
+  function check(){
+    const [a,b]=flipped;
+    if(cards[a]===cards[b]){
+      matched.add(a);matched.add(b);pairs++;
+      document.getElementById('pairs').textContent=pairs;
+      if(pairs===cols*rows/2){
+        document.getElementById('msg').textContent='🎉 Победа за '+moves+' потеза!';
+      }
+    }
+    flipped=[];locked=false;
+    render();
+  }
+
+  window.toggleFont=toggleFont;
+  window.newGame=newGame;
+  window.setSize=setSize;
+  newGame();
+})();
+</script>
+</body>
+</html>

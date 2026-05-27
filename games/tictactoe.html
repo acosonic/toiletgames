@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Икс-Нула — Тоалет Игрице</title>
+<meta name="theme-color" content="#e94560">
+<style>
+:root{--bg:#0f0f1a;--surface:#1a1a2e;--surface2:#16213e;--accent:#e94560;--text:#e0e0e0;--dim:#888}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:18px}html.xl{font-size:24px}
+body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,sans-serif;min-height:100dvh;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--surface);gap:8px}
+.topbar a{color:var(--accent);text-decoration:none;font-size:1rem;font-weight:700;white-space:nowrap}
+.topbar h2{font-size:1rem;font-weight:700;flex:1;text-align:center}
+.font-btn{background:none;border:1px solid var(--dim);color:var(--text);border-radius:6px;padding:5px 9px;font-size:0.8rem;cursor:pointer}
+.wrap{padding:16px 14px 32px;max-width:400px;margin:0 auto;display:flex;flex-direction:column;align-items:center;gap:16px}
+.scoreboard{display:flex;gap:12px;width:100%;justify-content:center}
+.sc{background:var(--surface);border-radius:10px;padding:8px 18px;text-align:center;min-width:72px}
+.sc .lbl{font-size:0.7rem;color:var(--dim);text-transform:uppercase}
+.sc .val{font-size:1.5rem;font-weight:800}
+.sc.x .val{color:#60a3fc}
+.sc.o .val{color:#e94560}
+#board{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:min(300px,calc(100vw - 32px));aspect-ratio:1}
+.cell{background:var(--surface);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:3rem;cursor:pointer;user-select:none;transition:background 0.1s;aspect-ratio:1}
+html.xl .cell{font-size:3.6rem}
+.cell:active{background:var(--surface2)}
+.cell.win{background:#1a3a1a}
+.status{font-size:1rem;font-weight:700;min-height:1.5em;text-align:center}
+.new-btn{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:10px 28px;font-size:1rem;font-weight:700;cursor:pointer}
+.mode-row{display:flex;gap:10px}
+.mode-btn{background:var(--surface);border:1px solid var(--dim);color:var(--text);border-radius:8px;padding:7px 14px;font-size:0.85rem;cursor:pointer}
+.mode-btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <a href="../">← Назад</a>
+  <h2>❌ Икс-Нула</h2>
+  <button class="font-btn" onclick="toggleFont()">Аа</button>
+</div>
+<div class="wrap">
+  <div class="mode-row">
+    <button class="mode-btn active" id="m2p" onclick="setMode('2p')">2 играча</button>
+    <button class="mode-btn" id="mai" onclick="setMode('ai')">Против АИ</button>
+  </div>
+  <div class="scoreboard">
+    <div class="sc x"><div class="lbl">X победе</div><div class="val" id="sx">0</div></div>
+    <div class="sc"><div class="lbl">Нерешено</div><div class="val" id="sd">0</div></div>
+    <div class="sc o"><div class="lbl">О победе</div><div class="val" id="so">0</div></div>
+  </div>
+  <div id="status" class="status">Ред: ❌</div>
+  <div id="board"></div>
+  <button class="new-btn" onclick="newGame()">Нова игра</button>
+</div>
+<script>
+(function(){
+  let board,cur,mode='2p',sx=0,so=0,sd=0,over;
+  const WINS=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+
+  function toggleFont(){const xl=document.documentElement.classList.toggle('xl');localStorage.setItem('tg-xl',xl?'1':'0');}
+  if(localStorage.getItem('tg-xl')==='1')document.documentElement.classList.add('xl');
+
+  function setMode(m){
+    mode=m;
+    document.getElementById('m2p').classList.toggle('active',m==='2p');
+    document.getElementById('mai').classList.toggle('active',m==='ai');
+    newGame();
+  }
+
+  function newGame(){
+    board=Array(9).fill('');cur='X';over=false;
+    document.getElementById('status').textContent='Ред: ❌';
+    render();
+  }
+
+  function render(){
+    const el=document.getElementById('board');
+    el.innerHTML='';
+    const winLine=findWin(board);
+    board.forEach((v,i)=>{
+      const c=document.createElement('div');
+      c.className='cell'+(winLine&&winLine.includes(i)?' win':'');
+      c.textContent=v==='X'?'❌':v==='O'?'⭕':'';
+      c.addEventListener('click',()=>click(i));
+      el.appendChild(c);
+    });
+  }
+
+  function click(i){
+    if(over||board[i])return;
+    board[i]=cur;
+    if(checkEnd())return;
+    cur=cur==='X'?'O':'X';
+    document.getElementById('status').textContent='Ред: '+(cur==='X'?'❌':'⭕');
+    render();
+    if(mode==='ai'&&cur==='O'&&!over)setTimeout(aiMove,300);
+  }
+
+  function aiMove(){
+    // Minimax
+    const best=minimax(board,'O');
+    click(best.idx);
+  }
+
+  function minimax(b,player){
+    const w=findWin(b);
+    if(w){const winner=b[w[0]];return{score:winner==='O'?10:winner==='X'?-10:0};}
+    const empty=b.map((v,i)=>v?null:i).filter(v=>v!==null);
+    if(!empty.length)return{score:0};
+    const moves=empty.map(i=>{
+      const nb=[...b];nb[i]=player;
+      const s=minimax(nb,player==='O'?'X':'O').score;
+      return{idx:i,score:s};
+    });
+    if(player==='O')return moves.reduce((a,b)=>b.score>a.score?b:a);
+    return moves.reduce((a,b)=>b.score<a.score?b:a);
+  }
+
+  function findWin(b){
+    for(const line of WINS){
+      const [a,c,d]=line;
+      if(b[a]&&b[a]===b[c]&&b[a]===b[d])return line;
+    }
+    return null;
+  }
+
+  function checkEnd(){
+    const w=findWin(board);
+    if(w){
+      over=true;
+      const winner=board[w[0]];
+      if(winner==='X'){sx++;document.getElementById('sx').textContent=sx;}
+      else{so++;document.getElementById('so').textContent=so;}
+      document.getElementById('status').textContent=(winner==='X'?'❌':'⭕')+' победио!';
+      render();return true;
+    }
+    if(board.every(Boolean)){
+      over=true;sd++;document.getElementById('sd').textContent=sd;
+      document.getElementById('status').textContent='🤝 Нерешено!';
+      render();return true;
+    }
+    return false;
+  }
+
+  window.toggleFont=toggleFont;
+  window.newGame=newGame;
+  window.setMode=setMode;
+  newGame();
+})();
+</script>
+</body>
+</html>

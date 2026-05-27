@@ -1,0 +1,24 @@
+# OS / editor
+.DS_Store
+*.bak
+*.bak.*
+*.swp
+.vscode/
+.idea/
+
+# secrets
+.env
+.env.local
+.env.*.local
+
+# language runtimes
+node_modules/
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# build artifacts
+dist/
+build/
+*.log
