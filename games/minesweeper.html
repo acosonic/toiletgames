@@ -116,12 +116,12 @@ html.light .msg.lose{background:#f8d7da;color:#721c24}
       if(revealed[i]){c.classList.add('revealed');if(board[i]===-1){c.classList.add('mine-hit');c.textContent='💣';}else if(board[i]>0){c.textContent=board[i];c.dataset.n=board[i];}}
       else if(flagged[i]){c.classList.add('flagged');c.textContent='🚩';}
       c.addEventListener('click',()=>reveal(i));
-      c.addEventListener('contextmenu',e=>{e.preventDefault();flag(i);});
-      let pt,sx,sy;
-      c.addEventListener('pointerdown',e=>{sx=e.clientX;sy=e.clientY;pt=setTimeout(()=>flag(i),600);});
+      let pt,sx,sy,pb;
+      c.addEventListener('pointerdown',e=>{pb=e.button;sx=e.clientX;sy=e.clientY;pt=setTimeout(()=>flag(i),600);});
       c.addEventListener('pointerup',()=>clearTimeout(pt));
       c.addEventListener('pointercancel',()=>{clearTimeout(pt);flag(i);});
       c.addEventListener('pointermove',e=>{if(pt&&(Math.abs(e.clientX-sx)>15||Math.abs(e.clientY-sy)>15))clearTimeout(pt);});
+      c.addEventListener('contextmenu',e=>{e.preventDefault();if(pb===2)flag(i);});
       el.appendChild(c);
     }
   }
