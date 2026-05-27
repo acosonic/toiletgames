@@ -120,7 +120,6 @@ html.light .msg.lose{background:#f8d7da;color:#721c24}
       let pt,sx,sy;
       c.addEventListener('pointerdown',e=>{sx=e.clientX;sy=e.clientY;pt=setTimeout(()=>flag(i),500);});
       c.addEventListener('pointerup',()=>clearTimeout(pt));
-      c.addEventListener('pointercancel',()=>clearTimeout(pt));
       c.addEventListener('pointermove',e=>{if(pt&&(Math.abs(e.clientX-sx)>8||Math.abs(e.clientY-sy)>8))clearTimeout(pt);});
       el.appendChild(c);
     }
