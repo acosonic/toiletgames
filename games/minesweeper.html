@@ -117,11 +117,11 @@ html.light .msg.lose{background:#f8d7da;color:#721c24}
       else if(flagged[i]){c.classList.add('flagged');c.textContent='🚩';}
       c.addEventListener('click',()=>reveal(i));
       c.addEventListener('contextmenu',e=>{e.preventDefault();flag(i);});
-      let pt,sx,sy,moved;
-      c.addEventListener('pointerdown',e=>{sx=e.clientX;sy=e.clientY;moved=false;pt=setTimeout(()=>flag(i),600);});
+      let pt,sx,sy;
+      c.addEventListener('pointerdown',e=>{sx=e.clientX;sy=e.clientY;pt=setTimeout(()=>flag(i),600);});
       c.addEventListener('pointerup',()=>clearTimeout(pt));
-      c.addEventListener('pointercancel',()=>{clearTimeout(pt);if(!moved)flag(i);});
-      c.addEventListener('pointermove',e=>{if(Math.abs(e.clientX-sx)>8||Math.abs(e.clientY-sy)>8){moved=true;clearTimeout(pt);}});
+      c.addEventListener('pointercancel',()=>{clearTimeout(pt);flag(i);});
+      c.addEventListener('pointermove',e=>{if(pt&&(Math.abs(e.clientX-sx)>15||Math.abs(e.clientY-sy)>15))clearTimeout(pt);});
       el.appendChild(c);
     }
   }
