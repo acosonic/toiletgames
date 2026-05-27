@@ -20,12 +20,11 @@
 <link rel="icon" href="favicon-96x96.png" sizes="96x96" type="image/png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="stylesheet" href="style.css">
-<!-- prevent theme flash -->
+<!-- prevent theme flash + capture install prompt before app.js loads -->
 <script>
-(function(){
-  var t=localStorage.getItem('tg-theme')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');
-  if(t==='light')document.documentElement.classList.add('light');
-})();
+window._dip=null;
+window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();window._dip=e;});
+(function(){var t=localStorage.getItem('tg-theme')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');if(t==='light')document.documentElement.classList.add('light');})();
 </script>
 </head>
 <body>

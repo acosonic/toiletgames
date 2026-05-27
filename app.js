@@ -42,7 +42,6 @@ applyLang();
 // ── PWA install button ────────────────────────────────────────────────────────
 
 (function () {
-  let deferredPrompt = null;
   const installBtn = document.getElementById('installBtn');
   const isStandalone = () =>
     window.matchMedia('(display-mode: standalone)').matches ||
@@ -50,20 +49,15 @@ applyLang();
 
   if (isStandalone()) installBtn.classList.add('hidden');
 
-  window.addEventListener('beforeinstallprompt', (e) => {
-    e.preventDefault();
-    deferredPrompt = e;
-  });
-
   installBtn.addEventListener('click', async () => {
     if (isStandalone()) {
       alert(_lang() === 'sr' ? 'Апликација је већ инсталирана.' : 'App is already installed.');
       return;
     }
-    if (deferredPrompt) {
-      deferredPrompt.prompt();
-      try { await deferredPrompt.userChoice; } catch (e) {}
-      deferredPrompt = null;
+    if (window._dip) {
+      window._dip.prompt();
+      try { await window._dip.userChoice; } catch (e) {}
+      window._dip = null;
       return;
     }
     const isIos = /iPad|iPhone|iPod/.test(navigator.userAgent);
