@@ -25,10 +25,10 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,
 .diff-row{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap}
 .diff-btn{background:var(--surface);border:1px solid var(--dim);color:var(--text);border-radius:8px;padding:6px 12px;font-size:.82rem;cursor:pointer}
 .diff-btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
-#board{display:grid;gap:4px;margin:4px auto;background:#2a2a4a;border-radius:10px;padding:4px}
+#board{display:grid;gap:4px;margin:4px auto;background:#2a2a4a;border-radius:10px;padding:4px;width:min(500px,calc(100vw - 20px))}
 html.light #board{background:#9aa0a6}
-.cell{width:40px;height:40px;background:var(--surface);border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;font-weight:700;cursor:pointer;user-select:none}
-html.xl .cell{width:48px;height:48px;font-size:1.3rem}
+.cell{aspect-ratio:1;min-width:0;background:var(--surface);border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:clamp(12px,4vw,18px);font-weight:700;cursor:pointer;user-select:none;touch-action:none;-webkit-touch-callout:none}
+html.xl .cell{font-size:clamp(14px,5vw,22px)}
 .cell.revealed{background:var(--bg);cursor:default}
 html.light .cell.revealed{background:#e2e5ea}
 .cell.mine-hit{background:#e94560}
