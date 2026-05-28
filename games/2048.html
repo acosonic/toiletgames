@@ -85,6 +85,7 @@ html.light .msg.win{background:#d4edda;color:#155724}html.light .msg.lose{backgr
   document.getElementById('best').textContent=best;
 
   function statRec(g,inc,hi,lo){const j=JSON.parse(localStorage.getItem('tg-stats')||'{}');const e=j[g]||{};for(const[k,v]of Object.entries(inc||{}))e[k]=(e[k]||0)+v;for(const[k,v]of Object.entries(hi||{}))if(v!=null&&(!e[k]||v>e[k]))e[k]=v;for(const[k,v]of Object.entries(lo||{}))if(v!=null&&(!e[k]||v<e[k]))e[k]=v;j[g]=e;localStorage.setItem('tg-stats',JSON.stringify(j));}
+  const SFX=(()=>{let ac;const A=()=>(ac=ac||new(window.AudioContext||window.webkitAudioContext)());const t=(f,d,tp,v)=>{try{const c=A(),o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.type=tp||'sine';o.frequency.value=f;g.gain.setValueAtTime(v||.25,c.currentTime);g.gain.exponentialRampToValueAtTime(.001,c.currentTime+d);o.start();o.stop(c.currentTime+d);}catch(e){}};return{merge:()=>t(300,.08,'sine',.15),win(){t(523,.1);setTimeout(()=>t(659,.1),100);setTimeout(()=>t(784,.25),200);},lose(){t(330,.1,'sawtooth',.2);setTimeout(()=>t(220,.2,'sawtooth',.15),100);}};})();
 
   function newGame(){grid=Array.from({length:4},()=>Array(4).fill(0));score=0;over=false;addTile();addTile();document.getElementById('msg').style.display='none';render();}
 
@@ -99,15 +100,15 @@ html.light .msg.win{background:#d4edda;color:#155724}html.light .msg.lose{backgr
   function slideRow(row){let a=row.filter(x=>x);for(let i=0;i<a.length-1;i++){if(a[i]===a[i+1]){score+=a[i]*2;a[i]*=2;a.splice(i+1,1);}}while(a.length<4)a.push(0);return a;}
 
   function move(dir){
-    if(over)return;const prev=JSON.stringify(grid);
+    if(over)return;const prev=JSON.stringify(grid);const prevScore=score;
     if(dir==='left')for(let r=0;r<4;r++)grid[r]=slideRow(grid[r]);
     else if(dir==='right')for(let r=0;r<4;r++)grid[r]=slideRow(grid[r].slice().reverse()).reverse();
     else if(dir==='up')for(let c=0;c<4;c++){let col=grid.map(r=>r[c]);col=slideRow(col);grid.forEach((r,i)=>r[c]=col[i]);}
     else if(dir==='down')for(let c=0;c<4;c++){let col=grid.map(r=>r[c]).reverse();col=slideRow(col).reverse();grid.forEach((r,i)=>r[c]=col[i]);}
-    if(JSON.stringify(grid)!==prev){addTile();if(score>best){best=score;localStorage.setItem('tg-2048-best',best);document.getElementById('best').textContent=best;}render();checkEnd();}
+    if(JSON.stringify(grid)!==prev){addTile();if(score>best){best=score;localStorage.setItem('tg-2048-best',best);document.getElementById('best').textContent=best;}if(score>prevScore)SFX.merge();render();checkEnd();}
   }
 
-  function checkEnd(){if(grid.some(r=>r.some(v=>v===2048))){over=true;statRec('2048',{played:1,wins:1},{bestScore:score,bestTile:2048});showMsg('win',win2048);}else if(!canMove()){const bt=Math.max(...grid.flat());over=true;statRec('2048',{played:1},{bestScore:score,bestTile:bt});showMsg('lose',noMoves);}}
+  function checkEnd(){if(grid.some(r=>r.some(v=>v===2048))){over=true;SFX.win();statRec('2048',{played:1,wins:1},{bestScore:score,bestTile:2048});showMsg('win',win2048);}else if(!canMove()){const bt=Math.max(...grid.flat());over=true;SFX.lose();statRec('2048',{played:1},{bestScore:score,bestTile:bt});showMsg('lose',noMoves);}}
 
   function canMove(){for(let r=0;r<4;r++)for(let c=0;c<4;c++){if(!grid[r][c])return true;if(c<3&&grid[r][c]===grid[r][c+1])return true;if(r<3&&grid[r][c]===grid[r+1][c])return true;}return false;}
 

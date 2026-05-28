@@ -58,6 +58,7 @@ canvas{display:block;max-width:100%;height:auto;cursor:crosshair;border:1px soli
 })();
 
 function statRec(g,inc,hi,lo){const j=JSON.parse(localStorage.getItem('tg-stats')||'{}');const e=j[g]||{};for(const[k,v]of Object.entries(inc||{}))e[k]=(e[k]||0)+v;for(const[k,v]of Object.entries(hi||{}))if(v!=null&&(!e[k]||v>e[k]))e[k]=v;for(const[k,v]of Object.entries(lo||{}))if(v!=null&&(!e[k]||v<e[k]))e[k]=v;j[g]=e;localStorage.setItem('tg-stats',JSON.stringify(j));}
+const SFX=(()=>{let ac;const A=()=>(ac=ac||new(window.AudioContext||window.webkitAudioContext)());const t=(f,d,tp,v)=>{try{const c=A(),o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.type=tp||'sine';o.frequency.value=f;g.gain.setValueAtTime(v||.25,c.currentTime);g.gain.exponentialRampToValueAtTime(.001,c.currentTime+d);o.start();o.stop(c.currentTime+d);}catch(e){}};return{fire:()=>t(800,.04,'square',.08),explode(){t(300,.05,'sawtooth',.15);setTimeout(()=>t(150,.1,'sawtooth',.1),50);},die(){t(220,.1,'sawtooth',.2);setTimeout(()=>t(150,.3,'sawtooth',.15),100);}};})();
 
 const canvas = document.getElementById('game');
 const context = canvas.getContext('2d');
@@ -125,6 +126,7 @@ function fireMissile(x, y) {
   const target = { x, y };
   const angle = angleBetweenPoints(start, target);
   launchSilo.missiles--;
+  SFX.fire();
   counterMissiles.push({
     start: { x: launchSilo.x, y: launchSilo.y },
     target,
@@ -246,6 +248,7 @@ function loop(time) {
     m.pos.y += m.dy;
     if (dist(m.pos, m.target) < counterMissileSpeed) {
       m.alive = false;
+      SFX.explode();
       explosions.push({ x: m.pos.x, y: m.pos.y, size: 2, dir: 1, alive: true, player: true });
     } else {
       context.strokeStyle = 'cyan';
@@ -283,6 +286,7 @@ function loop(time) {
 
   if (!gameOver && cities.filter(c => c.alive).length === 0) {
     gameOver = true;
+    SFX.die();
     statRec('missile',{played:1},{bestScore:score});
     const L = localStorage.getItem('tg-lang') || 'sr';
     showMessage(L === 'sr' ? 'КРАЈ ИГРЕ!' : 'GAME OVER!');

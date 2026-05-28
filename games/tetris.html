@@ -86,6 +86,7 @@ const colors = {
 const linePoints = [0, 100, 300, 500, 800];
 
 function statRec(g,inc,hi,lo){const j=JSON.parse(localStorage.getItem('tg-stats')||'{}');const e=j[g]||{};for(const[k,v]of Object.entries(inc||{}))e[k]=(e[k]||0)+v;for(const[k,v]of Object.entries(hi||{}))if(v!=null&&(!e[k]||v>e[k]))e[k]=v;for(const[k,v]of Object.entries(lo||{}))if(v!=null&&(!e[k]||v<e[k]))e[k]=v;j[g]=e;localStorage.setItem('tg-stats',JSON.stringify(j));}
+const SFX=(()=>{let ac;const A=()=>(ac=ac||new(window.AudioContext||window.webkitAudioContext)());const t=(f,d,tp,v)=>{try{const c=A(),o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.type=tp||'sine';o.frequency.value=f;g.gain.setValueAtTime(v||.25,c.currentTime);g.gain.exponentialRampToValueAtTime(.001,c.currentTime+d);o.start();o.stop(c.currentTime+d);}catch(e){}};return{land:()=>t(200,.07,'square',.12),clear(){t(784,.1);setTimeout(()=>t(1047,.15),100);},die(){t(220,.1,'sawtooth',.2);setTimeout(()=>t(150,.3,'sawtooth',.15),100);}};})();
 
 let tetrominoSequence, playfield, count, tetromino, rAF, gameOver, score;
 let best = +localStorage.getItem('tg-tetris-best') || 0;
@@ -142,6 +143,7 @@ function placeTetromino() {
       }
     }
   }
+  SFX.land();
   let linesCleared = 0;
   for (let row = playfield.length - 1; row >= 0; ) {
     if (playfield[row].every(cell => !!cell)) {
@@ -156,6 +158,7 @@ function placeTetromino() {
     }
   }
   score += linePoints[Math.min(linesCleared, 4)];
+  if(linesCleared>0)SFX.clear();
   updateHUD();
   tetromino = getNextTetromino();
 }
@@ -163,6 +166,7 @@ function placeTetromino() {
 function showGameOver() {
   cancelAnimationFrame(rAF);
   gameOver = true;
+  SFX.die();
   statRec('tetris',{played:1},{bestScore:score});
   context.fillStyle = 'rgba(0,0,0,0.75)';
   context.fillRect(0, canvas.height / 2 - 30, canvas.width, 60);

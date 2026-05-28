@@ -85,6 +85,7 @@ html.light .key.absent{background:#787c7e;color:#fff}
   const KEYMAP_SR={A:'А',B:'Б',V:'В',G:'Г',D:'Д','Đ':'Ђ',E:'Е','Ž':'Ж',Z:'З',I:'И',J:'Ј',K:'К',L:'Л',M:'М',N:'Н',O:'О',P:'П',R:'Р',S:'С',T:'Т','Ć':'Ћ',U:'У',F:'Ф',H:'Х',C:'Ц','Č':'Ч','Š':'Ш'};
 
   function statRec(g,inc,hi,lo){const j=JSON.parse(localStorage.getItem('tg-stats')||'{}');const e=j[g]||{};for(const[k,v]of Object.entries(inc||{}))e[k]=(e[k]||0)+v;for(const[k,v]of Object.entries(hi||{}))if(v!=null&&(!e[k]||v>e[k]))e[k]=v;for(const[k,v]of Object.entries(lo||{}))if(v!=null&&(!e[k]||v<e[k]))e[k]=v;j[g]=e;localStorage.setItem('tg-stats',JSON.stringify(j));}
+  const SFX=(()=>{let ac;const A=()=>(ac=ac||new(window.AudioContext||window.webkitAudioContext)());const t=(f,d,tp,v)=>{try{const c=A(),o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.type=tp||'sine';o.frequency.value=f;g.gain.setValueAtTime(v||.25,c.currentTime);g.gain.exponentialRampToValueAtTime(.001,c.currentTime+d);o.start();o.stop(c.currentTime+d);}catch(e){}};return{key:()=>t(700,.03,'square',.06),win(){t(523,.1);setTimeout(()=>t(659,.1),100);setTimeout(()=>t(784,.1),200);setTimeout(()=>t(1047,.3),300);},lose(){t(330,.1,'sawtooth',.2);setTimeout(()=>t(220,.15,'sawtooth',.2),100);setTimeout(()=>t(110,.3,'sawtooth',.15),220);}};})();
 
   let target,guesses,current,over,streak=0,wins=0;
   const keyState={};
@@ -113,15 +114,15 @@ html.light .key.absent{background:#787c7e;color:#fff}
     rows.forEach(row=>{const div=document.createElement('div');div.className='kb-row';row.forEach(ch=>{const b=document.createElement('button');b.className='key'+(ch==='↵'||ch==='⌫'?' wide':'');b.textContent=lbl[ch]||ch.toUpperCase();if(keyState[ch])b.classList.add(keyState[ch]);b.addEventListener('click',()=>keyPress(ch));div.appendChild(b);});el.appendChild(div);});
   }
 
-  function keyPress(ch){if(over)return;if(ch==='⌫')current=current.slice(0,-1);else if(ch==='↵')submit();else if(current.length<5&&isLetter(ch))current+=ch;renderGrid();}
+  function keyPress(ch){if(over)return;if(ch==='⌫')current=current.slice(0,-1);else if(ch==='↵')submit();else if(current.length<5&&isLetter(ch)){current+=ch;SFX.key();}renderGrid();}
 
   function submit(){
     if(current.length!==5){document.getElementById('msg').textContent=t('five');return;}
     const guess=current;
     for(let c=0;c<5;c++){const ch=guess[c];const state=coloring(guess,guesses.length,c);const priority={correct:3,present:2,absent:1};if(!keyState[ch]||priority[state]>priority[keyState[ch]])keyState[ch]=state;}
     guesses.push(guess);current='';renderGrid();renderKeyboard();
-    if(guess===target){over=true;wins++;streak++;document.getElementById('wins').textContent='✅ '+wins;document.getElementById('streak').textContent='🔥 '+streak;document.getElementById('msg').textContent=t('win')+target.toUpperCase();statRec('wordle',{played:1,wins:1},{bestStreak:streak});}
-    else if(guesses.length>=6){over=true;streak=0;document.getElementById('streak').textContent='🔥 0';document.getElementById('msg').textContent=t('lose')+target.toUpperCase();statRec('wordle',{played:1,losses:1});}
+    if(guess===target){over=true;SFX.win();wins++;streak++;document.getElementById('wins').textContent='✅ '+wins;document.getElementById('streak').textContent='🔥 '+streak;document.getElementById('msg').textContent=t('win')+target.toUpperCase();statRec('wordle',{played:1,wins:1},{bestStreak:streak});}
+    else if(guesses.length>=6){over=true;SFX.lose();streak=0;document.getElementById('streak').textContent='🔥 0';document.getElementById('msg').textContent=t('lose')+target.toUpperCase();statRec('wordle',{played:1,losses:1});}
   }
 
   function isLetter(ch){return L==='sr'?/^[А-ШЂЈЉЊЋЏ]$/.test(ch):/^[a-z]$/.test(ch);}

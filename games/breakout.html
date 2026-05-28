@@ -58,6 +58,7 @@ canvas{border:1px solid var(--surface2);display:block;max-width:100%;height:auto
 })();
 
 function statRec(g,inc,hi,lo){const j=JSON.parse(localStorage.getItem('tg-stats')||'{}');const e=j[g]||{};for(const[k,v]of Object.entries(inc||{}))e[k]=(e[k]||0)+v;for(const[k,v]of Object.entries(hi||{}))if(v!=null&&(!e[k]||v>e[k]))e[k]=v;for(const[k,v]of Object.entries(lo||{}))if(v!=null&&(!e[k]||v<e[k]))e[k]=v;j[g]=e;localStorage.setItem('tg-stats',JSON.stringify(j));}
+const SFX=(()=>{let ac;const A=()=>(ac=ac||new(window.AudioContext||window.webkitAudioContext)());const t=(f,d,tp,v)=>{try{const c=A(),o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.type=tp||'sine';o.frequency.value=f;g.gain.setValueAtTime(v||.25,c.currentTime);g.gain.exponentialRampToValueAtTime(.001,c.currentTime+d);o.start();o.stop(c.currentTime+d);}catch(e){}};return{paddle:()=>t(400,.06,'sine',.2),wall:()=>t(600,.04,'sine',.12),brick:()=>t(900,.05,'square',.1),lose(){t(220,.1,'sawtooth',.2);setTimeout(()=>t(150,.3,'sawtooth',.15),100);},win(){t(523,.1);setTimeout(()=>t(659,.1),100);setTimeout(()=>t(784,.25),200);}};})();
 
 const canvas = document.getElementById('game');
 const context = canvas.getContext('2d');
@@ -169,14 +170,15 @@ function loop() {
   ball.x += ball.dx;
   ball.y += ball.dy;
 
-  if (ball.x < wallSize) { ball.x = wallSize; ball.dx *= -1; }
-  else if (ball.x + ball.width > canvas.width - wallSize) { ball.x = canvas.width - wallSize - ball.width; ball.dx *= -1; }
-  if (ball.y < wallSize) { ball.y = wallSize; ball.dy *= -1; }
+  if (ball.x < wallSize) { ball.x = wallSize; ball.dx *= -1; SFX.wall(); }
+  else if (ball.x + ball.width > canvas.width - wallSize) { ball.x = canvas.width - wallSize - ball.width; ball.dx *= -1; SFX.wall(); }
+  if (ball.y < wallSize) { ball.y = wallSize; ball.dy *= -1; SFX.wall(); }
 
   if (ball.y > canvas.height) {
     lives--;
     updateHUD();
     if (lives <= 0) {
+      SFX.lose();
       showMessage(localStorage.getItem('tg-lang') === 'en' ? 'GAME OVER!' : 'КРАЈ ИГРЕ!');
       gameState = 'over';
       statRec('breakout',{played:1,losses:1},{bestScore:score});
@@ -186,6 +188,7 @@ function loop() {
   }
 
   if (collides(ball, paddle)) {
+    SFX.paddle();
     ball.dy = -Math.abs(ball.dy);
     const hitPos = (ball.x + ball.width / 2 - paddle.x) / paddleWidth;
     ball.dx = ball.speed * (hitPos - 0.5) * 2;
@@ -195,6 +198,7 @@ function loop() {
   for (let i = 0; i < bricks.length; i++) {
     const brick = bricks[i];
     if (collides(ball, brick)) {
+      SFX.brick();
       bricks.splice(i, 1);
       score += brick.points;
       updateHUD();
@@ -208,6 +212,7 @@ function loop() {
   }
 
   if (bricks.length === 0) {
+    SFX.win();
     showMessage(localStorage.getItem('tg-lang') === 'en' ? 'YOU WIN!' : 'ПОБЕДА!');
     gameState = 'over';
     statRec('breakout',{played:1,wins:1},{bestScore:score});

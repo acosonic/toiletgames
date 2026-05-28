@@ -96,6 +96,7 @@ wallCtx.fillRect(grid - 16, 38, 16, 18);
 const T = { wall:'#', player:'@', playerOnGoal:'+', block:'$', blockOnGoal:'*', goal:'.', empty:' ' };
 
 function statRec(g,inc,hi,lo){const j=JSON.parse(localStorage.getItem('tg-stats')||'{}');const e=j[g]||{};for(const[k,v]of Object.entries(inc||{}))e[k]=(e[k]||0)+v;for(const[k,v]of Object.entries(hi||{}))if(v!=null&&(!e[k]||v>e[k]))e[k]=v;for(const[k,v]of Object.entries(lo||{}))if(v!=null&&(!e[k]||v<e[k]))e[k]=v;j[g]=e;localStorage.setItem('tg-stats',JSON.stringify(j));}
+const SFX=(()=>{let ac;const A=()=>(ac=ac||new(window.AudioContext||window.webkitAudioContext)());const t=(f,d,tp,v)=>{try{const c=A(),o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.type=tp||'sine';o.frequency.value=f;g.gain.setValueAtTime(v||.25,c.currentTime);g.gain.exponentialRampToValueAtTime(.001,c.currentTime+d);o.start();o.stop(c.currentTime+d);}catch(e){}};return{step:()=>t(400,.04,'square',.08),push:()=>t(250,.06,'square',.12),win(){t(523,.1);setTimeout(()=>t(659,.1),100);setTimeout(()=>t(784,.25),200);}};})();
 
 // ── curated levels ───────────────────────────────────────────
 const LEVELS = [
@@ -334,11 +335,13 @@ function doMove(dc, dr) {
     if (nR < 0 || nR >= cells.length || nC < 0) return;
     const nCell = cells[nR]?.[nC];
     if (nCell !== T.empty && nCell !== T.goal) return;
+    SFX.push();
     history.push({cells: cloneCells(), pos: {...playerPos}});
     moveCell({row, col}, {row: nR, col: nC});
     moveCell(playerPos, {row, col});
     playerPos = {row, col};
   } else if (cell === T.empty || cell === T.goal) {
+    SFX.step();
     history.push({cells: cloneCells(), pos: {...playerPos}});
     moveCell(playerPos, {row, col});
     playerPos = {row, col};
@@ -366,6 +369,7 @@ function checkWin() {
       if (cells[r][c] === T.block) return;
 
   won = true;
+  SFX.win();
   if(isRandom) statRec('sokoban',{played:1,completedRandom:1});
   else statRec('sokoban',{played:1,completedCurated:1});
   const bKey = isRandom ? 'tg-sokoban-random-best' : bestKey(currentLevel);
