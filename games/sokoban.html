@@ -21,7 +21,9 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,
 .hud{display:flex;align-items:center;justify-content:space-between;width:100%;font-size:.9rem;font-weight:700;flex-wrap:wrap;gap:6px}
 .hud-btns{display:flex;gap:6px}
 .ctrl-btn{background:var(--surface2);border:1px solid var(--dim);color:var(--text);border-radius:8px;padding:5px 12px;font-size:.82rem;cursor:pointer;touch-action:manipulation}
+.level-info{font-size:.8rem;color:var(--dim);text-align:center;width:100%}
 canvas{display:block;max-width:100%;height:auto;border:1px solid var(--surface2)}
+.next-btn{background:var(--accent);color:#fff;border:none;border-radius:10px;padding:10px 24px;font-size:1rem;font-weight:700;cursor:pointer;touch-action:manipulation;display:none}
 .dpad{display:grid;grid-template-columns:repeat(3,60px);grid-template-rows:repeat(2,60px);gap:6px;margin-top:6px}
 .dpad button{background:var(--surface);border:1px solid var(--surface2);border-radius:10px;color:var(--text);font-size:1.5rem;cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
 .dpad button:active{background:var(--accent);color:#fff}
@@ -43,14 +45,16 @@ canvas{display:block;max-width:100%;height:auto;border:1px solid var(--surface2)
 </div>
 <div class="wrap">
   <div class="hud">
-    <span id="movesEl">🚶 0</span>
+    <span id="levelEl">🎯 1/6</span>
     <div class="hud-btns">
       <button class="ctrl-btn i18n" data-sr="↩ Поништи" data-en="↩ Undo" onclick="undo()">↩ Поништи</button>
       <button class="ctrl-btn i18n" data-sr="↺ Ресет" data-en="↺ Reset" onclick="resetLevel()">↺ Ресет</button>
     </div>
-    <span id="bestEl">🏆 <span class="i18n" data-sr="—" data-en="—">—</span></span>
+    <span id="movesEl">🚶 0</span>
   </div>
+  <div class="level-info" id="bestEl"></div>
   <canvas id="game"></canvas>
+  <button class="next-btn i18n" id="nextBtn" data-sr="Следећи ниво →" data-en="Next level →" onclick="nextLevel()">Следећи ниво →</button>
   <div class="dpad">
     <button class="up" onclick="doMove(0,-1)">▲</button>
     <button class="left" onclick="doMove(-1,0)">◄</button>
@@ -89,8 +93,43 @@ wallCtx.fillRect(grid - 16, 38, 16, 18);
 
 const types = { wall:'#', player:'@', playerOnGoal:'+', block:'$', blockOnGoal:'*', goal:'.', empty:' ' };
 
-const level1 = `
-  #####
+// 6 levels of increasing difficulty
+const levels = [
+`#####
+#   #
+#.$ #
+# @ #
+#####`,
+
+`######
+#    #
+# $  #
+# @. #
+######`,
+
+`#######
+#     #
+###$  #
+# .   #
+# @   #
+#######`,
+
+`#######
+#     #
+# . . #
+# $ $ #
+#  @  #
+#######`,
+
+`########
+#  .   #
+#  $   #
+# @    #
+#    $ #
+#    . #
+########`,
+
+`  #####
 ###   #
 #.@$  #
 ### $.#
@@ -98,22 +137,29 @@ const level1 = `
 # # . ##
 #$ *$$.#
 #   .  #
-########
-`;
+########`
+];
 
-let cells, playerPos, width, moves, won, history, rAF;
-let best = +localStorage.getItem('tg-sokoban-best') || 0;
-updateBestDisplay();
+let cells, playerPos, width, moves, won, history;
+let currentLevel = +localStorage.getItem('tg-sokoban-level') || 0;
+if (currentLevel >= levels.length) currentLevel = 0;
 
-function updateBestDisplay() {
-  const b = +localStorage.getItem('tg-sokoban-best') || 0;
-  document.getElementById('bestEl').textContent = b > 0 ? '🏆 ' + b : '🏆 —';
+function bestKey(n) { return 'tg-sokoban-best-' + n; }
+
+function updateHUD() {
+  const L = localStorage.getItem('tg-lang') || 'sr';
+  document.getElementById('levelEl').textContent = '🎯 ' + (currentLevel + 1) + '/' + levels.length;
+  document.getElementById('movesEl').textContent = '🚶 ' + moves;
+  const b = +localStorage.getItem(bestKey(currentLevel)) || 0;
+  const lbl = L === 'sr' ? 'Ниво ' : 'Level ';
+  const bestTxt = b > 0 ? (L === 'sr' ? ' · 🏆 рекорд: ' : ' · 🏆 best: ') + b + (L === 'sr' ? ' потеза' : ' moves') : '';
+  document.getElementById('bestEl').textContent = lbl + (currentLevel + 1) + bestTxt;
 }
 
 function parseLevel() {
   cells = [];
   width = 0;
-  level1.split('\n').filter(r => !!r).forEach((rowData, row) => {
+  levels[currentLevel].split('\n').filter(r => r.trim() !== '').forEach((rowData, row) => {
     cells[row] = [];
     if (rowData.length > width) width = rowData.length;
     rowData.split('').forEach((colData, col) => {
@@ -147,9 +193,9 @@ function doMove(dc, dr) {
   if (won) return;
   const row = playerPos.row + dr;
   const col = playerPos.col + dc;
-  if (row < 0 || row >= cells.length || col < 0 || !cells[row]) return;
+  if (row < 0 || row >= cells.length || col < 0 || !cells[row] || col >= cells[row].length) return;
   const cell = cells[row][col];
-  if (cell === types.wall) return;
+  if (cell === types.wall || cell === undefined) return;
 
   if (cell === types.block || cell === types.blockOnGoal) {
     const nextRow = row + dr;
@@ -170,7 +216,7 @@ function doMove(dc, dr) {
   }
 
   moves++;
-  document.getElementById('movesEl').textContent = '🚶 ' + moves;
+  updateHUD();
   draw();
   checkWin();
 }
@@ -181,35 +227,48 @@ function undo() {
   cells = prev.cells;
   playerPos = { ...prev.pos };
   moves = Math.max(0, moves - 1);
-  document.getElementById('movesEl').textContent = '🚶 ' + moves;
+  updateHUD();
   draw();
 }
 
 function checkWin() {
-  let allOnGoals = true;
   for (let r = 0; r < cells.length; r++) {
     for (let c = 0; c < (cells[r] || []).length; c++) {
-      if (cells[r][c] === types.block) { allOnGoals = false; break; }
+      if (cells[r][c] === types.block) return;
     }
-    if (!allOnGoals) break;
   }
-  if (allOnGoals) {
-    won = true;
-    const b = +localStorage.getItem('tg-sokoban-best') || 0;
-    if (b === 0 || moves < b) {
-      localStorage.setItem('tg-sokoban-best', moves);
-      updateBestDisplay();
-    }
-    draw();
-    context.fillStyle = 'rgba(0,0,0,0.75)';
-    context.fillRect(0, canvas.height / 2 - 30, canvas.width, 60);
-    context.fillStyle = 'white';
-    context.font = '30px monospace';
-    context.textAlign = 'center';
-    context.textBaseline = 'middle';
-    const L = localStorage.getItem('tg-lang') || 'sr';
-    context.fillText(L === 'sr' ? 'ПОБЕДА! 🎉' : 'YOU WIN! 🎉', canvas.width / 2, canvas.height / 2);
+  won = true;
+  const b = +localStorage.getItem(bestKey(currentLevel)) || 0;
+  if (b === 0 || moves < b) {
+    localStorage.setItem(bestKey(currentLevel), moves);
   }
+  updateHUD();
+  draw();
+
+  // win overlay on canvas
+  context.fillStyle = 'rgba(0,0,0,0.72)';
+  context.fillRect(0, canvas.height / 2 - 34, canvas.width, 68);
+  context.fillStyle = 'white';
+  context.font = 'bold 26px monospace';
+  context.textAlign = 'center';
+  context.textBaseline = 'middle';
+  const L = localStorage.getItem('tg-lang') || 'sr';
+  const isLast = currentLevel >= levels.length - 1;
+  context.fillText(
+    isLast
+      ? (L === 'sr' ? '🏆 Сви нивои решени!' : '🏆 All levels done!')
+      : (L === 'sr' ? '🎉 Ниво ' + (currentLevel+1) + ' решен!' : '🎉 Level ' + (currentLevel+1) + ' done!'),
+    canvas.width / 2, canvas.height / 2
+  );
+
+  // show next button
+  const nextBtn = document.getElementById('nextBtn');
+  if (isLast) {
+    nextBtn.textContent = L === 'sr' ? '↺ Поново од почетка' : '↺ Play again';
+  } else {
+    nextBtn.textContent = L === 'sr' ? 'Следећи ниво →' : 'Next level →';
+  }
+  nextBtn.style.display = '';
 }
 
 function draw() {
@@ -265,8 +324,15 @@ function resetLevel() {
   history = [];
   moves = 0;
   won = false;
-  document.getElementById('movesEl').textContent = '🚶 0';
+  document.getElementById('nextBtn').style.display = 'none';
+  updateHUD();
   draw();
+}
+
+function nextLevel() {
+  currentLevel = (currentLevel + 1) % levels.length;
+  localStorage.setItem('tg-sokoban-level', currentLevel);
+  resetLevel();
 }
 
 document.addEventListener('keydown', e => {
