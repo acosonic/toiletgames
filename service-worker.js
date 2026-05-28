@@ -1,6 +1,6 @@
 // Service worker for Тоалет Игрице.
 // Bump CACHE_VERSION on every shell change.
-const CACHE_VERSION = 'v51';
+const CACHE_VERSION = 'v52';
 const CACHE_NAME = `toiletgames-${CACHE_VERSION}`;
 
 const SCOPE = new URL(self.registration.scope).pathname;
@@ -16,23 +16,23 @@ const SHELL = [
   SCOPE + 'apple-touch-icon.png',
   SCOPE + 'web-app-manifest-192x192.png',
   SCOPE + 'web-app-manifest-512x512.png',
-  SCOPE + 'games/minesweeper.html',
+  SCOPE + 'games/minefield.html',
   SCOPE + 'games/2048.html',
   SCOPE + 'games/snake.html',
   SCOPE + 'games/tictactoe.html',
-  SCOPE + 'games/simon.html',
-  SCOPE + 'games/connect4.html',
-  SCOPE + 'games/memory.html',
+  SCOPE + 'games/echo.html',
+  SCOPE + 'games/dropfour.html',
+  SCOPE + 'games/pairs.html',
   SCOPE + 'games/sudoku.html',
-  SCOPE + 'games/wordle.html',
+  SCOPE + 'games/letterbox.html',
   SCOPE + 'games/hangman.html',
   SCOPE + 'games/blackjack.html',
   SCOPE + 'games/sliding.html',
   SCOPE + 'games/match3.html',
-  SCOPE + 'games/tetris.html',
-  SCOPE + 'games/breakout.html',
-  SCOPE + 'games/frogger.html',
-  SCOPE + 'games/sokoban.html',
+  SCOPE + 'games/blockfall.html',
+  SCOPE + 'games/brickbash.html',
+  SCOPE + 'games/roadhop.html',
+  SCOPE + 'games/boxpusher.html',
   SCOPE + 'games/missile.html',
   SCOPE + 'games/stats.html',
 ];
