@@ -24,12 +24,12 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,
 svg.gallows{width:min(200px,55vw);height:min(200px,55vw)}
 .gallows-stroke{stroke:#555}
 html.light .gallows-stroke{stroke:#aaa}
-.word-row{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;padding:4px}
-.letter{font-size:1.6rem;font-weight:800;min-width:30px;text-align:center;border-bottom:3px solid var(--text);padding-bottom:2px;text-transform:uppercase;letter-spacing:1px}
-html.xl .letter{font-size:2rem;min-width:36px}
+.word-row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;padding:6px 4px}
+.letter{font-size:2.2rem;font-weight:800;min-width:38px;text-align:center;border-bottom:3px solid var(--text);padding-bottom:2px;text-transform:uppercase;letter-spacing:1px}
+html.xl .letter{font-size:2.75rem;min-width:46px}
 .letter.blank{color:transparent}
 .wrong-letters{font-size:.9rem;color:#e94560;text-align:center;min-height:1.4em;letter-spacing:3px;text-transform:uppercase}
-#keyboard{display:flex;flex-wrap:wrap;gap:5px;justify-content:center;max-width:360px}
+#keyboard{display:flex;flex-wrap:wrap;gap:5px;justify-content:center;max-width:390px}
 .key{background:var(--surface);border:none;color:var(--text);border-radius:8px;width:40px;height:40px;font-size:1rem;font-weight:700;cursor:pointer;text-transform:uppercase;-webkit-tap-highlight-color:transparent}
 html.xl .key{width:48px;height:48px;font-size:1.2rem}
 .key.used-correct{background:#538d4e;color:#fff;cursor:default}
@@ -89,7 +89,7 @@ html.light .key.used-wrong{background:#787c7e;color:#fff}
   const T={sr:{lose:'💀 Реч: ',win:'🎉 Победа!',hint:'Тема: '},en:{lose:'💀 Word was: ',win:'🎉 You won!',hint:'Category: '}};
   const t=k=>T[L][k];
 
-  const WORDS=[
+  const WORDS_EN=[
     {w:'ALLIGATOR',c:'🐾 Animal'},{w:'BUTTERFLY',c:'🐾 Animal'},{w:'CHICKEN',c:'🐾 Animal'},
     {w:'CROCODILE',c:'🐾 Animal'},{w:'DOLPHIN',c:'🐾 Animal'},{w:'ELEPHANT',c:'🐾 Animal'},
     {w:'FLAMINGO',c:'🐾 Animal'},{w:'GIRAFFE',c:'🐾 Animal'},{w:'JAGUAR',c:'🐾 Animal'},
@@ -112,15 +112,84 @@ html.light .key.used-wrong{background:#787c7e;color:#fff}
     {w:'TREASURE',c:'⚔️ Fantasy'},{w:'ZOMBIE',c:'⚔️ Fantasy'},{w:'FIREPLACE',c:'🏠 Place'},
     {w:'LIBRARY',c:'🏠 Place'},{w:'FOOTBALL',c:'⚽ Sport'},
   ];
+  const WORDS_SR=[
+    {w:'АЈКУЛА',c:'🐾 Животиња'},{w:'ВЕВЕРИЦА',c:'🐾 Животиња'},{w:'ДЕЛФИН',c:'🐾 Животиња'},
+    {w:'ЖИРАФА',c:'🐾 Животиња'},{w:'КОКОШКА',c:'🐾 Животиња'},{w:'КРОКОДИЛ',c:'🐾 Животиња'},
+    {w:'ЛЕПТИР',c:'🐾 Животиња'},{w:'МАЧКА',c:'🐾 Животиња'},{w:'МЕДВЕД',c:'🐾 Животиња'},
+    {w:'ПИНГВИН',c:'🐾 Животиња'},{w:'СЛОН',c:'🐾 Животиња'},{w:'СОВА',c:'🐾 Животиња'},
+    {w:'ТИГАР',c:'🐾 Животиња'},{w:'ЋУРКА',c:'🐾 Животиња'},{w:'ШКОРПИЈА',c:'🐾 Животиња'},
+    {w:'АВИОН',c:'🔧 Предмет'},{w:'БИЦИКЛ',c:'🔧 Предмет'},{w:'КЉУЧ',c:'🔧 Предмет'},
+    {w:'КОМПЈУТЕР',c:'🔧 Предмет'},{w:'МАГНЕТ',c:'🔧 Предмет'},{w:'МИКРОТАЛАСНА',c:'🔧 Предмет'},
+    {w:'ОЛОВКА',c:'🔧 Предмет'},{w:'СВЕЋА',c:'🔧 Предмет'},{w:'ТЕЛЕФОН',c:'🔧 Предмет'},
+    {w:'ЧЕКИЋ',c:'🔧 Предмет'},{w:'ЋЕБЕ',c:'🔧 Предмет'},{w:'КИШОБРАН',c:'🔧 Предмет'},
+    {w:'ЈАБУКА',c:'🍎 Храна'},{w:'БАНАНА',c:'🍎 Храна'},{w:'ЧОКОЛАДА',c:'🍎 Храна'},
+    {w:'ПАЛАЧИНКА',c:'🍎 Храна'},{w:'ЛУБЕНИЦА',c:'🍎 Храна'},{w:'СИР',c:'🍎 Храна'},
+    {w:'ХЛЕБ',c:'🍎 Храна'},{w:'ПАПРИКА',c:'🍎 Храна'},{w:'ПАРАДАЈЗ',c:'🍎 Храна'},
+    {w:'КАЊОН',c:'🌿 Природа'},{w:'ЛЕДНИК',c:'🌿 Природа'},{w:'МУЊА',c:'🌿 Природа'},
+    {w:'ПЕЧУРКА',c:'🌿 Природа'},{w:'ПЛАНИНА',c:'🌿 Природа'},{w:'СНЕГ',c:'🌿 Природа'},
+    {w:'СУНЦОКРЕТ',c:'🌿 Природа'},{w:'ВОДОПАД',c:'🌿 Природа'},{w:'ДУГА',c:'🌿 Природа'},
+    {w:'ЗАМАК',c:'⚔️ Бајке'},{w:'ЗМАЈ',c:'⚔️ Бајке'},{w:'ПИРАТ',c:'⚔️ Бајке'},
+    {w:'БЛАГО',c:'⚔️ Бајке'},{w:'ЧАРОБЊАК',c:'⚔️ Бајке'},{w:'ВИЛА',c:'⚔️ Бајке'},
+    {w:'БИБЛИОТЕКА',c:'🏠 Место'},{w:'ПОЗОРИШТЕ',c:'🏠 Место'},{w:'ШКОЛА',c:'🏠 Место'},
+    {w:'ПИЈАЦА',c:'🏠 Место'},{w:'ФУДБАЛ',c:'⚽ Спорт'},{w:'КОШАРКА',c:'⚽ Спорт'},
+    {w:'БИК',c:'🐾 Животиња'},{w:'ВУК',c:'🐾 Животиња'},{w:'ГОЛУБ',c:'🐾 Животиња'},
+    {w:'ГУШТЕР',c:'🐾 Животиња'},{w:'ЗЕЦ',c:'🐾 Животиња'},{w:'ЈАРАЦ',c:'🐾 Животиња'},
+    {w:'ЈЕЖ',c:'🐾 Животиња'},{w:'КОЊ',c:'🐾 Животиња'},{w:'ЛАВ',c:'🐾 Животиња'},
+    {w:'ЛИСИЦА',c:'🐾 Животиња'},{w:'МАЈМУН',c:'🐾 Животиња'},{w:'МРАВ',c:'🐾 Животиња'},
+    {w:'ОРАО',c:'🐾 Животиња'},{w:'ОВЦА',c:'🐾 Животиња'},{w:'ПАС',c:'🐾 Животиња'},
+    {w:'ПАУК',c:'🐾 Животиња'},{w:'ПЕТАО',c:'🐾 Животиња'},{w:'РИБА',c:'🐾 Животиња'},
+    {w:'СВИЊА',c:'🐾 Животиња'},{w:'СРНА',c:'🐾 Животиња'},{w:'ФОКА',c:'🐾 Животиња'},
+    {w:'ХОБОТНИЦА',c:'🐾 Животиња'},{w:'ЦРВ',c:'🐾 Животиња'},{w:'ЧАПЉА',c:'🐾 Животиња'},
+    {w:'ШАРАН',c:'🐾 Животиња'},{w:'БРИСАЧ',c:'🔧 Предмет'},{w:'ДУГМЕ',c:'🔧 Предмет'},
+    {w:'ЗВОНЦЕ',c:'🔧 Предмет'},{w:'ИГЛА',c:'🔧 Предмет'},{w:'КАМЕРА',c:'🔧 Предмет'},
+    {w:'КАШИКА',c:'🔧 Предмет'},{w:'КЊИГА',c:'🔧 Предмет'},{w:'КОФЕР',c:'🔧 Предмет'},
+    {w:'КРЕВЕТ',c:'🔧 Предмет'},{w:'ЛАМПА',c:'🔧 Предмет'},{w:'ЛОПАТА',c:'🔧 Предмет'},
+    {w:'МАСКА',c:'🔧 Предмет'},{w:'НОЖ',c:'🔧 Предмет'},{w:'НОВЧАНИК',c:'🔧 Предмет'},
+    {w:'ОРМАН',c:'🔧 Предмет'},{w:'ПЕШКИР',c:'🔧 Предмет'},{w:'ПРОЗОР',c:'🔧 Предмет'},
+    {w:'РАДИО',c:'🔧 Предмет'},{w:'РАНАЦ',c:'🔧 Предмет'},{w:'САТ',c:'🔧 Предмет'},
+    {w:'СТО',c:'🔧 Предмет'},{w:'СТОЛИЦА',c:'🔧 Предмет'},{w:'ТАЊИР',c:'🔧 Предмет'},
+    {w:'ФЛАША',c:'🔧 Предмет'},{w:'ЧАША',c:'🔧 Предмет'},{w:'ЧЕТКИЦА',c:'🔧 Предмет'},
+    {w:'ШЕШИР',c:'🔧 Предмет'},{w:'БУРЕК',c:'🍎 Храна'},{w:'ГРАШАК',c:'🍎 Храна'},
+    {w:'ЈАГОДА',c:'🍎 Храна'},{w:'КАЈСИЈА',c:'🍎 Храна'},{w:'КРОМПИР',c:'🍎 Храна'},
+    {w:'КРУШКА',c:'🍎 Храна'},{w:'КУПУС',c:'🍎 Храна'},{w:'ЛИМУН',c:'🍎 Храна'},
+    {w:'МАЛИНА',c:'🍎 Храна'},{w:'МЕД',c:'🍎 Храна'},{w:'МЛЕКО',c:'🍎 Храна'},
+    {w:'ПАСУЉ',c:'🍎 Храна'},{w:'ПИТА',c:'🍎 Храна'},{w:'ПИРИНАЧ',c:'🍎 Храна'},
+    {w:'ПРШУТА',c:'🍎 Храна'},{w:'РОШТИЉ',c:'🍎 Храна'},{w:'САЛАТА',c:'🍎 Храна'},
+    {w:'СЛАДОЛЕД',c:'🍎 Храна'},{w:'СМОКВА',c:'🍎 Храна'},{w:'СУПА',c:'🍎 Храна'},
+    {w:'ЋЕВАП',c:'🍎 Храна'},{w:'ШАРГАРЕПА',c:'🍎 Храна'},{w:'СОБА',c:'🏠 Место'},
+    {w:'БОЛНИЦА',c:'🏠 Место'},{w:'ГАРАЖА',c:'🏠 Место'},{w:'ДВОРИШТЕ',c:'🏠 Место'},
+    {w:'ЗООВРТ',c:'🏠 Место'},{w:'КАФАНА',c:'🏠 Место'},{w:'КУХИЊА',c:'🏠 Место'},
+    {w:'ЛУКА',c:'🏠 Место'},{w:'МУЗЕЈ',c:'🏠 Место'},{w:'ОСТРВО',c:'🏠 Место'},
+    {w:'ПАРК',c:'🏠 Место'},{w:'ПЛАЖА',c:'🏠 Место'},{w:'ПЛАНЕТА',c:'🏠 Место'},
+    {w:'ПРОДАВНИЦА',c:'🏠 Место'},{w:'РЕСТОРАН',c:'🏠 Место'},{w:'СЕЛО',c:'🏠 Место'},
+    {w:'СТАДИОН',c:'🏠 Место'},{w:'СТАНИЦА',c:'🏠 Место'},{w:'ТВРЂАВА',c:'🏠 Место'},
+    {w:'УЧИОНИЦА',c:'🏠 Место'},{w:'ФАБРИКА',c:'🏠 Место'},{w:'ЦРКВА',c:'🏠 Место'},
+    {w:'ЗОРА',c:'🌿 Природа'},{w:'БРДО',c:'🌿 Природа'},{w:'ВЕТАР',c:'🌿 Природа'},
+    {w:'ГРАНА',c:'🌿 Природа'},{w:'ДРВО',c:'🌿 Природа'},{w:'ЗВЕЗДА',c:'🌿 Природа'},
+    {w:'ЈЕЗЕРО',c:'🌿 Природа'},{w:'КАМЕН',c:'🌿 Природа'},{w:'КИША',c:'🌿 Природа'},
+    {w:'ЛИСТ',c:'🌿 Природа'},{w:'МАГЛА',c:'🌿 Природа'},{w:'МЕСЕЦ',c:'🌿 Природа'},
+    {w:'МОРЕ',c:'🌿 Природа'},{w:'ОБЛАК',c:'🌿 Природа'},{w:'ПЕЋИНА',c:'🌿 Природа'},
+    {w:'ПОЉЕ',c:'🌿 Природа'},{w:'ПОТОК',c:'🌿 Природа'},{w:'ПУСТИЊА',c:'🌿 Природа'},
+    {w:'РЕКА',c:'🌿 Природа'},{w:'СТЕНА',c:'🌿 Природа'},{w:'ТАЛАС',c:'🌿 Природа'},
+    {w:'ТРАВА',c:'🌿 Природа'},{w:'ЦВЕТ',c:'🌿 Природа'},{w:'ШУМА',c:'🌿 Природа'},
+    {w:'АТЛЕТИКА',c:'⚽ Спорт'},{w:'ВАТЕРПОЛО',c:'⚽ Спорт'},{w:'ОДБОЈКА',c:'⚽ Спорт'},
+    {w:'ПЛИВАЊЕ',c:'⚽ Спорт'},{w:'РУКОМЕТ',c:'⚽ Спорт'},{w:'ТЕНИС',c:'⚽ Спорт'},
+    {w:'ШАХ',c:'⚽ Спорт'},{w:'БАЈКА',c:'⚔️ Бајке'},{w:'ВИТЕЗ',c:'⚔️ Бајке'},
+    {w:'КРАЉ',c:'⚔️ Бајке'},{w:'КРАЉИЦА',c:'⚔️ Бајке'},{w:'МАГИЈА',c:'⚔️ Бајке'},
+    {w:'ПАТУЉАК',c:'⚔️ Бајке'},{w:'ПРИНЦ',c:'⚔️ Бајке'},{w:'ПРИНЦЕЗА',c:'⚔️ Бајке'},
+    {w:'ЧУДОВИШТЕ',c:'⚔️ Бајке'},{w:'ЧАРОЛИЈА',c:'⚔️ Бајке'},
+  ];
+  const ALPHABETS={sr:'АБВГДЂЕЖЗИЈКЛЉМНЊОПРСТЋУФХЦЧЏШ'.split(''),en:'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')};
+  const KEYMAP_SR={A:'А',B:'Б',V:'В',G:'Г',D:'Д','Đ':'Ђ',E:'Е','Ž':'Ж',Z:'З',I:'И',J:'Ј',K:'К',L:'Л',M:'М',N:'Н',O:'О',P:'П',R:'Р',S:'С',T:'Т','Ć':'Ћ',U:'У',F:'Ф',H:'Х',C:'Ц','Č':'Ч','Š':'Ш'};
   const PARTS=['hg-head','hg-body','hg-arm1','hg-arm2','hg-leg1','hg-leg2'];
 
   let word,category,guessed,wrong,over,wins=0;
 
-  function newGame(){const entry=WORDS[Math.floor(Math.random()*WORDS.length)];word=entry.w;category=entry.c;guessed=new Set();wrong=[];over=false;PARTS.forEach(id=>document.getElementById(id).style.display='none');document.getElementById('msg').textContent='';document.getElementById('hintBox').innerHTML=t('hint')+'<strong>'+category+'</strong>';renderWord();renderKeyboard();updateLives();}
+  function newGame(){const words=L==='sr'?WORDS_SR:WORDS_EN;const entry=words[Math.floor(Math.random()*words.length)];word=entry.w;category=entry.c;guessed=new Set();wrong=[];over=false;PARTS.forEach(id=>document.getElementById(id).style.display='none');document.getElementById('msg').textContent='';document.getElementById('hintBox').innerHTML=t('hint')+'<strong>'+category+'</strong>';renderWord();renderKeyboard();updateLives();}
 
   function renderWord(){const el=document.getElementById('wordRow');el.innerHTML='';for(const ch of word){const s=document.createElement('span');s.className='letter'+(guessed.has(ch)?'':' blank');s.textContent=ch;el.appendChild(s);}document.getElementById('wrongLetters').textContent=wrong.join(' ');}
 
-  function renderKeyboard(){const el=document.getElementById('keyboard');el.innerHTML='';for(let i=65;i<=90;i++){const ch=String.fromCharCode(i);const b=document.createElement('button');b.className='key'+(guessed.has(ch)?(word.includes(ch)?' used-correct':' used-wrong'):'');b.textContent=ch;b.addEventListener('click',()=>guess(ch));el.appendChild(b);}}
+  function renderKeyboard(){const el=document.getElementById('keyboard');el.innerHTML='';for(const ch of ALPHABETS[L]){const b=document.createElement('button');b.className='key'+(guessed.has(ch)?(word.includes(ch)?' used-correct':' used-wrong'):'');b.textContent=ch;b.addEventListener('click',()=>guess(ch));el.appendChild(b);}}
 
   function guess(ch){
     if(over||guessed.has(ch))return;guessed.add(ch);
@@ -132,7 +201,14 @@ html.light .key.used-wrong{background:#787c7e;color:#fff}
 
   function updateLives(){document.getElementById('lives').textContent='❤️ '+(PARTS.length-wrong.length);}
 
-  document.addEventListener('keydown',e=>{if(!over&&/^[a-zA-Z]$/.test(e.key))guess(e.key.toUpperCase());});
+  function normalizeKey(key){
+    const ch=key.toUpperCase();
+    if(L==='en')return /^[A-Z]$/.test(ch)?ch:null;
+    if(ALPHABETS.sr.includes(ch))return ch;
+    return KEYMAP_SR[ch]||null;
+  }
+
+  document.addEventListener('keydown',e=>{const ch=normalizeKey(e.key);if(!over&&ch)guess(ch);});
 
   window.newGame=newGame;newGame();
 })();

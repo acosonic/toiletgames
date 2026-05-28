@@ -172,9 +172,12 @@ const bestEl=document.getElementById('best-display');
 const comboEl=document.getElementById('combo-display');
 const progressEl=document.getElementById('progress-bar');
 const boardWrap=document.getElementById('board-wrapper');
-function cell(r,c){return boardEl.querySelector(`[data-r="${r}"][data-c="${c}"]`);}
+let boardCells=[];
+function cell(r,c){return boardCells[r*GRID+c];}
 
-function renderBoard(){boardEl.innerHTML='';for(let r=0;r<GRID;r++){for(let c=0;c<GRID;c++){const div=document.createElement('div');div.className='cell';div.dataset.r=r;div.dataset.c=c;if(board[r][c]){const gem=document.createElement('div');gem.className=`gem gem-${board[r][c].type}`;div.appendChild(gem);}div.addEventListener('click',()=>onCellClick(r,c));boardEl.appendChild(div);}}}
+function initBoardDom(){if(boardCells.length)return;for(let r=0;r<GRID;r++){for(let c=0;c<GRID;c++){const div=document.createElement('div');div.className='cell';div.dataset.r=r;div.dataset.c=c;div.addEventListener('click',()=>onCellClick(r,c));boardEl.appendChild(div);boardCells.push(div);}}}
+
+function renderBoard(opts={}){initBoardDom();const spawn=opts.spawn||false;for(let r=0;r<GRID;r++){for(let c=0;c<GRID;c++){const div=cell(r,c);div.className='cell';const gemData=board[r][c];const old=div.firstElementChild;if(!gemData){if(old)div.replaceChildren();continue;}const id=String(gemData.id);if(old&&old.dataset.id===id){old.className=`gem gem-${gemData.type}`;old.style.animationDelay='';continue;}const gem=document.createElement('div');gem.className=`gem gem-${gemData.type}`+(spawn?' spawning':'');gem.dataset.id=id;if(spawn)gem.style.animationDelay=`${r*.015+c*.008}s`;div.replaceChildren(gem);}}}
 
 function updateUI(){scoreEl.textContent=score.toLocaleString();movesEl.textContent=moves;if(score>best){best=score;localStorage.setItem('tg-match3-best',best);bestEl.textContent=best.toLocaleString();}}
 
@@ -199,7 +202,7 @@ async function resolveMatches({cells,specials}){if(cells.length===0)return;combo
 
 async function activateSpecials(r1,c1,r2,c2){const hits=new Set();function addHit(r,c){if(r>=0&&r<GRID&&c>=0&&c<GRID)hits.add(`${r},${c}`);}[{r:r1,c:c1},{r:r2,c:c2}].forEach(({r,c})=>{const g=board[r][c];if(!g)return;if(g.type===6){for(let cc=0;cc<GRID;cc++)addHit(r,cc);board[r][c]=null;}else if(g.type===7){for(let dr=-2;dr<=2;dr++)for(let dc=-2;dc<=2;dc++)addHit(r+dr,c+dc);board[r][c]=null;}});SFX.special();const cells=[...hits].map(k=>{const[r,c]=k.split(',').map(Number);return{r,c};});cells.forEach(({r,c})=>{burst(r,c,board[r][c]?.type??0);cell(r,c)?.classList.add('removing');});const pts=cells.length*120;score+=pts;updateUI();if(cells.length)scorePopup(cells[0].r,cells[0].c,pts);await delay(380);cells.forEach(({r,c})=>{board[r][c]=null;});renderBoard();await applyGravity();const next=findAllMatches();if(next.cells.length){comboCount=1;await resolveMatches(next);}}
 
-async function applyGravity(){let changed=false;for(let c=0;c<GRID;c++){let write=GRID-1;for(let r=GRID-1;r>=0;r--){if(board[r][c]!==null){board[write][c]=board[r][c];if(write!==r){board[r][c]=null;changed=true;}write--;}}for(let r=write;r>=0;r--){board[r][c]=makeGem(Math.floor(Math.random()*N_TYPES));changed=true;}}if(!changed)return;boardEl.innerHTML='';for(let r=0;r<GRID;r++){for(let c=0;c<GRID;c++){const div=document.createElement('div');div.className='cell';div.dataset.r=r;div.dataset.c=c;if(board[r][c]){const gem=document.createElement('div');gem.className=`gem gem-${board[r][c].type} spawning`;gem.style.animationDelay=`${r*.015+c*.008}s`;div.appendChild(gem);}div.addEventListener('click',()=>onCellClick(r,c));boardEl.appendChild(div);}}await delay(340);}
+async function applyGravity(){let changed=false;for(let c=0;c<GRID;c++){let write=GRID-1;for(let r=GRID-1;r>=0;r--){if(board[r][c]!==null){board[write][c]=board[r][c];if(write!==r){board[r][c]=null;changed=true;}write--;}}for(let r=write;r>=0;r--){board[r][c]=makeGem(Math.floor(Math.random()*N_TYPES));changed=true;}}if(!changed)return;renderBoard({spawn:true});await delay(340);}
 
 // ── Game lifecycle ─────────────────────────────────────────
 function startGame(){document.getElementById('overlay').style.display='none';score=moves=comboCount=bestCombo=0;timeLeft=GAME_TIME;selected=null;isAnimating=false;gameActive=true;updateUI();timerEl.textContent=GAME_TIME;timerEl.className='hud-value';comboEl.textContent='';progressEl.style.width='100%';progressEl.style.transition='none';requestAnimationFrame(()=>{requestAnimationFrame(()=>{progressEl.style.transition='width 1s linear';});});initBoard();renderBoard();clearInterval(timerID);timerID=setInterval(tick,1000);}
