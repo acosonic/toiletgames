@@ -17,7 +17,7 @@
 | 🃏 | Memory Match | Мемори |
 | 🔢 | Sudoku | Судоку |
 | 📝 | Wordle | Вордле |
-| 🎪 | Hangman | Вешала |
+| SVG | Hangman | Вешала |
 | 🃏 | Blackjack | Блекџек |
 | 🧩 | Sliding Puzzle | Слагалица |
 

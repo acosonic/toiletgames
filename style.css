@@ -133,6 +133,26 @@ html.light .game-card {
 
 .game-icon { font-size: 2.4rem; line-height: 1; }
 
+.hangman-icon {
+  width: 2.4rem;
+  height: 2.4rem;
+  color: var(--text);
+  display: block;
+}
+
+.hangman-icon .gallows-part,
+.hangman-icon .person-part {
+  stroke: currentColor;
+  stroke-width: 10;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+}
+
+.hangman-icon .person-part {
+  stroke: var(--accent);
+}
+
 .game-name {
   font-size: 0.88rem;
   font-weight: 700;

@@ -38,12 +38,25 @@ html.light .key.used-wrong{background:#787c7e;color:#fff}
 .hint-box{font-size:1rem;text-align:center;color:var(--dim);min-height:1.4em;letter-spacing:.02em}
 .hint-box strong{color:var(--text)}
 .msg{font-size:1rem;font-weight:700;text-align:center;color:var(--accent);min-height:1.4em}
+.title-icon{width:1.05rem;height:1.05rem;vertical-align:-.16em;margin-right:.22rem}
+.title-icon .gallows-part,.title-icon .person-part{stroke:currentColor;stroke-width:10;stroke-linecap:round;stroke-linejoin:round;fill:none}
+.title-icon .person-part{stroke:var(--accent)}
 </style>
 </head>
 <body>
 <div class="topbar">
   <a href="../" class="i18n" data-sr="← Назад" data-en="← Back">← Назад</a>
-  <h2 class="i18n" data-sr="🎪 Вешала" data-en="🎪 Hangman">🎪 Вешала</h2>
+  <h2>
+    <svg class="title-icon" viewBox="0 0 120 120" aria-hidden="true">
+      <path class="gallows-part" d="M16 112H54M34 112V12H78V34"/>
+      <circle class="person-part" cx="82" cy="42" r="17"/>
+      <line class="person-part" x1="82" y1="59" x2="82" y2="82"/>
+      <line class="person-part" x1="67" y1="70" x2="97" y2="70"/>
+      <line class="person-part" x1="82" y1="82" x2="64" y2="100"/>
+      <line class="person-part" x1="82" y1="82" x2="100" y2="100"/>
+    </svg>
+    <span class="i18n" data-sr="Вешала" data-en="Hangman">Вешала</span>
+  </h2>
   <div class="topbar-btns">
     <button class="icon-btn theme-btn" onclick="toggleTheme()">🌙</button>
     <button class="icon-btn lang-btn" onclick="toggleLang()">EN</button>

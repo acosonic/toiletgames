@@ -21,7 +21,7 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,
 .hud{display:flex;align-items:center;justify-content:space-between;width:100%;font-size:.9rem;font-weight:700;flex-wrap:wrap;gap:6px}
 .hud-btns{display:flex;gap:6px}
 .ctrl-btn{background:var(--surface2);border:1px solid var(--dim);color:var(--text);border-radius:8px;padding:5px 12px;font-size:.82rem;cursor:pointer;touch-action:manipulation}
-.level-info{font-size:.8rem;color:var(--dim);text-align:center;width:100%}
+.level-info{font-size:.8rem;color:var(--dim);text-align:center;width:100%;min-height:1.2em}
 canvas{display:block;max-width:100%;height:auto;border:1px solid var(--surface2)}
 .next-btn{background:var(--accent);color:#fff;border:none;border-radius:10px;padding:10px 24px;font-size:1rem;font-weight:700;cursor:pointer;touch-action:manipulation;display:none}
 .dpad{display:grid;grid-template-columns:repeat(3,60px);grid-template-rows:repeat(2,60px);gap:6px;margin-top:6px}
@@ -49,12 +49,13 @@ canvas{display:block;max-width:100%;height:auto;border:1px solid var(--surface2)
     <div class="hud-btns">
       <button class="ctrl-btn i18n" data-sr="↩ Поништи" data-en="↩ Undo" onclick="undo()">↩ Поништи</button>
       <button class="ctrl-btn i18n" data-sr="↺ Ресет" data-en="↺ Reset" onclick="resetLevel()">↺ Ресет</button>
+      <button class="ctrl-btn" onclick="startRandom()" title="Random level">🎲</button>
     </div>
     <span id="movesEl">🚶 0</span>
   </div>
-  <div class="level-info" id="bestEl"></div>
+  <div class="level-info" id="levelInfo"></div>
   <canvas id="game"></canvas>
-  <button class="next-btn i18n" id="nextBtn" data-sr="Следећи ниво →" data-en="Next level →" onclick="nextLevel()">Следећи ниво →</button>
+  <button class="next-btn" id="nextBtn" onclick="onNext()">→</button>
   <div class="dpad">
     <button class="up" onclick="doMove(0,-1)">▲</button>
     <button class="left" onclick="doMove(-1,0)">◄</button>
@@ -75,6 +76,7 @@ canvas{display:block;max-width:100%;height:auto;border:1px solid var(--surface2)
   applyTheme();applyI18n();
 })();
 
+// ── canvas setup ────────────────────────────────────────────
 const canvas = document.getElementById('game');
 const context = canvas.getContext('2d');
 const grid = 56;
@@ -91,10 +93,10 @@ wallCtx.fillRect(19, 20, grid - 19, 16);
 wallCtx.fillRect(0, 38, grid - 18, 18);
 wallCtx.fillRect(grid - 16, 38, 16, 18);
 
-const types = { wall:'#', player:'@', playerOnGoal:'+', block:'$', blockOnGoal:'*', goal:'.', empty:' ' };
+const T = { wall:'#', player:'@', playerOnGoal:'+', block:'$', blockOnGoal:'*', goal:'.', empty:' ' };
 
-// 6 levels of increasing difficulty
-const levels = [
+// ── curated levels ───────────────────────────────────────────
+const LEVELS = [
 `#####
 #   #
 #.$ #
@@ -140,80 +142,205 @@ const levels = [
 ########`
 ];
 
+// ── level generator ──────────────────────────────────────────
+// Backward generation: start from solved state, apply reverse moves.
+// A reverse move undoes a forward push:
+//   forward: player at P pushes box from P+d to P+2d
+//   reverse: box at B, player walks to B-d, then box returns to B-d, player to B-2d
+
+function canReach(st, from, to) {
+  if (from.row === to.row && from.col === to.col) return true;
+  const H = st.length, W = st[0].length;
+  const ok = (r, c) => {
+    const v = st[r]?.[c];
+    return v !== undefined && v !== '#' && v !== '$' && v !== '*';
+  };
+  if (!ok(to.row, to.col)) return false;
+  const visited = new Set([from.row * 100 + from.col]);
+  const q = [[from.row, from.col]];
+  for (let i = 0; i < q.length; i++) {
+    const [r, c] = q[i];
+    for (const [dr, dc] of [[-1,0],[1,0],[0,-1],[0,1]]) {
+      const nr = r + dr, nc = c + dc;
+      if (nr === to.row && nc === to.col && ok(nr, nc)) return true;
+      const key = nr * 100 + nc;
+      if (!visited.has(key) && ok(nr, nc)) { visited.add(key); q.push([nr, nc]); }
+    }
+  }
+  return false;
+}
+
+function tryGenerate(W, H, numBoxes, numMoves) {
+  // Border walls + random interior walls
+  const g = Array.from({length: H}, (_, r) =>
+    Array.from({length: W}, (_, c) =>
+      (r === 0 || r === H-1 || c === 0 || c === W-1) ? '#' : ' ')
+  );
+  const wallCount = Math.floor((W-2) * (H-2) * 0.16);
+  for (let i = 0; i < wallCount; i++) {
+    g[1 + Math.floor(Math.random()*(H-2))][1 + Math.floor(Math.random()*(W-2))] = '#';
+  }
+
+  // Connectivity check
+  const open = [];
+  for (let r = 1; r < H-1; r++)
+    for (let c = 1; c < W-1; c++)
+      if (g[r][c] === ' ') open.push([r, c]);
+  if (open.length < numBoxes * 5 + 3) return null;
+
+  const vis = new Set([open[0][0]*W + open[0][1]]);
+  const bq = [open[0]];
+  for (let i = 0; i < bq.length; i++) {
+    const [r, c] = bq[i];
+    for (const [dr, dc] of [[-1,0],[1,0],[0,-1],[0,1]]) {
+      const key = (r+dr)*W + (c+dc);
+      if (!vis.has(key) && g[r+dr]?.[c+dc] === ' ') { vis.add(key); bq.push([r+dr, c+dc]); }
+    }
+  }
+  if (vis.size < open.length * 0.8) return null;
+
+  const reachable = open.filter(([r, c]) => vis.has(r*W + c));
+  if (reachable.length < numBoxes + 3) return null;
+
+  // Solved state: boxes on goals, player placed
+  const sh = [...reachable].sort(() => Math.random() - 0.5);
+  const goals = sh.slice(0, numBoxes);
+  const pStart = sh[numBoxes];
+
+  const st = g.map(row => [...row]);
+  goals.forEach(([r, c]) => { st[r][c] = '*'; });
+  st[pStart[0]][pStart[1]] = '@';
+  let pPos = {row: pStart[0], col: pStart[1]};
+
+  // Apply reverse moves
+  const DIRS = [[-1,0],[1,0],[0,-1],[0,1]];
+  let applied = 0;
+
+  for (let i = 0; i < numMoves; i++) {
+    const valid = [];
+    for (let r = 1; r < H-1; r++) {
+      for (let c = 1; c < W-1; c++) {
+        if (st[r][c] !== '$' && st[r][c] !== '*') continue;
+        for (const [dr, dc] of DIRS) {
+          // Reverse push in direction d:
+          //   box destination: (r-dr, c-dc)  [box moves back one step]
+          //   player destination: (r-2*dr, c-2*dc)  [player also steps back]
+          const bR = r - dr, bC = c - dc;
+          const pR = r - 2*dr, pC = c - 2*dc;
+          if (bR < 1 || bR > H-2 || bC < 1 || bC > W-2) continue;
+          if (pR < 1 || pR > H-2 || pC < 1 || pC > W-2) continue;
+          if (st[bR][bC] !== ' ' && st[bR][bC] !== '.') continue;
+          const pCell = st[pR][pC];
+          if (pCell === '#' || pCell === '$' || pCell === '*') continue;
+          // Player must be able to walk to bR,bC (that's where they stand to pull)
+          if (canReach(st, pPos, {row: bR, col: bC})) {
+            valid.push({r, c, bR, bC, pR, pC});
+          }
+        }
+      }
+    }
+    if (!valid.length) break;
+    const mv = valid[Math.floor(Math.random() * valid.length)];
+
+    // Move box (r,c) → (bR,bC)
+    st[mv.r][mv.c] = st[mv.r][mv.c] === '*' ? '.' : ' ';
+    st[mv.bR][mv.bC] = st[mv.bR][mv.bC] === '.' ? '*' : '$';
+    // Move player pPos → (pR,pC)
+    st[pPos.row][pPos.col] = st[pPos.row][pPos.col] === '+' ? '.' : ' ';
+    st[mv.pR][mv.pC] = st[mv.pR][mv.pC] === '.' ? '+' : '@';
+    pPos = {row: mv.pR, col: mv.pC};
+    applied++;
+  }
+
+  if (applied < Math.floor(numMoves * 0.35)) return null;
+  return st.map(row => row.join('')).join('\n');
+}
+
+function generateLevel(numBoxes, numMoves) {
+  for (let i = 0; i < 40; i++) {
+    const r = tryGenerate(9, 8, numBoxes, numMoves);
+    if (r) return r;
+  }
+  return null;
+}
+
+// ── game state ───────────────────────────────────────────────
 let cells, playerPos, width, moves, won, history;
 let currentLevel = +localStorage.getItem('tg-sokoban-level') || 0;
-if (currentLevel >= levels.length) currentLevel = 0;
+if (currentLevel >= LEVELS.length) currentLevel = 0;
+let isRandom = false;
+let currentLevelStr = LEVELS[currentLevel];
 
 function bestKey(n) { return 'tg-sokoban-best-' + n; }
 
+function L() { return localStorage.getItem('tg-lang') || 'sr'; }
+
 function updateHUD() {
-  const L = localStorage.getItem('tg-lang') || 'sr';
-  document.getElementById('levelEl').textContent = '🎯 ' + (currentLevel + 1) + '/' + levels.length;
+  const isSR = L() === 'sr';
+  if (isRandom) {
+    document.getElementById('levelEl').textContent = '🎲';
+    const b = +localStorage.getItem('tg-sokoban-random-best') || 0;
+    document.getElementById('levelInfo').textContent =
+      (isSR ? 'Случајни ниво' : 'Random level') +
+      (b > 0 ? (isSR ? ' · 🏆 рекорд: ' + b : ' · 🏆 best: ' + b) : '');
+  } else {
+    document.getElementById('levelEl').textContent = '🎯 ' + (currentLevel + 1) + '/' + LEVELS.length;
+    const b = +localStorage.getItem(bestKey(currentLevel)) || 0;
+    document.getElementById('levelInfo').textContent =
+      (isSR ? 'Ниво ' : 'Level ') + (currentLevel + 1) +
+      (b > 0 ? (isSR ? ' · 🏆 рекорд: ' + b + ' пот.' : ' · 🏆 best: ' + b) : '');
+  }
   document.getElementById('movesEl').textContent = '🚶 ' + moves;
-  const b = +localStorage.getItem(bestKey(currentLevel)) || 0;
-  const lbl = L === 'sr' ? 'Ниво ' : 'Level ';
-  const bestTxt = b > 0 ? (L === 'sr' ? ' · 🏆 рекорд: ' : ' · 🏆 best: ') + b + (L === 'sr' ? ' потеза' : ' moves') : '';
-  document.getElementById('bestEl').textContent = lbl + (currentLevel + 1) + bestTxt;
 }
 
 function parseLevel() {
   cells = [];
   width = 0;
-  levels[currentLevel].split('\n').filter(r => r.trim() !== '').forEach((rowData, row) => {
+  currentLevelStr.split('\n').filter(r => r.trim() !== '').forEach((rowData, row) => {
     cells[row] = [];
     if (rowData.length > width) width = rowData.length;
     rowData.split('').forEach((colData, col) => {
       cells[row][col] = colData;
-      if (colData === types.player || colData === types.playerOnGoal) playerPos = { row, col };
+      if (colData === T.player || colData === T.playerOnGoal) playerPos = {row, col};
     });
   });
   canvas.width = width * grid;
   canvas.height = cells.length * grid;
 }
 
-function cloneCells() {
-  return cells.map(row => [...row]);
-}
+function cloneCells() { return cells.map(row => [...row]); }
 
-function moveCell(startPos, endPos) {
-  const startCell = cells[startPos.row][startPos.col];
-  const endCell = cells[endPos.row][endPos.col];
-  const isPlayer = startCell === types.player || startCell === types.playerOnGoal;
-  switch(startCell) {
-    case types.player: case types.block: cells[startPos.row][startPos.col] = types.empty; break;
-    case types.playerOnGoal: case types.blockOnGoal: cells[startPos.row][startPos.col] = types.goal; break;
-  }
-  switch(endCell) {
-    case types.empty: cells[endPos.row][endPos.col] = isPlayer ? types.player : types.block; break;
-    case types.goal: cells[endPos.row][endPos.col] = isPlayer ? types.playerOnGoal : types.blockOnGoal; break;
-  }
+function moveCell(from, to) {
+  const sc = cells[from.row][from.col];
+  const ec = cells[to.row][to.col];
+  const isPlayer = sc === T.player || sc === T.playerOnGoal;
+  cells[from.row][from.col] = (sc === T.player || sc === T.block) ? T.empty : T.goal;
+  cells[to.row][to.col] = (ec === T.goal)
+    ? (isPlayer ? T.playerOnGoal : T.blockOnGoal)
+    : (isPlayer ? T.player : T.block);
 }
 
 function doMove(dc, dr) {
   if (won) return;
-  const row = playerPos.row + dr;
-  const col = playerPos.col + dc;
+  const row = playerPos.row + dr, col = playerPos.col + dc;
   if (row < 0 || row >= cells.length || col < 0 || !cells[row] || col >= cells[row].length) return;
   const cell = cells[row][col];
-  if (cell === types.wall || cell === undefined) return;
+  if (cell === T.wall || cell === undefined) return;
 
-  if (cell === types.block || cell === types.blockOnGoal) {
-    const nextRow = row + dr;
-    const nextCol = col + dc;
-    if (nextRow < 0 || nextRow >= cells.length || nextCol < 0) return;
-    const nextCell = cells[nextRow] && cells[nextRow][nextCol];
-    if (nextCell !== types.empty && nextCell !== types.goal) return;
-    history.push({ cells: cloneCells(), pos: { ...playerPos } });
-    moveCell({ row, col }, { row: nextRow, col: nextCol });
-    moveCell(playerPos, { row, col });
-    playerPos = { row, col };
-  } else if (cell === types.empty || cell === types.goal) {
-    history.push({ cells: cloneCells(), pos: { ...playerPos } });
-    moveCell(playerPos, { row, col });
-    playerPos = { row, col };
-  } else {
-    return;
-  }
+  if (cell === T.block || cell === T.blockOnGoal) {
+    const nR = row + dr, nC = col + dc;
+    if (nR < 0 || nR >= cells.length || nC < 0) return;
+    const nCell = cells[nR]?.[nC];
+    if (nCell !== T.empty && nCell !== T.goal) return;
+    history.push({cells: cloneCells(), pos: {...playerPos}});
+    moveCell({row, col}, {row: nR, col: nC});
+    moveCell(playerPos, {row, col});
+    playerPos = {row, col};
+  } else if (cell === T.empty || cell === T.goal) {
+    history.push({cells: cloneCells(), pos: {...playerPos}});
+    moveCell(playerPos, {row, col});
+    playerPos = {row, col};
+  } else return;
 
   moves++;
   updateHUD();
@@ -222,53 +349,51 @@ function doMove(dc, dr) {
 }
 
 function undo() {
-  if (won || history.length === 0) return;
+  if (won || !history.length) return;
   const prev = history.pop();
   cells = prev.cells;
-  playerPos = { ...prev.pos };
+  playerPos = {...prev.pos};
   moves = Math.max(0, moves - 1);
   updateHUD();
   draw();
 }
 
 function checkWin() {
-  for (let r = 0; r < cells.length; r++) {
-    for (let c = 0; c < (cells[r] || []).length; c++) {
-      if (cells[r][c] === types.block) return;
-    }
-  }
+  for (let r = 0; r < cells.length; r++)
+    for (let c = 0; c < (cells[r]||[]).length; c++)
+      if (cells[r][c] === T.block) return;
+
   won = true;
-  const b = +localStorage.getItem(bestKey(currentLevel)) || 0;
-  if (b === 0 || moves < b) {
-    localStorage.setItem(bestKey(currentLevel), moves);
-  }
+  const bKey = isRandom ? 'tg-sokoban-random-best' : bestKey(currentLevel);
+  const b = +localStorage.getItem(bKey) || 0;
+  if (b === 0 || moves < b) localStorage.setItem(bKey, moves);
   updateHUD();
   draw();
 
-  // win overlay on canvas
+  // Win overlay
   context.fillStyle = 'rgba(0,0,0,0.72)';
-  context.fillRect(0, canvas.height / 2 - 34, canvas.width, 68);
+  context.fillRect(0, canvas.height/2 - 34, canvas.width, 68);
   context.fillStyle = 'white';
-  context.font = 'bold 26px monospace';
+  context.font = 'bold 24px monospace';
   context.textAlign = 'center';
   context.textBaseline = 'middle';
-  const L = localStorage.getItem('tg-lang') || 'sr';
-  const isLast = currentLevel >= levels.length - 1;
+  const isSR = L() === 'sr';
+  const isLast = !isRandom && currentLevel >= LEVELS.length - 1;
   context.fillText(
-    isLast
-      ? (L === 'sr' ? '🏆 Сви нивои решени!' : '🏆 All levels done!')
-      : (L === 'sr' ? '🎉 Ниво ' + (currentLevel+1) + ' решен!' : '🎉 Level ' + (currentLevel+1) + ' done!'),
-    canvas.width / 2, canvas.height / 2
+    isLast ? (isSR ? '🏆 Сви нивои!' : '🏆 All done!')
+           : (isSR ? '🎉 Решено!' : '🎉 Solved!'),
+    canvas.width/2, canvas.height/2
   );
 
-  // show next button
-  const nextBtn = document.getElementById('nextBtn');
-  if (isLast) {
-    nextBtn.textContent = L === 'sr' ? '↺ Поново од почетка' : '↺ Play again';
+  const btn = document.getElementById('nextBtn');
+  btn.style.display = 'block';
+  if (isRandom) {
+    btn.textContent = isSR ? '🎲 Нови случајни' : '🎲 New random';
+  } else if (isLast) {
+    btn.textContent = isSR ? '↺ Поново' : '↺ Again';
   } else {
-    nextBtn.textContent = L === 'sr' ? 'Следећи ниво →' : 'Next level →';
+    btn.textContent = isSR ? 'Следећи ниво →' : 'Next level →';
   }
-  nextBtn.style.display = 'block';
 }
 
 function draw() {
@@ -278,41 +403,41 @@ function draw() {
   context.lineWidth = 2;
 
   for (let row = 0; row < cells.length; row++) {
-    for (let col = 0; col < (cells[row] || []).length; col++) {
+    for (let col = 0; col < (cells[row]||[]).length; col++) {
       const cell = cells[row][col];
-      if (cell === types.wall) {
-        context.drawImage(wallCanvas, col * grid, row * grid, grid, grid);
+      if (cell === T.wall) {
+        context.drawImage(wallCanvas, col*grid, row*grid, grid, grid);
       }
-      if (cell === types.block || cell === types.blockOnGoal) {
-        context.fillStyle = cell === types.block ? '#ffbb5b' : '#ba6a15';
-        context.fillRect(col * grid, row * grid, grid, grid);
-        context.strokeRect(col * grid, row * grid, grid, grid);
-        context.strokeRect((col + 0.1) * grid, (row + 0.1) * grid, grid * 0.8, grid * 0.8);
+      if (cell === T.block || cell === T.blockOnGoal) {
+        context.fillStyle = cell === T.block ? '#ffbb5b' : '#ba6a15';
+        context.fillRect(col*grid, row*grid, grid, grid);
+        context.strokeRect(col*grid, row*grid, grid, grid);
+        context.strokeRect((col+0.1)*grid, (row+0.1)*grid, grid*0.8, grid*0.8);
         context.beginPath();
-        context.moveTo((col + 0.1) * grid, (row + 0.1) * grid);
-        context.lineTo((col + 0.9) * grid, (row + 0.9) * grid);
-        context.moveTo((col + 0.9) * grid, (row + 0.1) * grid);
-        context.lineTo((col + 0.1) * grid, (row + 0.9) * grid);
+        context.moveTo((col+0.1)*grid,(row+0.1)*grid);
+        context.lineTo((col+0.9)*grid,(row+0.9)*grid);
+        context.moveTo((col+0.9)*grid,(row+0.1)*grid);
+        context.lineTo((col+0.1)*grid,(row+0.9)*grid);
         context.stroke();
       }
-      if (cell === types.goal || cell === types.playerOnGoal || cell === types.blockOnGoal) {
+      if (cell === T.goal || cell === T.playerOnGoal || cell === T.blockOnGoal) {
         context.fillStyle = '#914430';
         context.beginPath();
-        context.arc((col + 0.5) * grid, (row + 0.5) * grid, 8, 0, Math.PI * 2);
+        context.arc((col+0.5)*grid, (row+0.5)*grid, 8, 0, Math.PI*2);
         context.fill();
       }
-      if (cell === types.player || cell === types.playerOnGoal) {
+      if (cell === T.player || cell === T.playerOnGoal) {
         context.fillStyle = '#e94560';
         context.beginPath();
-        context.arc((col + 0.5) * grid, (row + 0.28) * grid, 7, 0, Math.PI * 2);
+        context.arc((col+0.5)*grid, (row+0.28)*grid, 7, 0, Math.PI*2);
         context.fill();
-        context.fillRect((col + 0.47) * grid, (row + 0.28) * grid, 3, grid * 0.42);
-        context.fillRect((col + 0.28) * grid, (row + 0.47) * grid, grid * 0.44, 3);
+        context.fillRect((col+0.47)*grid, (row+0.28)*grid, 3, grid*0.42);
+        context.fillRect((col+0.28)*grid, (row+0.47)*grid, grid*0.44, 3);
         context.beginPath();
-        context.moveTo((col + 0.5) * grid, (row + 0.68) * grid);
-        context.lineTo((col + 0.65) * grid, (row + 0.9) * grid);
-        context.moveTo((col + 0.5) * grid, (row + 0.68) * grid);
-        context.lineTo((col + 0.35) * grid, (row + 0.9) * grid);
+        context.moveTo((col+0.5)*grid,(row+0.68)*grid);
+        context.lineTo((col+0.65)*grid,(row+0.9)*grid);
+        context.moveTo((col+0.5)*grid,(row+0.68)*grid);
+        context.lineTo((col+0.35)*grid,(row+0.9)*grid);
         context.stroke();
       }
     }
@@ -330,9 +455,41 @@ function resetLevel() {
 }
 
 function nextLevel() {
-  currentLevel = (currentLevel + 1) % levels.length;
+  isRandom = false;
+  currentLevel = (currentLevel + 1) % LEVELS.length;
   localStorage.setItem('tg-sokoban-level', currentLevel);
+  currentLevelStr = LEVELS[currentLevel];
   resetLevel();
+}
+
+function onNext() {
+  if (isRandom) {
+    startRandom();
+  } else {
+    nextLevel();
+  }
+}
+
+function startRandom() {
+  const isSR = L() === 'sr';
+  // Show loading state
+  document.getElementById('levelEl').textContent = '⏳';
+  document.getElementById('levelInfo').textContent = isSR ? 'Генеришем...' : 'Generating...';
+  document.getElementById('nextBtn').style.display = 'none';
+
+  // Defer to allow UI repaint
+  setTimeout(() => {
+    const lvl = generateLevel(3, 90);
+    if (!lvl) {
+      // Fallback: use level 6
+      isRandom = true;
+      currentLevelStr = LEVELS[LEVELS.length - 1];
+    } else {
+      isRandom = true;
+      currentLevelStr = lvl;
+    }
+    resetLevel();
+  }, 20);
 }
 
 document.addEventListener('keydown', e => {

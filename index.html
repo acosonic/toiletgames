@@ -89,7 +89,16 @@ window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();win
         <span class="game-desc i18n" data-sr="Погоди реч" data-en="Guess the word">Погоди реч</span>
       </a>
       <a href="games/hangman.html" class="game-card">
-        <span class="game-icon">🎪</span>
+        <span class="game-icon" aria-hidden="true">
+          <svg class="hangman-icon" viewBox="0 0 120 120">
+            <path class="gallows-part" d="M16 112H54M34 112V12H78V34"/>
+            <circle class="person-part" cx="82" cy="42" r="17"/>
+            <line class="person-part" x1="82" y1="59" x2="82" y2="82"/>
+            <line class="person-part" x1="67" y1="70" x2="97" y2="70"/>
+            <line class="person-part" x1="82" y1="82" x2="64" y2="100"/>
+            <line class="person-part" x1="82" y1="82" x2="100" y2="100"/>
+          </svg>
+        </span>
         <span class="game-name i18n" data-sr="Вешала" data-en="Hangman">Вешала</span>
         <span class="game-desc i18n" data-sr="Слово по слово" data-en="Letter by letter">Слово по слово</span>
       </a>
