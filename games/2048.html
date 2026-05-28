@@ -22,6 +22,10 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,
 .score-box{background:var(--surface);border-radius:8px;padding:6px 16px;text-align:center}
 .score-box .lbl{font-size:.7rem;color:var(--dim);text-transform:uppercase}
 .score-box .val{font-size:1.2rem;font-weight:700}
+.target-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:center}
+.target-label{font-size:.75rem;color:var(--dim);font-weight:700;text-transform:uppercase}
+.target-btn{background:var(--surface);border:1px solid var(--dim);color:var(--text);border-radius:7px;padding:5px 9px;font-size:.78rem;font-weight:800;cursor:pointer}
+.target-btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
 .new-btn{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:8px 18px;font-size:.9rem;font-weight:700;cursor:pointer}
 #grid{display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(4,1fr);gap:8px;border-radius:12px;padding:8px;width:min(360px,calc(100vw - 20px));aspect-ratio:1}
 html:not(.light) #grid{background:#16213e}
@@ -52,6 +56,7 @@ html.light .msg.win{background:#d4edda;color:#155724}html.light .msg.lose{backgr
   <div class="topbar-btns">
     <button class="icon-btn theme-btn" onclick="toggleTheme()">🌙</button>
     <button class="icon-btn lang-btn" onclick="toggleLang()">EN</button>
+    <button class="icon-btn sound-btn" onclick="toggleSound()">🔊</button>
     <button class="icon-btn" onclick="toggleFont()">Аа</button>
   </div>
 </div>
@@ -60,6 +65,9 @@ html.light .msg.win{background:#d4edda;color:#155724}html.light .msg.lose{backgr
     <div class="score-box"><div class="lbl i18n" data-sr="Поени" data-en="Score">Поени</div><div class="val" id="score">0</div></div>
     <button class="new-btn i18n" data-sr="Нова" data-en="New" onclick="newGame()">Нова</button>
     <div class="score-box"><div class="lbl i18n" data-sr="Рекорд" data-en="Best">Рекорд</div><div class="val" id="best">0</div></div>
+  </div>
+  <div class="target-row" id="targetRow">
+    <span class="target-label i18n" data-sr="Циљ" data-en="Target">Циљ</span>
   </div>
   <div id="grid"></div>
   <div id="msg" class="msg"></div>
@@ -74,20 +82,62 @@ html.light .msg.win{background:#d4edda;color:#155724}html.light .msg.lose{backgr
   window.toggleTheme=()=>{localStorage.setItem('tg-theme',_theme()==='dark'?'light':'dark');applyTheme();};
   window.toggleLang=()=>{localStorage.setItem('tg-lang',_lang()==='sr'?'en':'sr');location.reload();};
   window.toggleFont=()=>{const xl=document.documentElement.classList.toggle('xl');localStorage.setItem('tg-xl',xl?'1':'0');};
+  window.toggleSound=()=>{const on=localStorage.getItem('tg-sound')!=='0';localStorage.setItem('tg-sound',on?'0':'1');document.querySelectorAll('.sound-btn').forEach(b=>b.textContent=on?'🔇':'🔊');};
   if(localStorage.getItem('tg-xl')==='1')document.documentElement.classList.add('xl');
-  applyTheme();applyI18n();
+  applyTheme();applyI18n();document.querySelectorAll('.sound-btn').forEach(b=>b.textContent=localStorage.getItem('tg-sound')==='0'?'🔇':'🔊');
 
   const L=_lang();
-  const win2048=L==='sr'?'🎉 Победа! Достигао 2048!':'🎉 You won! Reached 2048!';
+  const winTarget=target=>L==='sr'?'🎉 Победа! Достигао '+target+'!':'🎉 You won! Reached '+target+'!';
   const noMoves=L==='sr'?'💀 Нема потеза. Крај!':'💀 No moves left. Game over!';
 
-  let grid,score,best=+localStorage.getItem('tg-2048-best')||0,over;
+  const SAVE_KEY='tg-2048-state';
+  const TARGET_KEY='tg-2048-target';
+  const TARGETS=[256,512,1024,2048,4096];
+  let targetTile=TARGETS.includes(+localStorage.getItem(TARGET_KEY))?+localStorage.getItem(TARGET_KEY):2048;
+  let grid,score,best=+localStorage.getItem('tg-2048-best')||0,over,msgState=null;
   document.getElementById('best').textContent=best;
 
   function statRec(g,inc,hi,lo){const j=JSON.parse(localStorage.getItem('tg-stats')||'{}');const e=j[g]||{};for(const[k,v]of Object.entries(inc||{}))e[k]=(e[k]||0)+v;for(const[k,v]of Object.entries(hi||{}))if(v!=null&&(!e[k]||v>e[k]))e[k]=v;for(const[k,v]of Object.entries(lo||{}))if(v!=null&&(!e[k]||v<e[k]))e[k]=v;j[g]=e;localStorage.setItem('tg-stats',JSON.stringify(j));}
-  const SFX=(()=>{let ac;const A=()=>(ac=ac||new(window.AudioContext||window.webkitAudioContext)());const t=(f,d,tp,v)=>{try{const c=A(),o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.type=tp||'sine';o.frequency.value=f;g.gain.setValueAtTime(v||.25,c.currentTime);g.gain.exponentialRampToValueAtTime(.001,c.currentTime+d);o.start();o.stop(c.currentTime+d);}catch(e){}};return{merge:()=>t(300,.08,'sine',.15),win(){t(523,.1);setTimeout(()=>t(659,.1),100);setTimeout(()=>t(784,.25),200);},lose(){t(330,.1,'sawtooth',.2);setTimeout(()=>t(220,.2,'sawtooth',.15),100);}};})();
+  const SFX=(()=>{let ac;const A=()=>(ac=ac||new(window.AudioContext||window.webkitAudioContext)());const t=(f,d,tp,v)=>{if(localStorage.getItem('tg-sound')==='0')return;try{const c=A(),o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.type=tp||'sine';o.frequency.value=f;g.gain.setValueAtTime(v||.25,c.currentTime);g.gain.exponentialRampToValueAtTime(.001,c.currentTime+d);o.start();o.stop(c.currentTime+d);}catch(e){}};return{merge:()=>t(300,.08,'sine',.15),win(){t(523,.1);setTimeout(()=>t(659,.1),100);setTimeout(()=>t(784,.25),200);},lose(){t(330,.1,'sawtooth',.2);setTimeout(()=>t(220,.2,'sawtooth',.15),100);}};})();
 
-  function newGame(){grid=Array.from({length:4},()=>Array(4).fill(0));score=0;over=false;addTile();addTile();document.getElementById('msg').style.display='none';render();}
+  function validGrid(g){return Array.isArray(g)&&g.length===4&&g.every(r=>Array.isArray(r)&&r.length===4&&r.every(v=>Number.isInteger(v)&&v>=0));}
+
+  function saveState(){try{localStorage.setItem(SAVE_KEY,JSON.stringify({grid,score,over,msgState,targetTile}));}catch(e){}}
+
+  function loadState(){
+    try{
+      const s=JSON.parse(localStorage.getItem(SAVE_KEY)||'null');
+      if(!s||!validGrid(s.grid))return false;
+      if(TARGETS.includes(+s.targetTile))targetTile=+s.targetTile;
+      localStorage.setItem(TARGET_KEY,targetTile);
+      grid=s.grid;score=Number.isFinite(s.score)?s.score:0;over=!!s.over;msgState=s.msgState||null;
+      return true;
+    }catch(e){return false;}
+  }
+
+  function renderTargets(){
+    const row=document.getElementById('targetRow');
+    row.querySelectorAll('.target-btn').forEach(b=>b.remove());
+    TARGETS.forEach(v=>{
+      const b=document.createElement('button');
+      b.className='target-btn'+(v===targetTile?' active':'');
+      b.textContent=v;
+      b.addEventListener('click',()=>setTarget(v));
+      row.appendChild(b);
+    });
+  }
+
+  function setTarget(v){
+    if(v===targetTile)return;
+    targetTile=v;
+    localStorage.setItem(TARGET_KEY,targetTile);
+    renderTargets();
+    newGame();
+  }
+
+  function newGame(){grid=Array.from({length:4},()=>Array(4).fill(0));score=0;over=false;msgState=null;addTile();addTile();document.getElementById('msg').style.display='none';render();saveState();}
+
+  function resumeOrNew(){if(loadState()){renderTargets();render();if(msgState)showMsg(msgState.type,msgState.text,false);}else{renderTargets();newGame();}}
 
   function addTile(){const empty=[];for(let r=0;r<4;r++)for(let c=0;c<4;c++)if(!grid[r][c])empty.push([r,c]);if(!empty.length)return;const[r,c]=empty[Math.floor(Math.random()*empty.length)];grid[r][c]=Math.random()<.9?2:4;}
 
@@ -105,21 +155,21 @@ html.light .msg.win{background:#d4edda;color:#155724}html.light .msg.lose{backgr
     else if(dir==='right')for(let r=0;r<4;r++)grid[r]=slideRow(grid[r].slice().reverse()).reverse();
     else if(dir==='up')for(let c=0;c<4;c++){let col=grid.map(r=>r[c]);col=slideRow(col);grid.forEach((r,i)=>r[c]=col[i]);}
     else if(dir==='down')for(let c=0;c<4;c++){let col=grid.map(r=>r[c]).reverse();col=slideRow(col).reverse();grid.forEach((r,i)=>r[c]=col[i]);}
-    if(JSON.stringify(grid)!==prev){addTile();if(score>best){best=score;localStorage.setItem('tg-2048-best',best);document.getElementById('best').textContent=best;}if(score>prevScore)SFX.merge();render();checkEnd();}
+    if(JSON.stringify(grid)!==prev){addTile();if(score>best){best=score;localStorage.setItem('tg-2048-best',best);document.getElementById('best').textContent=best;}if(score>prevScore)SFX.merge();render();checkEnd();saveState();}
   }
 
-  function checkEnd(){if(grid.some(r=>r.some(v=>v===2048))){over=true;SFX.win();statRec('2048',{played:1,wins:1},{bestScore:score,bestTile:2048});showMsg('win',win2048);}else if(!canMove()){const bt=Math.max(...grid.flat());over=true;SFX.lose();statRec('2048',{played:1},{bestScore:score,bestTile:bt});showMsg('lose',noMoves);}}
+  function checkEnd(){if(grid.some(r=>r.some(v=>v>=targetTile))){over=true;SFX.win();statRec('2048',{played:1,wins:1},{bestScore:score,bestTile:targetTile});showMsg('win',winTarget(targetTile));}else if(!canMove()){const bt=Math.max(...grid.flat());over=true;SFX.lose();statRec('2048',{played:1},{bestScore:score,bestTile:bt});showMsg('lose',noMoves);}}
 
   function canMove(){for(let r=0;r<4;r++)for(let c=0;c<4;c++){if(!grid[r][c])return true;if(c<3&&grid[r][c]===grid[r][c+1])return true;if(r<3&&grid[r][c]===grid[r+1][c])return true;}return false;}
 
-  function showMsg(type,text){const el=document.getElementById('msg');el.className='msg '+type;el.textContent=text;el.style.display='block';}
+  function showMsg(type,text,save=true){msgState={type,text};const el=document.getElementById('msg');el.className='msg '+type;el.textContent=text;el.style.display='block';if(save)saveState();}
 
   let tx,ty;
   document.addEventListener('touchstart',e=>{tx=e.touches[0].clientX;ty=e.touches[0].clientY;},{passive:true});
   document.addEventListener('touchend',e=>{const dx=e.changedTouches[0].clientX-tx,dy=e.changedTouches[0].clientY-ty;if(Math.max(Math.abs(dx),Math.abs(dy))<20)return;if(Math.abs(dx)>Math.abs(dy))move(dx>0?'right':'left');else move(dy>0?'down':'up');},{passive:true});
   document.addEventListener('keydown',e=>{const m={ArrowLeft:'left',ArrowRight:'right',ArrowUp:'up',ArrowDown:'down'};if(m[e.key]){e.preventDefault();move(m[e.key]);}});
 
-  window.newGame=newGame;newGame();
+  window.newGame=newGame;window.setTarget=setTarget;resumeOrNew();
 })();
 </script>
 </body>

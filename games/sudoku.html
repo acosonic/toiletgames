@@ -54,6 +54,7 @@ html.xl .num-btn{font-size:1.5rem;padding:14px 0}
   <div class="topbar-btns">
     <button class="icon-btn theme-btn" onclick="toggleTheme()">🌙</button>
     <button class="icon-btn lang-btn" onclick="toggleLang()">EN</button>
+    <button class="icon-btn sound-btn" onclick="toggleSound()">🔊</button>
     <button class="icon-btn" onclick="toggleFont()">Аа</button>
   </div>
 </div>
@@ -75,8 +76,9 @@ html.xl .num-btn{font-size:1.5rem;padding:14px 0}
   window.toggleTheme=()=>{localStorage.setItem('tg-theme',_theme()==='dark'?'light':'dark');applyTheme();};
   window.toggleLang=()=>{localStorage.setItem('tg-lang',_lang()==='sr'?'en':'sr');location.reload();};
   window.toggleFont=()=>{const xl=document.documentElement.classList.toggle('xl');localStorage.setItem('tg-xl',xl?'1':'0');};
+  window.toggleSound=()=>{const on=localStorage.getItem('tg-sound')!=='0';localStorage.setItem('tg-sound',on?'0':'1');document.querySelectorAll('.sound-btn').forEach(b=>b.textContent=on?'🔇':'🔊');};
   if(localStorage.getItem('tg-xl')==='1')document.documentElement.classList.add('xl');
-  applyTheme();applyI18n();
+  applyTheme();applyI18n();document.querySelectorAll('.sound-btn').forEach(b=>b.textContent=localStorage.getItem('tg-sound')==='0'?'🔇':'🔊');
   const L=_lang();
   const T={sr:{fill:'❗ Попуни све ћелије!',ok:'🎉 Тачно! Браво!',err:'❌ Постоје грешке (означено црвеном)'},en:{fill:'❗ Fill all cells!',ok:'🎉 Correct! Well done!',err:'❌ There are errors (shown in red)'}};
   const t=k=>T[L][k];
@@ -87,7 +89,7 @@ html.xl .num-btn{font-size:1.5rem;padding:14px 0}
     {p:[0,2,0,6,0,8,0,0,0,5,8,0,0,0,9,7,0,0,0,0,0,0,4,0,0,0,0,3,7,0,0,0,0,5,0,0,6,0,0,0,0,0,0,0,4,0,0,8,0,0,0,0,1,3,0,0,0,0,2,0,0,0,0,0,0,9,8,0,0,0,3,6,0,0,0,3,0,6,0,9,0],s:[1,2,3,6,7,8,9,4,5,5,8,4,2,3,9,7,6,1,9,6,7,1,4,5,3,2,8,3,7,2,4,6,1,5,8,9,6,9,1,5,8,3,2,7,4,4,5,8,7,9,2,6,1,3,8,3,6,9,2,4,1,5,7,2,1,9,8,5,7,4,3,6,7,4,5,3,1,6,8,9,2]},
   ];
   function statRec(g,inc,hi,lo){const j=JSON.parse(localStorage.getItem('tg-stats')||'{}');const e=j[g]||{};for(const[k,v]of Object.entries(inc||{}))e[k]=(e[k]||0)+v;for(const[k,v]of Object.entries(hi||{}))if(v!=null&&(!e[k]||v>e[k]))e[k]=v;for(const[k,v]of Object.entries(lo||{}))if(v!=null&&(!e[k]||v<e[k]))e[k]=v;j[g]=e;localStorage.setItem('tg-stats',JSON.stringify(j));}
-  const SFX=(()=>{let ac;const A=()=>(ac=ac||new(window.AudioContext||window.webkitAudioContext)());const t=(f,d,tp,v)=>{try{const c=A(),o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.type=tp||'sine';o.frequency.value=f;g.gain.setValueAtTime(v||.25,c.currentTime);g.gain.exponentialRampToValueAtTime(.001,c.currentTime+d);o.start();o.stop(c.currentTime+d);}catch(e){}};return{place:()=>t(700,.04,'square',.08),correct(){t(523,.1);setTimeout(()=>t(659,.1),100);setTimeout(()=>t(784,.25),200);},error:()=>t(150,.3,'sawtooth',.15)};})();
+  const SFX=(()=>{let ac;const A=()=>(ac=ac||new(window.AudioContext||window.webkitAudioContext)());const t=(f,d,tp,v)=>{if(localStorage.getItem('tg-sound')==='0')return;try{const c=A(),o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.type=tp||'sine';o.frequency.value=f;g.gain.setValueAtTime(v||.25,c.currentTime);g.gain.exponentialRampToValueAtTime(.001,c.currentTime+d);o.start();o.stop(c.currentTime+d);}catch(e){}};return{place:()=>t(700,.04,'square',.08),correct(){t(523,.1);setTimeout(()=>t(659,.1),100);setTimeout(()=>t(784,.25),200);},error:()=>t(150,.3,'sawtooth',.15)};})();
 
   let puzzle,solution,userGrid,selected=null,pi=0;
 

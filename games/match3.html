@@ -82,6 +82,7 @@ body::after{content:'';position:fixed;inset:0;background-image:radial-gradient(1
   <div class="topbar-btns">
     <button class="icon-btn theme-btn" onclick="toggleTheme()">🌙</button>
     <button class="icon-btn lang-btn" onclick="toggleLang()">EN</button>
+    <button class="icon-btn sound-btn" onclick="toggleSound()">🔊</button>
     <button class="icon-btn" onclick="toggleFont()">Аа</button>
   </div>
 </div>
@@ -118,8 +119,9 @@ function applyTheme(){const d=_theme()==='dark';document.documentElement.classLi
 window.toggleTheme=()=>{localStorage.setItem('tg-theme',_theme()==='dark'?'light':'dark');applyTheme();};
 window.toggleLang=()=>{localStorage.setItem('tg-lang',_lang()==='sr'?'en':'sr');location.reload();};
 window.toggleFont=()=>{const xl=document.documentElement.classList.toggle('xl');localStorage.setItem('tg-xl',xl?'1':'0');};
+window.toggleSound=()=>{const on=localStorage.getItem('tg-sound')!=='0';localStorage.setItem('tg-sound',on?'0':'1');document.querySelectorAll('.sound-btn').forEach(b=>b.textContent=on?'🔇':'🔊');};
 if(localStorage.getItem('tg-xl')==='1')document.documentElement.classList.add('xl');
-applyTheme();applyI18n();
+applyTheme();applyI18n();document.querySelectorAll('.sound-btn').forEach(b=>b.textContent=localStorage.getItem('tg-sound')==='0'?'🔇':'🔊');
 
 const L=_lang();
 const T={
@@ -151,7 +153,7 @@ let board=[],selected=null,score=0,moves=0,timeLeft=GAME_TIME,timerID=null,isAni
 // ── Audio ──────────────────────────────────────────────────
 let audioCtx=null;
 function actx(){if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();return audioCtx;}
-function tone(freq,type='sine',dur=.18,vol=.28){try{const c=actx(),osc=c.createOscillator(),g=c.createGain();osc.connect(g);g.connect(c.destination);osc.type=type;osc.frequency.value=freq;g.gain.setValueAtTime(vol,c.currentTime);g.gain.exponentialRampToValueAtTime(.001,c.currentTime+dur);osc.start(c.currentTime);osc.stop(c.currentTime+dur);}catch(_){}}
+function tone(freq,type='sine',dur=.18,vol=.28){if(localStorage.getItem('tg-sound')==='0')return;try{const c=actx(),osc=c.createOscillator(),g=c.createGain();osc.connect(g);g.connect(c.destination);osc.type=type;osc.frequency.value=freq;g.gain.setValueAtTime(vol,c.currentTime);g.gain.exponentialRampToValueAtTime(.001,c.currentTime+dur);osc.start(c.currentTime);osc.stop(c.currentTime+dur);}catch(_){}}
 const SFX={
   select:()=>tone(660,'sine',.09,.2),
   invalid:()=>{tone(180,'sawtooth',.12,.15);tone(140,'sawtooth',.12,.12);},

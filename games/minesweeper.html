@@ -25,17 +25,17 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,
 .diff-row{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap}
 .diff-btn{background:var(--surface);border:1px solid var(--dim);color:var(--text);border-radius:8px;padding:6px 12px;font-size:.82rem;cursor:pointer}
 .diff-btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
-#board{display:grid;gap:4px;margin:4px auto;background:#2a2a4a;border-radius:10px;padding:4px;width:min(500px,calc(100vw - 20px))}
-html.light #board{background:#9aa0a6}
-.cell{aspect-ratio:1;min-width:0;background:var(--surface);border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:clamp(16px,5.5vw,24px);font-weight:900;cursor:pointer;user-select:none;touch-action:none;-webkit-touch-callout:none}
-html.xl .cell{font-size:clamp(18px,6.5vw,28px)}
+#board{display:grid;gap:2px;margin:4px auto;background:#242440;border-radius:10px;padding:2px;width:min(500px,calc(100vw - 20px))}
+html.light #board{background:#d6dbe3}
+.cell{aspect-ratio:1;min-width:0;background:var(--surface);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:clamp(20px,6.8vw,31px);font-weight:1000;line-height:1;cursor:pointer;user-select:none;touch-action:none;-webkit-touch-callout:none}
+html.xl .cell{font-size:clamp(23px,7.8vw,36px)}
 .cell.revealed{background:var(--bg);cursor:default}
 html.light .cell.revealed{background:#e2e5ea}
 .cell.mine-hit{background:#e94560}
 .cell.flagged{background:var(--surface2)}
-.cell[data-n="1"]{color:#60a3fc}.cell[data-n="2"]{color:#5cb85c}.cell[data-n="3"]{color:#e94560}
-.cell[data-n="4"]{color:#9b59b6}.cell[data-n="5"]{color:#e67e22}.cell[data-n="6"]{color:#1abc9c}
-.cell[data-n="7"]{color:#e74c3c}.cell[data-n="8"]{color:var(--dim)}
+.cell[data-n="1"]{color:#1397ff}.cell[data-n="2"]{color:#00c853}.cell[data-n="3"]{color:#ff1744}
+.cell[data-n="4"]{color:#b000ff}.cell[data-n="5"]{color:#ff7a00}.cell[data-n="6"]{color:#00d8c8}
+.cell[data-n="7"]{color:#ff2f92}.cell[data-n="8"]{color:#3f51ff}
 .msg{text-align:center;font-size:1.05rem;font-weight:700;padding:10px;border-radius:8px;margin-top:8px;display:none}
 .msg.win{background:#1a3a1a;color:#5cb85c}.msg.lose{background:#3a1a1a;color:#e94560}
 html.light .msg.win{background:#d4edda;color:#155724}
@@ -50,6 +50,7 @@ html.light .msg.lose{background:#f8d7da;color:#721c24}
   <div class="topbar-btns">
     <button class="icon-btn theme-btn" onclick="toggleTheme()">🌙</button>
     <button class="icon-btn lang-btn" onclick="toggleLang()">EN</button>
+    <button class="icon-btn sound-btn" onclick="toggleSound()">🔊</button>
     <button class="icon-btn" onclick="toggleFont()">Аа</button>
   </div>
 </div>
@@ -74,8 +75,9 @@ html.light .msg.lose{background:#f8d7da;color:#721c24}
   window.toggleTheme=()=>{localStorage.setItem('tg-theme',_theme()==='dark'?'light':'dark');applyTheme();};
   window.toggleLang=()=>{localStorage.setItem('tg-lang',_lang()==='sr'?'en':'sr');location.reload();};
   window.toggleFont=()=>{const xl=document.documentElement.classList.toggle('xl');localStorage.setItem('tg-xl',xl?'1':'0');};
+  window.toggleSound=()=>{const on=localStorage.getItem('tg-sound')!=='0';localStorage.setItem('tg-sound',on?'0':'1');document.querySelectorAll('.sound-btn').forEach(b=>b.textContent=on?'🔇':'🔊');};
   if(localStorage.getItem('tg-xl')==='1')document.documentElement.classList.add('xl');
-  applyTheme();applyI18n();
+  applyTheme();applyI18n();document.querySelectorAll('.sound-btn').forEach(b=>b.textContent=localStorage.getItem('tg-sound')==='0'?'🔇':'🔊');
 
   const L=_lang();
   const T={
@@ -138,7 +140,7 @@ html.light .msg.lose{background:#f8d7da;color:#721c24}
   }
 
   function statRec(g,inc,hi,lo){const j=JSON.parse(localStorage.getItem('tg-stats')||'{}');const e=j[g]||{};for(const[k,v]of Object.entries(inc||{}))e[k]=(e[k]||0)+v;for(const[k,v]of Object.entries(hi||{}))if(v!=null&&(!e[k]||v>e[k]))e[k]=v;for(const[k,v]of Object.entries(lo||{}))if(v!=null&&(!e[k]||v<e[k]))e[k]=v;j[g]=e;localStorage.setItem('tg-stats',JSON.stringify(j));}
-  const SFX=(()=>{let ac;const A=()=>(ac=ac||new(window.AudioContext||window.webkitAudioContext)());const t=(f,d,tp,v)=>{try{const c=A(),o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.type=tp||'sine';o.frequency.value=f;g.gain.setValueAtTime(v||.25,c.currentTime);g.gain.exponentialRampToValueAtTime(.001,c.currentTime+d);o.start();o.stop(c.currentTime+d);}catch(e){}};const n=(d,v)=>{try{const c=A(),b=c.createBuffer(1,~~(c.sampleRate*d),c.sampleRate),da=b.getChannelData(0);for(let i=0;i<da.length;i++)da[i]=Math.random()*2-1;const s=c.createBufferSource(),g=c.createGain();s.buffer=b;s.connect(g);g.connect(c.destination);g.gain.setValueAtTime(v||.15,c.currentTime);g.gain.exponentialRampToValueAtTime(.001,c.currentTime+d);s.start();s.stop(c.currentTime+d);}catch(e){}};return{reveal:()=>t(800,.04,'square',.08),boom(){n(.15,.3);t(80,.4,'sawtooth',.25);},win(){t(523,.1);setTimeout(()=>t(659,.1),100);setTimeout(()=>t(784,.25),200);}};})();
+  const SFX=(()=>{let ac;const A=()=>(ac=ac||new(window.AudioContext||window.webkitAudioContext)());const t=(f,d,tp,v)=>{if(localStorage.getItem('tg-sound')==='0')return;try{const c=A(),o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.type=tp||'sine';o.frequency.value=f;g.gain.setValueAtTime(v||.25,c.currentTime);g.gain.exponentialRampToValueAtTime(.001,c.currentTime+d);o.start();o.stop(c.currentTime+d);}catch(e){}};const n=(d,v)=>{if(localStorage.getItem('tg-sound')==='0')return;try{const c=A(),b=c.createBuffer(1,~~(c.sampleRate*d),c.sampleRate),da=b.getChannelData(0);for(let i=0;i<da.length;i++)da[i]=Math.random()*2-1;const s=c.createBufferSource(),g=c.createGain();s.buffer=b;s.connect(g);g.connect(c.destination);g.gain.setValueAtTime(v||.15,c.currentTime);g.gain.exponentialRampToValueAtTime(.001,c.currentTime+d);s.start();s.stop(c.currentTime+d);}catch(e){}};return{reveal:()=>t(800,.04,'square',.08),boom(){n(.15,.3);t(80,.4,'sawtooth',.25);},win(){t(523,.1);setTimeout(()=>t(659,.1),100);setTimeout(()=>t(784,.25),200);}};})();
 
   function flood(i){if(revealed[i]||flagged[i])return;revealed[i]=true;if(board[i]===-1){over=true;clearInterval(timerInterval);SFX.boom();statRec('minesweeper',{played:1,losses:1});showAllMines();showMsg('lose',t('hit'));}else{if(board[i]>0)SFX.reveal();if(board[i]===0)neighbors(i).forEach(flood);}}
 

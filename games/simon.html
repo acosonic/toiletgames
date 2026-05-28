@@ -37,6 +37,7 @@ html.light .topbar{border-bottom-color:#ddd}
   <div class="topbar-btns">
     <button class="icon-btn theme-btn" onclick="toggleTheme()">🌙</button>
     <button class="icon-btn lang-btn" onclick="toggleLang()">EN</button>
+    <button class="icon-btn sound-btn" onclick="toggleSound()">🔊</button>
     <button class="icon-btn" onclick="toggleFont()">Аа</button>
   </div>
 </div>
@@ -63,8 +64,9 @@ html.light .topbar{border-bottom-color:#ddd}
   window.toggleTheme=()=>{localStorage.setItem('tg-theme',_theme()==='dark'?'light':'dark');applyTheme();};
   window.toggleLang=()=>{localStorage.setItem('tg-lang',_lang()==='sr'?'en':'sr');location.reload();};
   window.toggleFont=()=>{const xl=document.documentElement.classList.toggle('xl');localStorage.setItem('tg-xl',xl?'1':'0');};
+  window.toggleSound=()=>{const on=localStorage.getItem('tg-sound')!=='0';localStorage.setItem('tg-sound',on?'0':'1');document.querySelectorAll('.sound-btn').forEach(b=>b.textContent=on?'🔇':'🔊');};
   if(localStorage.getItem('tg-xl')==='1')document.documentElement.classList.add('xl');
-  applyTheme();applyI18n();
+  applyTheme();applyI18n();document.querySelectorAll('.sound-btn').forEach(b=>b.textContent=localStorage.getItem('tg-sound')==='0'?'🔇':'🔊');
   const L=_lang();
   const T={sr:{start:'Притисни Старт',watch:'Гледај...',your:'Твој ред! (%s корака)',ok:'✅ Тачно!',wrong:'❌ Погрешно! Ниво: %s'},en:{start:'Press Start',watch:'Watch...',your:'Your turn! (%s steps)',ok:'✅ Correct!',wrong:'❌ Wrong! Level: %s'}};
   const t=(k,v)=>(T[L][k]||T.sr[k]).replace('%s',v);
@@ -78,7 +80,7 @@ html.light .topbar{border-bottom-color:#ddd}
 
   function getAC(){if(!ac)ac=new(window.AudioContext||window.webkitAudioContext)();return ac;}
 
-  function playTone(i,dur=.3){const ctx=getAC();const o=ctx.createOscillator(),g=ctx.createGain();o.connect(g);g.connect(ctx.destination);o.type='sine';o.frequency.value=FREQS[i];g.gain.setValueAtTime(.5,ctx.currentTime);g.gain.exponentialRampToValueAtTime(.01,ctx.currentTime+dur);o.start();o.stop(ctx.currentTime+dur);}
+  function playTone(i,dur=.3){if(localStorage.getItem('tg-sound')==='0')return;const ctx=getAC();const o=ctx.createOscillator(),g=ctx.createGain();o.connect(g);g.connect(ctx.destination);o.type='sine';o.frequency.value=FREQS[i];g.gain.setValueAtTime(.5,ctx.currentTime);g.gain.exponentialRampToValueAtTime(.01,ctx.currentTime+dur);o.start();o.stop(ctx.currentTime+dur);}
 
   function flash(i,dur=300){const el=document.getElementById('b'+i);el.classList.add('lit');playTone(i,dur/1000);setTimeout(()=>el.classList.remove('lit'),dur);}
 
@@ -98,7 +100,7 @@ html.light .topbar{border-bottom-color:#ddd}
     step++;if(step>=seq.length){accepting=false;setDisabled(true);document.getElementById('status').textContent=t('ok');setTimeout(nextRound,800);}
   }
 
-  function playFail(){const ctx=getAC();const o=ctx.createOscillator(),g=ctx.createGain();o.connect(g);g.connect(ctx.destination);o.type='sawtooth';o.frequency.value=150;g.gain.setValueAtTime(.4,ctx.currentTime);g.gain.exponentialRampToValueAtTime(.01,ctx.currentTime+.6);o.start();o.stop(ctx.currentTime+.6);}
+  function playFail(){if(localStorage.getItem('tg-sound')==='0')return;const ctx=getAC();const o=ctx.createOscillator(),g=ctx.createGain();o.connect(g);g.connect(ctx.destination);o.type='sawtooth';o.frequency.value=150;g.gain.setValueAtTime(.4,ctx.currentTime);g.gain.exponentialRampToValueAtTime(.01,ctx.currentTime+.6);o.start();o.stop(ctx.currentTime+.6);}
 
   function setDisabled(d){[0,1,2,3].forEach(i=>document.getElementById('b'+i).classList.toggle('disabled',d));}
 
