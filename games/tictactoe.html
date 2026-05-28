@@ -22,10 +22,13 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,
 .sc{background:var(--surface);border-radius:10px;padding:8px 18px;text-align:center;min-width:72px}
 .sc .lbl{font-size:.7rem;color:var(--dim);text-transform:uppercase}
 .sc .val{font-size:1.5rem;font-weight:800}
-.sc.x .val{color:#60a3fc}.sc.o .val{color:#e94560}
+.sc.x .val{color:var(--text)}.sc.o .val{color:#e94560}
+html.light .sc.x .val{color:#000}
 #board{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:min(300px,calc(100vw - 32px));aspect-ratio:1}
 .cell{background:var(--surface);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:3rem;cursor:pointer;user-select:none;transition:background .1s;aspect-ratio:1}
 html.xl .cell{font-size:3.6rem}
+.x-sym{color:var(--text);font-weight:900;line-height:1}
+html.light .x-sym{color:#000}
 .cell:active{background:var(--surface2)}.cell.win{background:#1a3a1a}
 html.light .cell.win{background:#d4edda}
 .status{font-size:1rem;font-weight:700;min-height:1.5em;text-align:center}
@@ -38,7 +41,7 @@ html.light .cell.win{background:#d4edda}
 <body>
 <div class="topbar">
   <a href="../" class="i18n" data-sr="← Назад" data-en="← Back">← Назад</a>
-  <h2 class="i18n" data-sr="❌ Икс-Окс" data-en="❌ Tic-Tac-Toe">❌ Икс-Окс</h2>
+  <h2 class="i18n" data-sr="✕ Икс-Окс" data-en="✕ Tic-Tac-Toe">✕ Икс-Окс</h2>
   <div class="topbar-btns">
     <button class="icon-btn theme-btn" onclick="toggleTheme()">🌙</button>
     <button class="icon-btn lang-btn" onclick="toggleLang()">EN</button>
@@ -84,15 +87,16 @@ html.light .cell.win{background:#d4edda}
 
   function setMode(m){mode=m;document.getElementById('m2p').classList.toggle('active',m==='2p');document.getElementById('mai').classList.toggle('active',m==='ai');newGame();}
 
-  function newGame(){board=Array(9).fill('');cur='X';over=false;document.getElementById('status').textContent=t('turn')+'❌';render();}
+  const XS='<span class="x-sym">✕</span>';
+  function newGame(){board=Array(9).fill('');cur='X';over=false;document.getElementById('status').innerHTML=t('turn')+XS;render();}
 
   function render(){
     const el=document.getElementById('board');el.innerHTML='';
     const wl=findWin(board);
-    board.forEach((v,i)=>{const c=document.createElement('div');c.className='cell'+(wl&&wl.includes(i)?' win':'');c.textContent=v==='X'?'❌':v==='O'?'⭕':'';c.addEventListener('click',()=>click(i));el.appendChild(c);});
+    board.forEach((v,i)=>{const c=document.createElement('div');c.className='cell'+(wl&&wl.includes(i)?' win':'');c.innerHTML=v==='X'?XS:v==='O'?'⭕':'';c.addEventListener('click',()=>click(i));el.appendChild(c);});
   }
 
-  function click(i){if(over||board[i])return;board[i]=cur;if(checkEnd())return;cur=cur==='X'?'O':'X';document.getElementById('status').textContent=t('turn')+(cur==='X'?'❌':'⭕');render();if(mode==='ai'&&cur==='O'&&!over)setTimeout(aiMove,300);}
+  function click(i){if(over||board[i])return;board[i]=cur;if(checkEnd())return;cur=cur==='X'?'O':'X';document.getElementById('status').innerHTML=t('turn')+(cur==='X'?XS:'⭕');render();if(mode==='ai'&&cur==='O'&&!over)setTimeout(aiMove,300);}
 
   function aiMove(){click(minimax(board,'O').idx);}
 
@@ -107,7 +111,7 @@ html.light .cell.win{background:#d4edda}
 
   function checkEnd(){
     const w=findWin(board);
-    if(w){over=true;const winner=board[w[0]];if(winner==='X'){sx++;document.getElementById('sx').textContent=sx;}else{so++;document.getElementById('so').textContent=so;}document.getElementById('status').textContent=(winner==='X'?'❌':'⭕')+t('won');render();return true;}
+    if(w){over=true;const winner=board[w[0]];if(winner==='X'){sx++;document.getElementById('sx').textContent=sx;}else{so++;document.getElementById('so').textContent=so;}document.getElementById('status').innerHTML=(winner==='X'?XS:'⭕')+t('won');render();return true;}
     if(board.every(Boolean)){over=true;sd++;document.getElementById('sd').textContent=sd;document.getElementById('status').textContent=t('draw');render();return true;}
     return false;
   }
