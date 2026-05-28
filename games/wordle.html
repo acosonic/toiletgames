@@ -84,6 +84,8 @@ html.light .key.absent{background:#787c7e;color:#fff}
   const KEY_ROWS={sr:[['А','Б','В','Г','Д','Ђ','Е','Ж','З','И'],['Ј','К','Л','Љ','М','Н','Њ','О','П'],['↵','Р','С','Т','Ћ','У','Ф','Х','⌫'],['Ц','Ч','Џ','Ш']],en:[['q','w','e','r','t','y','u','i','o','p'],['a','s','d','f','g','h','j','k','l'],['↵','z','x','c','v','b','n','m','⌫']]};
   const KEYMAP_SR={A:'А',B:'Б',V:'В',G:'Г',D:'Д','Đ':'Ђ',E:'Е','Ž':'Ж',Z:'З',I:'И',J:'Ј',K:'К',L:'Л',M:'М',N:'Н',O:'О',P:'П',R:'Р',S:'С',T:'Т','Ć':'Ћ',U:'У',F:'Ф',H:'Х',C:'Ц','Č':'Ч','Š':'Ш'};
 
+  function statRec(g,inc,hi,lo){const j=JSON.parse(localStorage.getItem('tg-stats')||'{}');const e=j[g]||{};for(const[k,v]of Object.entries(inc||{}))e[k]=(e[k]||0)+v;for(const[k,v]of Object.entries(hi||{}))if(v!=null&&(!e[k]||v>e[k]))e[k]=v;for(const[k,v]of Object.entries(lo||{}))if(v!=null&&(!e[k]||v<e[k]))e[k]=v;j[g]=e;localStorage.setItem('tg-stats',JSON.stringify(j));}
+
   let target,guesses,current,over,streak=0,wins=0;
   const keyState={};
 
@@ -118,8 +120,8 @@ html.light .key.absent{background:#787c7e;color:#fff}
     const guess=current;
     for(let c=0;c<5;c++){const ch=guess[c];const state=coloring(guess,guesses.length,c);const priority={correct:3,present:2,absent:1};if(!keyState[ch]||priority[state]>priority[keyState[ch]])keyState[ch]=state;}
     guesses.push(guess);current='';renderGrid();renderKeyboard();
-    if(guess===target){over=true;wins++;streak++;document.getElementById('wins').textContent='✅ '+wins;document.getElementById('streak').textContent='🔥 '+streak;document.getElementById('msg').textContent=t('win')+target.toUpperCase();}
-    else if(guesses.length>=6){over=true;streak=0;document.getElementById('streak').textContent='🔥 0';document.getElementById('msg').textContent=t('lose')+target.toUpperCase();}
+    if(guess===target){over=true;wins++;streak++;document.getElementById('wins').textContent='✅ '+wins;document.getElementById('streak').textContent='🔥 '+streak;document.getElementById('msg').textContent=t('win')+target.toUpperCase();statRec('wordle',{played:1,wins:1},{bestStreak:streak});}
+    else if(guesses.length>=6){over=true;streak=0;document.getElementById('streak').textContent='🔥 0';document.getElementById('msg').textContent=t('lose')+target.toUpperCase();statRec('wordle',{played:1,losses:1});}
   }
 
   function isLetter(ch){return L==='sr'?/^[А-ШЂЈЉЊЋЏ]$/.test(ch):/^[a-z]$/.test(ch);}

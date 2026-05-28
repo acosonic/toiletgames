@@ -82,6 +82,8 @@ html.light .cell.win{background:#d4edda}
   document.getElementById('m2p').textContent=t('p2');
   document.getElementById('mai').textContent=t('ai');
 
+  function statRec(g,inc,hi,lo){const j=JSON.parse(localStorage.getItem('tg-stats')||'{}');const e=j[g]||{};for(const[k,v]of Object.entries(inc||{}))e[k]=(e[k]||0)+v;for(const[k,v]of Object.entries(hi||{}))if(v!=null&&(!e[k]||v>e[k]))e[k]=v;for(const[k,v]of Object.entries(lo||{}))if(v!=null&&(!e[k]||v<e[k]))e[k]=v;j[g]=e;localStorage.setItem('tg-stats',JSON.stringify(j));}
+
   const WINS=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
   let board,cur,mode='2p',sx=0,so=0,sd=0,over;
 
@@ -111,8 +113,8 @@ html.light .cell.win{background:#d4edda}
 
   function checkEnd(){
     const w=findWin(board);
-    if(w){over=true;const winner=board[w[0]];if(winner==='X'){sx++;document.getElementById('sx').textContent=sx;}else{so++;document.getElementById('so').textContent=so;}document.getElementById('status').innerHTML=(winner==='X'?XS:'⭕')+t('won');render();return true;}
-    if(board.every(Boolean)){over=true;sd++;document.getElementById('sd').textContent=sd;document.getElementById('status').textContent=t('draw');render();return true;}
+    if(w){over=true;const winner=board[w[0]];if(winner==='X'){sx++;document.getElementById('sx').textContent=sx;statRec('tictactoe',{played:1,xWins:1});}else{so++;document.getElementById('so').textContent=so;statRec('tictactoe',{played:1,oWins:1});}document.getElementById('status').innerHTML=(winner==='X'?XS:'⭕')+t('won');render();return true;}
+    if(board.every(Boolean)){over=true;sd++;document.getElementById('sd').textContent=sd;statRec('tictactoe',{played:1,draws:1});document.getElementById('status').textContent=t('draw');render();return true;}
     return false;
   }
 

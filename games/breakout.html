@@ -57,6 +57,8 @@ canvas{border:1px solid var(--surface2);display:block;max-width:100%;height:auto
   applyTheme();applyI18n();
 })();
 
+function statRec(g,inc,hi,lo){const j=JSON.parse(localStorage.getItem('tg-stats')||'{}');const e=j[g]||{};for(const[k,v]of Object.entries(inc||{}))e[k]=(e[k]||0)+v;for(const[k,v]of Object.entries(hi||{}))if(v!=null&&(!e[k]||v>e[k]))e[k]=v;for(const[k,v]of Object.entries(lo||{}))if(v!=null&&(!e[k]||v<e[k]))e[k]=v;j[g]=e;localStorage.setItem('tg-stats',JSON.stringify(j));}
+
 const canvas = document.getElementById('game');
 const context = canvas.getContext('2d');
 
@@ -177,6 +179,7 @@ function loop() {
     if (lives <= 0) {
       showMessage(localStorage.getItem('tg-lang') === 'en' ? 'GAME OVER!' : 'КРАЈ ИГРЕ!');
       gameState = 'over';
+      statRec('breakout',{played:1,losses:1},{bestScore:score});
       return;
     }
     resetBall();
@@ -207,6 +210,7 @@ function loop() {
   if (bricks.length === 0) {
     showMessage(localStorage.getItem('tg-lang') === 'en' ? 'YOU WIN!' : 'ПОБЕДА!');
     gameState = 'over';
+    statRec('breakout',{played:1,wins:1},{bestScore:score});
     return;
   }
 

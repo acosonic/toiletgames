@@ -66,6 +66,8 @@ html.light .tile.solved{background:#d4edda;color:#155724}
   const L=_lang();
   const winMsg=n=>L==='sr'?'🎉 Победа за '+n+' потеза!':'🎉 Solved in '+n+' moves!';
 
+  function statRec(g,inc,hi,lo){const j=JSON.parse(localStorage.getItem('tg-stats')||'{}');const e=j[g]||{};for(const[k,v]of Object.entries(inc||{}))e[k]=(e[k]||0)+v;for(const[k,v]of Object.entries(hi||{}))if(v!=null&&(!e[k]||v>e[k]))e[k]=v;for(const[k,v]of Object.entries(lo||{}))if(v!=null&&(!e[k]||v<e[k]))e[k]=v;j[g]=e;localStorage.setItem('tg-stats',JSON.stringify(j));}
+
   let tiles,moves,over,best=+localStorage.getItem('tg-slide-best')||0;
   if(best)document.getElementById('best').textContent=best;
 
@@ -77,7 +79,7 @@ html.light .tile.solved{background:#d4edda;color:#155724}
 
   function render(solved=false){const el=document.getElementById('puzzle');el.innerHTML='';tiles.forEach((v,i)=>{const t=document.createElement('div');t.className='tile'+(v===0?' empty':solved?' solved':'');t.textContent=v||'';t.addEventListener('click',()=>move(i));el.appendChild(t);});}
 
-  function move(i){if(over)return;const empty=tiles.indexOf(0);if(!neighbors(empty).includes(i))return;tiles[empty]=tiles[i];tiles[i]=0;moves++;document.getElementById('moves').textContent=moves;const won=tiles.every((v,i)=>v===(i===15?0:i+1));if(won){over=true;if(!best||moves<best){best=moves;localStorage.setItem('tg-slide-best',best);document.getElementById('best').textContent=best;}document.getElementById('msg').textContent=winMsg(moves);render(true);}else render();}
+  function move(i){if(over)return;const empty=tiles.indexOf(0);if(!neighbors(empty).includes(i))return;tiles[empty]=tiles[i];tiles[i]=0;moves++;document.getElementById('moves').textContent=moves;const won=tiles.every((v,i)=>v===(i===15?0:i+1));if(won){over=true;if(!best||moves<best){best=moves;localStorage.setItem('tg-slide-best',best);document.getElementById('best').textContent=best;}statRec('sliding',{played:1,wins:1},{},{bestMoves:moves});document.getElementById('msg').textContent=winMsg(moves);render(true);}else render();}
 
   window.newGame=newGame;newGame();
 })();

@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Статистике — Тоалет Игрице</title>
+<meta name="theme-color" content="#e94560">
+<script>(function(){var t=localStorage.getItem('tg-theme')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');if(t==='light')document.documentElement.classList.add('light');})()</script>
+<style>
+:root{--bg:#0f0f1a;--surface:#1a1a2e;--surface2:#16213e;--accent:#e94560;--text:#e0e0e0;--dim:#888}
+html.light{--bg:#f0f2f5;--surface:#fff;--surface2:#e2e5ea;--text:#1a1a2e;--dim:#666}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:18px}html.xl{font-size:22px}
+body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,sans-serif;min-height:100dvh;-webkit-tap-highlight-color:transparent;touch-action:manipulation;transition:background .2s,color .2s}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--surface);gap:6px;border-bottom:1px solid var(--surface2)}
+.topbar a{color:var(--accent);text-decoration:none;font-size:.95rem;font-weight:700;white-space:nowrap}
+.topbar h2{font-size:.95rem;font-weight:700;flex:1;text-align:center}
+.topbar-btns{display:flex;gap:4px;flex-shrink:0}
+.icon-btn{background:none;border:1px solid var(--dim);color:var(--text);border-radius:6px;padding:5px 8px;font-size:.78rem;cursor:pointer;white-space:nowrap;line-height:1}
+.wrap{padding:14px 12px 40px;max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:10px}
+.summary{background:var(--surface);border-radius:10px;padding:10px 14px;font-size:.85rem;color:var(--dim);text-align:center}
+.summary strong{color:var(--text);font-size:1rem}
+.card{background:var(--surface);border-radius:12px;padding:10px 12px;display:flex;align-items:flex-start;gap:10px}
+.card.empty{opacity:.45}
+.card-icon{font-size:1.6rem;flex-shrink:0;width:36px;text-align:center;line-height:1.4}
+.card-body{flex:1;min-width:0}
+.card-name{font-weight:700;font-size:.9rem;margin-bottom:5px}
+.chips{display:flex;flex-wrap:wrap;gap:5px}
+.chip{background:var(--surface2);border-radius:6px;padding:3px 8px;font-size:.75rem;white-space:nowrap}
+.chip .lbl{color:var(--dim)}
+.chip .val{font-weight:700;margin-left:3px}
+.chip.zero .val{color:var(--dim)}
+.clear-btn{background:none;border:1px solid var(--accent);color:var(--accent);border-radius:8px;padding:10px 20px;font-size:.9rem;font-weight:700;cursor:pointer;align-self:center;margin-top:6px}
+.clear-btn:active{background:var(--accent);color:#fff}
+.empty-msg{text-align:center;color:var(--dim);font-size:.9rem;padding:30px 0}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <a href="../" class="i18n" data-sr="← Назад" data-en="← Back">← Назад</a>
+  <h2 class="i18n" data-sr="📊 Статистике" data-en="📊 Statistics">📊 Статистике</h2>
+  <div class="topbar-btns">
+    <button class="icon-btn theme-btn" onclick="toggleTheme()">🌙</button>
+    <button class="icon-btn lang-btn" onclick="toggleLang()">EN</button>
+    <button class="icon-btn" onclick="toggleFont()">Аа</button>
+  </div>
+</div>
+<div class="wrap" id="wrap"></div>
+<script>
+(function(){
+  const _lang=()=>localStorage.getItem('tg-lang')||(/^(sr|hr|bs)/i.test(navigator.language)?'sr':'en');
+  const _theme=()=>localStorage.getItem('tg-theme')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');
+  function applyTheme(){const d=_theme()==='dark';document.documentElement.classList.toggle('light',!d);document.querySelectorAll('.theme-btn').forEach(b=>b.textContent=d?'☀️':'🌙');}
+  function applyI18n(){const L=_lang();document.querySelectorAll('[data-'+L+']').forEach(el=>el.textContent=el.dataset[L]);document.querySelectorAll('.lang-btn').forEach(b=>b.textContent=L==='sr'?'EN':'СР');document.documentElement.lang=L;}
+  window.toggleTheme=()=>{localStorage.setItem('tg-theme',_theme()==='dark'?'light':'dark');applyTheme();render();};
+  window.toggleLang=()=>{localStorage.setItem('tg-lang',_lang()==='sr'?'en':'sr');location.reload();};
+  window.toggleFont=()=>{const xl=document.documentElement.classList.toggle('xl');localStorage.setItem('tg-xl',xl?'1':'0');};
+  if(localStorage.getItem('tg-xl')==='1')document.documentElement.classList.add('xl');
+  applyTheme();applyI18n();
+
+  const L=_lang();
+  const s=k=>({sr:k,en:k}[L]||k);
+
+  const CATALOG=[
+    {id:'snake',icon:'🐍',sr:'Змија',en:'Snake',
+      chips:[{k:'played',sr:'Игара',en:'Played'},{k:'bestScore',sr:'Рекорд',en:'Best'}]},
+    {id:'minesweeper',icon:'💣',sr:'Минерски',en:'Minesweeper',
+      chips:[{k:'played',sr:'Игара',en:'Played'},{k:'wins',sr:'Победа',en:'Wins'},{k:'losses',sr:'Пораза',en:'Losses'},{k:'bestTime',sr:'Рекорд (с)',en:'Best (s)'}]},
+    {id:'2048',icon:'🔢',sr:'2048',en:'2048',
+      chips:[{k:'played',sr:'Игара',en:'Played'},{k:'wins',sr:'Победа',en:'Wins'},{k:'bestScore',sr:'Рекорд',en:'Best'},{k:'bestTile',sr:'Плочица',en:'Best tile'}]},
+    {id:'tictactoe',icon:'✕',sr:'Икс-Окс',en:'Tic-Tac-Toe',
+      chips:[{k:'played',sr:'Игара',en:'Played'},{k:'xWins',sr:'✕ победа',en:'✕ wins'},{k:'oWins',sr:'○ победа',en:'○ wins'},{k:'draws',sr:'Нерешено',en:'Draws'}]},
+    {id:'simon',icon:'🎵',sr:'Сајмон',en:'Simon',
+      chips:[{k:'played',sr:'Покушаја',en:'Attempts'},{k:'bestScore',sr:'Рекорд ниво',en:'Best level'}]},
+    {id:'connect4',icon:'🔴',sr:'Четири у низ',en:'Connect Four',
+      chips:[{k:'played',sr:'Игара',en:'Played'},{k:'p1Wins',sr:'🔴 победа',en:'🔴 wins'},{k:'p2Wins',sr:'🟡 победа',en:'🟡 wins'},{k:'draws',sr:'Нерешено',en:'Draws'}]},
+    {id:'memory',icon:'🧠',sr:'Мемори',en:'Memory',
+      chips:[{k:'played',sr:'Игара',en:'Played'},{k:'wins',sr:'Победа',en:'Wins'},{k:'bestMoves',sr:'Мин. потеза',en:'Best moves'}]},
+    {id:'sudoku',icon:'9️⃣',sr:'Судоку',en:'Sudoku',
+      chips:[{k:'wins',sr:'Решено',en:'Solved'}]},
+    {id:'wordle',icon:'📝',sr:'Речко',en:'Wordle',
+      chips:[{k:'played',sr:'Игара',en:'Played'},{k:'wins',sr:'Победа',en:'Wins'},{k:'losses',sr:'Пораза',en:'Losses'},{k:'bestStreak',sr:'Низ',en:'Best streak'}]},
+    {id:'hangman',icon:'🎭',sr:'Вешала',en:'Hangman',
+      chips:[{k:'played',sr:'Игара',en:'Played'},{k:'wins',sr:'Победа',en:'Wins'},{k:'losses',sr:'Пораза',en:'Losses'}]},
+    {id:'blackjack',icon:'🃏',sr:'Блекџек',en:'Blackjack',
+      chips:[{k:'played',sr:'Руки',en:'Hands'},{k:'wins',sr:'Победа',en:'Wins'},{k:'losses',sr:'Пораза',en:'Losses'},{k:'pushes',sr:'Нерешено',en:'Pushes'}]},
+    {id:'sliding',icon:'🧩',sr:'Слагалица',en:'Sliding',
+      chips:[{k:'played',sr:'Игара',en:'Played'},{k:'wins',sr:'Решено',en:'Solved'},{k:'bestMoves',sr:'Мин. потеза',en:'Best moves'}]},
+    {id:'match3',icon:'💎',sr:'Драгуљи',en:'GemBlast',
+      chips:[{k:'played',sr:'Игара',en:'Played'},{k:'bestScore',sr:'Рекорд',en:'Best'}]},
+    {id:'tetris',icon:'🧱',sr:'Тетрис',en:'Tetris',
+      chips:[{k:'played',sr:'Игара',en:'Played'},{k:'bestScore',sr:'Рекорд',en:'Best'}]},
+    {id:'breakout',icon:'🏓',sr:'Пробиј',en:'Breakout',
+      chips:[{k:'played',sr:'Игара',en:'Played'},{k:'wins',sr:'Победа',en:'Wins'},{k:'losses',sr:'Пораза',en:'Losses'},{k:'bestScore',sr:'Рекорд',en:'Best'}]},
+    {id:'frogger',icon:'🐸',sr:'Жабац',en:'Frogger',
+      chips:[{k:'played',sr:'Игара',en:'Played'},{k:'wins',sr:'Победа',en:'Wins'},{k:'losses',sr:'Пораза',en:'Losses'},{k:'bestScore',sr:'Рекорд',en:'Best'}]},
+    {id:'sokoban',icon:'📦',sr:'Сокобан',en:'Sokoban',
+      chips:[{k:'played',sr:'Нивоа',en:'Levels'},{k:'completedCurated',sr:'Завршено',en:'Completed'},{k:'completedRandom',sr:'Случајних',en:'Random'}]},
+    {id:'missile',icon:'🚀',sr:'Ракете',en:'Missiles',
+      chips:[{k:'played',sr:'Игара',en:'Played'},{k:'bestScore',sr:'Рекорд',en:'Best'}]},
+  ];
+
+  function render(){
+    const stats=JSON.parse(localStorage.getItem('tg-stats')||'{}');
+    const wrap=document.getElementById('wrap');
+    wrap.innerHTML='';
+
+    const totalPlayed=CATALOG.reduce((s,g)=>{const d=stats[g.id]||{};return s+(d.played||0);},0);
+    const summaryEl=document.createElement('div');
+    summaryEl.className='summary';
+    summaryEl.innerHTML=L==='sr'
+      ?`Укупно покренуто игара: <strong>${totalPlayed}</strong>`
+      :`Total games played: <strong>${totalPlayed}</strong>`;
+    wrap.appendChild(summaryEl);
+
+    CATALOG.forEach(game=>{
+      const d=stats[game.id]||{};
+      const hasData=Object.values(d).some(v=>v);
+      const card=document.createElement('div');
+      card.className='card'+(hasData?'':' empty');
+
+      const iconEl=document.createElement('div');
+      iconEl.className='card-icon';
+      iconEl.textContent=game.icon;
+
+      const body=document.createElement('div');
+      body.className='card-body';
+
+      const nameEl=document.createElement('div');
+      nameEl.className='card-name';
+      nameEl.textContent=game[L]||game.sr;
+
+      const chips=document.createElement('div');
+      chips.className='chips';
+
+      game.chips.forEach(chip=>{
+        const val=d[chip.k];
+        const chipEl=document.createElement('span');
+        chipEl.className='chip'+(val?'':' zero');
+        chipEl.innerHTML=`<span class="lbl">${chip[L]||chip.sr}:</span><span class="val">${val!=null?val.toLocaleString():'—'}</span>`;
+        chips.appendChild(chipEl);
+      });
+
+      body.appendChild(nameEl);
+      body.appendChild(chips);
+      card.appendChild(iconEl);
+      card.appendChild(body);
+      wrap.appendChild(card);
+    });
+
+    if(totalPlayed===0){
+      const empty=document.createElement('div');
+      empty.className='empty-msg';
+      empty.textContent=L==='sr'?'Нема статистика. Почни да играш!':'No stats yet. Start playing!';
+      wrap.appendChild(empty);
+    }
+
+    const clearBtn=document.createElement('button');
+    clearBtn.className='clear-btn i18n';
+    clearBtn.textContent=L==='sr'?'Обриши статистике':'Clear statistics';
+    clearBtn.onclick=()=>{
+      if(confirm(L==='sr'?'Обрисати све статистике?':'Clear all statistics?')){
+        localStorage.removeItem('tg-stats');
+        render();
+      }
+    };
+    wrap.appendChild(clearBtn);
+  }
+
+  window.clearStats=()=>{};
+  render();
+})();
+</script>
+</body>
+</html>

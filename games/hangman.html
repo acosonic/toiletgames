@@ -196,6 +196,8 @@ html.light .key.used-wrong{background:#787c7e;color:#fff}
   const KEYMAP_SR={A:'А',B:'Б',V:'В',G:'Г',D:'Д','Đ':'Ђ',E:'Е','Ž':'Ж',Z:'З',I:'И',J:'Ј',K:'К',L:'Л',M:'М',N:'Н',O:'О',P:'П',R:'Р',S:'С',T:'Т','Ć':'Ћ',U:'У',F:'Ф',H:'Х',C:'Ц','Č':'Ч','Š':'Ш'};
   const PARTS=['hg-head','hg-body','hg-arm1','hg-arm2','hg-leg1','hg-leg2'];
 
+  function statRec(g,inc,hi,lo){const j=JSON.parse(localStorage.getItem('tg-stats')||'{}');const e=j[g]||{};for(const[k,v]of Object.entries(inc||{}))e[k]=(e[k]||0)+v;for(const[k,v]of Object.entries(hi||{}))if(v!=null&&(!e[k]||v>e[k]))e[k]=v;for(const[k,v]of Object.entries(lo||{}))if(v!=null&&(!e[k]||v<e[k]))e[k]=v;j[g]=e;localStorage.setItem('tg-stats',JSON.stringify(j));}
+
   let word,category,guessed,wrong,over,wins=0;
 
   function newGame(){const words=L==='sr'?WORDS_SR:WORDS_EN;const entry=words[Math.floor(Math.random()*words.length)];word=entry.w;category=entry.c;guessed=new Set();wrong=[];over=false;PARTS.forEach(id=>document.getElementById(id).style.display='none');document.getElementById('msg').textContent='';document.getElementById('hintBox').innerHTML=t('hint')+'<strong>'+category+'</strong>';renderWord();renderKeyboard();updateLives();}
@@ -206,9 +208,9 @@ html.light .key.used-wrong{background:#787c7e;color:#fff}
 
   function guess(ch){
     if(over||guessed.has(ch))return;guessed.add(ch);
-    if(!word.includes(ch)){wrong.push(ch);if(wrong.length<=PARTS.length)document.getElementById(PARTS[wrong.length-1]).style.display='';if(wrong.length>=PARTS.length){over=true;document.getElementById('msg').textContent=t('lose')+word;}}
+    if(!word.includes(ch)){wrong.push(ch);if(wrong.length<=PARTS.length)document.getElementById(PARTS[wrong.length-1]).style.display='';if(wrong.length>=PARTS.length){over=true;statRec('hangman',{played:1,losses:1});document.getElementById('msg').textContent=t('lose')+word;}}
     const solved=word.split('').every(c=>guessed.has(c));
-    if(solved&&!over){over=true;wins++;document.getElementById('score').textContent='✅ '+wins;document.getElementById('msg').textContent=t('win');}
+    if(solved&&!over){over=true;wins++;document.getElementById('score').textContent='✅ '+wins;statRec('hangman',{played:1,wins:1});document.getElementById('msg').textContent=t('win');}
     renderWord();renderKeyboard();updateLives();
   }
 

@@ -1,6 +1,6 @@
 // Service worker for Тоалет Игрице.
 // Bump CACHE_VERSION on every shell change.
-const CACHE_VERSION = 'v41';
+const CACHE_VERSION = 'v42';
 const CACHE_NAME = `toiletgames-${CACHE_VERSION}`;
 
 const SCOPE = new URL(self.registration.scope).pathname;
@@ -34,6 +34,7 @@ const SHELL = [
   SCOPE + 'games/frogger.html',
   SCOPE + 'games/sokoban.html',
   SCOPE + 'games/missile.html',
+  SCOPE + 'games/stats.html',
 ];
 
 self.addEventListener('install', (event) => {

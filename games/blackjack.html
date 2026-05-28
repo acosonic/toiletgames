@@ -102,6 +102,8 @@ html.light .msg.push{background:#cce5ff;color:#004085}
   document.getElementById('btnDeal').textContent=t('deal');
 
   const SUITS=['♠','♥','♦','♣'],RANKS=['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+  function statRec(g,inc,hi,lo){const j=JSON.parse(localStorage.getItem('tg-stats')||'{}');const e=j[g]||{};for(const[k,v]of Object.entries(inc||{}))e[k]=(e[k]||0)+v;for(const[k,v]of Object.entries(hi||{}))if(v!=null&&(!e[k]||v>e[k]))e[k]=v;for(const[k,v]of Object.entries(lo||{}))if(v!=null&&(!e[k]||v<e[k]))e[k]=v;j[g]=e;localStorage.setItem('tg-stats',JSON.stringify(j));}
+
   let deck=[],player=[],dealer=[],gameOn=false,wins=0,losses=0,pushes=0;
 
   function buildDeck(){deck=[];for(const s of SUITS)for(const r of RANKS)deck.push({rank:r,suit:s});for(let i=deck.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[deck[i],deck[j]]=[deck[j],deck[i]];}}
@@ -118,9 +120,9 @@ html.light .msg.push{background:#cce5ff;color:#004085}
 
   function deal(){if(deck.length<15)buildDeck();player=[draw(),draw()];dealer=[draw(),draw()];gameOn=true;setButtons(true);document.getElementById('msg').style.visibility='hidden';render(true);if(value(player)===21)stand();}
 
-  function hit(){if(!gameOn)return;player.push(draw());render(true);if(value(player)>21){gameOn=false;setButtons(false);render(false);losses++;document.getElementById('losses').textContent=losses;setMsg(t('bust'),'lose');}else if(value(player)===21)stand();}
+  function hit(){if(!gameOn)return;player.push(draw());render(true);if(value(player)>21){gameOn=false;setButtons(false);render(false);losses++;document.getElementById('losses').textContent=losses;statRec('blackjack',{played:1,losses:1});setMsg(t('bust'),'lose');}else if(value(player)===21)stand();}
 
-  function stand(){if(!gameOn&&value(player)!==21)return;gameOn=false;setButtons(false);while(value(dealer)<17)dealer.push(draw());render(false);const p=value(player),d=value(dealer);if(d>21||p>d){wins++;document.getElementById('wins').textContent=wins;setMsg(t('win',p,d),'win');}else if(p===d){pushes++;document.getElementById('pushes').textContent=pushes;setMsg(t('push',p),'push');}else{losses++;document.getElementById('losses').textContent=losses;setMsg(t('lose',p,d),'lose');}}
+  function stand(){if(!gameOn&&value(player)!==21)return;gameOn=false;setButtons(false);while(value(dealer)<17)dealer.push(draw());render(false);const p=value(player),d=value(dealer);if(d>21||p>d){wins++;document.getElementById('wins').textContent=wins;statRec('blackjack',{played:1,wins:1});setMsg(t('win',p,d),'win');}else if(p===d){pushes++;document.getElementById('pushes').textContent=pushes;statRec('blackjack',{played:1,pushes:1});setMsg(t('push',p),'push');}else{losses++;document.getElementById('losses').textContent=losses;statRec('blackjack',{played:1,losses:1});setMsg(t('lose',p,d),'lose');}}
 
   function setButtons(on){document.getElementById('btnHit').disabled=!on;document.getElementById('btnStand').disabled=!on;document.getElementById('btnDeal').disabled=on;}
 
