@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Пробиј — Тоалет Игрице</title>
+<meta name="theme-color" content="#e94560">
+<script>(function(){var t=localStorage.getItem('tg-theme')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');if(t==='light')document.documentElement.classList.add('light');})()</script>
+<style>
+:root{--bg:#0f0f1a;--surface:#1a1a2e;--surface2:#16213e;--accent:#e94560;--text:#e0e0e0;--dim:#888}
+html.light{--bg:#f0f2f5;--surface:#fff;--surface2:#e2e5ea;--text:#1a1a2e;--dim:#666}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:18px}html.xl{font-size:22px}
+body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,sans-serif;min-height:100dvh;-webkit-tap-highlight-color:transparent}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--surface);gap:6px;border-bottom:1px solid var(--surface2)}
+.topbar a{color:var(--accent);text-decoration:none;font-size:.95rem;font-weight:700;white-space:nowrap}
+.topbar h2{font-size:.95rem;font-weight:700;flex:1;text-align:center}
+.topbar-btns{display:flex;gap:4px;flex-shrink:0}
+.icon-btn{background:none;border:1px solid var(--dim);color:var(--text);border-radius:6px;padding:5px 8px;font-size:.78rem;cursor:pointer;white-space:nowrap;line-height:1}
+.wrap{padding:8px 10px;max-width:420px;margin:0 auto;display:flex;flex-direction:column;align-items:center;gap:8px}
+.hud{display:flex;align-items:center;justify-content:space-between;width:100%;gap:6px;font-size:.95rem;font-weight:700}
+.new-btn{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:.85rem;font-weight:700;cursor:pointer;touch-action:manipulation;flex-shrink:0}
+canvas{border:1px solid var(--surface2);display:block;max-width:100%;height:auto;touch-action:none}
+.hint{font-size:.75rem;color:var(--dim);text-align:center}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <a href="../" class="i18n" data-sr="← Назад" data-en="← Back">← Назад</a>
+  <h2 class="i18n" data-sr="🏓 Пробиј" data-en="🏓 Breakout">🏓 Пробиј</h2>
+  <div class="topbar-btns">
+    <button class="icon-btn theme-btn" onclick="toggleTheme()">🌙</button>
+    <button class="icon-btn lang-btn" onclick="toggleLang()">EN</button>
+    <button class="icon-btn" onclick="toggleFont()">Аа</button>
+  </div>
+</div>
+<div class="wrap">
+  <div class="hud">
+    <span id="livesEl">❤️❤️❤️</span>
+    <button class="new-btn i18n" data-sr="Нова" data-en="New" onclick="startGame()">Нова</button>
+    <span id="scoreEl">⭐ 0</span>
+    <span id="bestEl">🏆 0</span>
+  </div>
+  <canvas width="400" height="500" id="game"></canvas>
+  <p class="hint i18n" data-sr="Превуци прст по екрану · Тапни да лансираш лоптицу" data-en="Drag to move paddle · Tap to launch ball">Превуци прст по екрану · Тапни да лансираш лоптицу</p>
+</div>
+<script>
+(function(){
+  const _lang=()=>localStorage.getItem('tg-lang')||(/^(sr|hr|bs)/i.test(navigator.language)?'sr':'en');
+  const _theme=()=>localStorage.getItem('tg-theme')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');
+  function applyTheme(){const d=_theme()==='dark';document.documentElement.classList.toggle('light',!d);document.querySelectorAll('.theme-btn').forEach(b=>b.textContent=d?'☀️':'🌙');}
+  function applyI18n(){const L=_lang();document.querySelectorAll('[data-'+L+']').forEach(el=>el.textContent=el.dataset[L]);document.querySelectorAll('.lang-btn').forEach(b=>b.textContent=L==='sr'?'EN':'СР');document.documentElement.lang=L;}
+  window.toggleTheme=()=>{localStorage.setItem('tg-theme',_theme()==='dark'?'light':'dark');applyTheme();};
+  window.toggleLang=()=>{localStorage.setItem('tg-lang',_lang()==='sr'?'en':'sr');location.reload();};
+  window.toggleFont=()=>{const xl=document.documentElement.classList.toggle('xl');localStorage.setItem('tg-xl',xl?'1':'0');};
+  if(localStorage.getItem('tg-xl')==='1')document.documentElement.classList.add('xl');
+  applyTheme();applyI18n();
+})();
+
+const canvas = document.getElementById('game');
+const context = canvas.getContext('2d');
+
+const level1 = [
+  [],[],[],[],[],[],
+  ['R','R','R','R','R','R','R','R','R','R','R','R','R','R'],
+  ['R','R','R','R','R','R','R','R','R','R','R','R','R','R'],
+  ['O','O','O','O','O','O','O','O','O','O','O','O','O','O'],
+  ['O','O','O','O','O','O','O','O','O','O','O','O','O','O'],
+  ['G','G','G','G','G','G','G','G','G','G','G','G','G','G'],
+  ['G','G','G','G','G','G','G','G','G','G','G','G','G','G'],
+  ['Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y'],
+  ['Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y']
+];
+const colorMap = { 'R':'red','O':'orange','G':'green','Y':'yellow' };
+const brickPoints = { 'R':7,'O':5,'G':3,'Y':1 };
+const brickGap = 2;
+const brickWidth = 25;
+const brickHeight = 12;
+const wallSize = 12;
+const paddleWidth = 50;
+
+let bricks = [], paddle, ball, lives, score, rAF, gameState;
+let best = +localStorage.getItem('tg-breakout-best') || 0;
+document.getElementById('bestEl').textContent = '🏆 ' + best;
+
+function buildBricks() {
+  const b = [];
+  for (let row = 0; row < level1.length; row++) {
+    for (let col = 0; col < level1[row].length; col++) {
+      const colorCode = level1[row][col];
+      b.push({
+        x: wallSize + (brickWidth + brickGap) * col,
+        y: wallSize + (brickHeight + brickGap) * row,
+        color: colorMap[colorCode],
+        points: brickPoints[colorCode],
+        width: brickWidth,
+        height: brickHeight
+      });
+    }
+  }
+  return b;
+}
+
+function collides(a, b) {
+  return a.x < b.x + b.width && a.x + a.width > b.x &&
+         a.y < b.y + b.height && a.y + a.height > b.y;
+}
+
+function updateHUD() {
+  const hearts = '❤️'.repeat(lives) + '🖤'.repeat(3 - lives);
+  document.getElementById('livesEl').textContent = hearts;
+  document.getElementById('scoreEl').textContent = '⭐ ' + score;
+  if (score > best) {
+    best = score;
+    localStorage.setItem('tg-breakout-best', best);
+    document.getElementById('bestEl').textContent = '🏆 ' + best;
+  }
+}
+
+function startGame() {
+  cancelAnimationFrame(rAF);
+  bricks = buildBricks();
+  paddle = {
+    x: canvas.width / 2 - paddleWidth / 2,
+    y: 440,
+    width: paddleWidth,
+    height: brickHeight,
+    dx: 0
+  };
+  ball = { x: 130, y: 400, width: 6, height: 6, speed: 3, dx: 0, dy: 0 };
+  lives = 3;
+  score = 0;
+  gameState = 'playing';
+  updateHUD();
+  rAF = requestAnimationFrame(loop);
+}
+
+function resetBall() {
+  ball.x = paddle.x + paddleWidth / 2 - 3;
+  ball.y = paddle.y - 10;
+  ball.dx = 0;
+  ball.dy = 0;
+}
+
+function launchBall() {
+  if (ball.dx === 0 && ball.dy === 0) {
+    ball.dx = ball.speed * (Math.random() > 0.5 ? 1 : -1);
+    ball.dy = -ball.speed;
+  }
+}
+
+function loop() {
+  if (gameState !== 'playing') return;
+  rAF = requestAnimationFrame(loop);
+  context.fillStyle = '#0f0f1a';
+  context.fillRect(0, 0, canvas.width, canvas.height);
+
+  paddle.x += paddle.dx;
+  if (paddle.x < wallSize) paddle.x = wallSize;
+  else if (paddle.x + paddleWidth > canvas.width - wallSize) paddle.x = canvas.width - wallSize - paddleWidth;
+
+  if (ball.dx === 0 && ball.dy === 0) {
+    ball.x = paddle.x + paddleWidth / 2 - 3;
+    ball.y = paddle.y - 10;
+  }
+
+  ball.x += ball.dx;
+  ball.y += ball.dy;
+
+  if (ball.x < wallSize) { ball.x = wallSize; ball.dx *= -1; }
+  else if (ball.x + ball.width > canvas.width - wallSize) { ball.x = canvas.width - wallSize - ball.width; ball.dx *= -1; }
+  if (ball.y < wallSize) { ball.y = wallSize; ball.dy *= -1; }
+
+  if (ball.y > canvas.height) {
+    lives--;
+    updateHUD();
+    if (lives <= 0) {
+      showMessage(localStorage.getItem('tg-lang') === 'en' ? 'GAME OVER!' : 'КРАЈ ИГРЕ!');
+      gameState = 'over';
+      return;
+    }
+    resetBall();
+  }
+
+  if (collides(ball, paddle)) {
+    ball.dy = -Math.abs(ball.dy);
+    const hitPos = (ball.x + ball.width / 2 - paddle.x) / paddleWidth;
+    ball.dx = ball.speed * (hitPos - 0.5) * 2;
+    ball.y = paddle.y - ball.height;
+  }
+
+  for (let i = 0; i < bricks.length; i++) {
+    const brick = bricks[i];
+    if (collides(ball, brick)) {
+      bricks.splice(i, 1);
+      score += brick.points;
+      updateHUD();
+      if (ball.y + ball.height - ball.speed <= brick.y || ball.y >= brick.y + brick.height - ball.speed) {
+        ball.dy *= -1;
+      } else {
+        ball.dx *= -1;
+      }
+      break;
+    }
+  }
+
+  if (bricks.length === 0) {
+    showMessage(localStorage.getItem('tg-lang') === 'en' ? 'YOU WIN!' : 'ПОБЕДА!');
+    gameState = 'over';
+    return;
+  }
+
+  context.fillStyle = 'lightgrey';
+  context.fillRect(0, 0, canvas.width, wallSize);
+  context.fillRect(0, 0, wallSize, canvas.height);
+  context.fillRect(canvas.width - wallSize, 0, wallSize, canvas.height);
+
+  context.fillStyle = 'white';
+  context.fillRect(ball.x, ball.y, ball.width, ball.height);
+
+  bricks.forEach(brick => {
+    context.fillStyle = brick.color;
+    context.fillRect(brick.x, brick.y, brick.width, brick.height);
+  });
+
+  context.fillStyle = 'cyan';
+  context.fillRect(paddle.x, paddle.y, paddleWidth, brickHeight);
+}
+
+function showMessage(msg) {
+  context.fillStyle = 'rgba(0,0,0,0.75)';
+  context.fillRect(0, canvas.height / 2 - 30, canvas.width, 60);
+  context.fillStyle = 'white';
+  context.font = '28px monospace';
+  context.textAlign = 'center';
+  context.textBaseline = 'middle';
+  context.fillText(msg, canvas.width / 2, canvas.height / 2);
+}
+
+document.addEventListener('keydown', e => {
+  if (e.which === 37) paddle.dx = -4;
+  else if (e.which === 39) paddle.dx = 4;
+  if (e.which === 32) { e.preventDefault(); launchBall(); }
+});
+document.addEventListener('keyup', e => {
+  if (e.which === 37 || e.which === 39) paddle.dx = 0;
+});
+
+canvas.addEventListener('touchstart', e => {
+  e.preventDefault();
+  launchBall();
+}, { passive: false });
+
+canvas.addEventListener('touchmove', e => {
+  e.preventDefault();
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = canvas.width / rect.width;
+  const touchX = (e.touches[0].clientX - rect.left) * scaleX;
+  paddle.x = touchX - paddleWidth / 2;
+  if (paddle.x < wallSize) paddle.x = wallSize;
+  if (paddle.x + paddleWidth > canvas.width - wallSize) paddle.x = canvas.width - wallSize - paddleWidth;
+}, { passive: false });
+
+startGame();
+</script>
+</body>
+</html>

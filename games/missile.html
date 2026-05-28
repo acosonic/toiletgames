@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ракете — Тоалет Игрице</title>
+<meta name="theme-color" content="#e94560">
+<script>(function(){var t=localStorage.getItem('tg-theme')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');if(t==='light')document.documentElement.classList.add('light');})()</script>
+<style>
+:root{--bg:#0f0f1a;--surface:#1a1a2e;--surface2:#16213e;--accent:#e94560;--text:#e0e0e0;--dim:#888}
+html.light{--bg:#f0f2f5;--surface:#fff;--surface2:#e2e5ea;--text:#1a1a2e;--dim:#666}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:18px}html.xl{font-size:22px}
+body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,sans-serif;min-height:100dvh;-webkit-tap-highlight-color:transparent}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--surface);gap:6px;border-bottom:1px solid var(--surface2)}
+.topbar a{color:var(--accent);text-decoration:none;font-size:.95rem;font-weight:700;white-space:nowrap}
+.topbar h2{font-size:.95rem;font-weight:700;flex:1;text-align:center}
+.topbar-btns{display:flex;gap:4px;flex-shrink:0}
+.icon-btn{background:none;border:1px solid var(--dim);color:var(--text);border-radius:6px;padding:5px 8px;font-size:.78rem;cursor:pointer;white-space:nowrap;line-height:1}
+.wrap{padding:8px 10px;max-width:820px;margin:0 auto;display:flex;flex-direction:column;align-items:center;gap:8px}
+.hud{display:flex;align-items:center;justify-content:space-between;width:100%;font-size:.95rem;font-weight:700}
+.new-btn{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:.85rem;font-weight:700;cursor:pointer;touch-action:manipulation}
+canvas{display:block;max-width:100%;height:auto;cursor:crosshair;border:1px solid var(--surface2)}
+.hint{font-size:.75rem;color:var(--dim);text-align:center}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <a href="../" class="i18n" data-sr="← Назад" data-en="← Back">← Назад</a>
+  <h2 class="i18n" data-sr="🚀 Ракете" data-en="🚀 Missiles">🚀 Ракете</h2>
+  <div class="topbar-btns">
+    <button class="icon-btn theme-btn" onclick="toggleTheme()">🌙</button>
+    <button class="icon-btn lang-btn" onclick="toggleLang()">EN</button>
+    <button class="icon-btn" onclick="toggleFont()">Аа</button>
+  </div>
+</div>
+<div class="wrap">
+  <div class="hud">
+    <span id="citiesEl">🏙️🏙️🏙️🏙️🏙️🏙️</span>
+    <button class="new-btn i18n" data-sr="Нова" data-en="New" onclick="startGame()">Нова</button>
+    <span id="scoreEl">⭐ 0</span>
+    <span id="bestEl">🏆 0</span>
+  </div>
+  <canvas width="800" height="550" id="game"></canvas>
+  <p class="hint i18n" data-sr="Тапни/кликни да лансираш противракету" data-en="Tap/click to launch counter-missile">Тапни/кликни да лансираш противракету</p>
+</div>
+<script>
+(function(){
+  const _lang=()=>localStorage.getItem('tg-lang')||(/^(sr|hr|bs)/i.test(navigator.language)?'sr':'en');
+  const _theme=()=>localStorage.getItem('tg-theme')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');
+  function applyTheme(){const d=_theme()==='dark';document.documentElement.classList.toggle('light',!d);document.querySelectorAll('.theme-btn').forEach(b=>b.textContent=d?'☀️':'🌙');}
+  function applyI18n(){const L=_lang();document.querySelectorAll('[data-'+L+']').forEach(el=>el.textContent=el.dataset[L]);document.querySelectorAll('.lang-btn').forEach(b=>b.textContent=L==='sr'?'EN':'СР');document.documentElement.lang=L;}
+  window.toggleTheme=()=>{localStorage.setItem('tg-theme',_theme()==='dark'?'light':'dark');applyTheme();};
+  window.toggleLang=()=>{localStorage.setItem('tg-lang',_lang()==='sr'?'en':'sr');location.reload();};
+  window.toggleFont=()=>{const xl=document.documentElement.classList.toggle('xl');localStorage.setItem('tg-xl',xl?'1':'0');};
+  if(localStorage.getItem('tg-xl')==='1')document.documentElement.classList.add('xl');
+  applyTheme();applyI18n();
+})();
+
+const canvas = document.getElementById('game');
+const context = canvas.getContext('2d');
+const groundY = 500;
+const cityWidth = 45;
+const cityHeight = 25;
+const cityY = groundY - cityHeight;
+const siloY = groundY - 30;
+const missileSize = 4;
+const missileSpeed = 1;
+const counterMissileSpeed = 15;
+const siloPos = [55, canvas.width / 2, 745];
+
+const levels = [[4,4],[6,6,6],[8,8,8,8],[10,10,10,10,10]];
+
+let missiles, counterMissiles, explosions, cities, silos, score, rAF;
+let currLevel, currInterval, lastTime, gameOver;
+let best = +localStorage.getItem('tg-missile-best') || 0;
+document.getElementById('bestEl').textContent = '🏆 ' + best;
+
+const cityDefs = [
+  { x:140, y:cityY }, { x:220, y:cityY }, { x:300, y:cityY },
+  { x:500, y:cityY }, { x:580, y:cityY }, { x:660, y:cityY }
+];
+
+function randInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+function angleBetweenPoints(src, tgt) { return Math.atan2(tgt.y - src.y, tgt.x - src.x) + Math.PI / 2; }
+function dist(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); }
+
+function getCanvasPos(e) {
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = canvas.width / rect.width;
+  const scaleY = canvas.height / rect.height;
+  const src = e.touches ? e.touches[0] : e;
+  return { x: (src.clientX - rect.left) * scaleX, y: (src.clientY - rect.top) * scaleY };
+}
+
+function spawnMissile() {
+  const targets = [...cities, ...silos].filter(t => t.alive);
+  if (targets.length === 0) return;
+  const spawns = [...cityDefs, ...siloPos.map(x => ({ x, y: 0 })), { x: 0, y: 0 }, { x: canvas.width, y: 0 }];
+  const start = spawns[randInt(0, spawns.length - 1)];
+  const target = targets[randInt(0, targets.length - 1)];
+  const angle = angleBetweenPoints(start, target);
+  missiles.push({
+    start: { x: start.x, y: start.y },
+    target,
+    pos: { x: start.x, y: start.y },
+    alive: true,
+    dx: missileSpeed * Math.sin(angle),
+    dy: missileSpeed * -Math.cos(angle)
+  });
+}
+
+function fireMissile(x, y) {
+  if (gameOver) return;
+  let launchSilo = null;
+  let minDist = Infinity;
+  silos.filter(s => s.alive && s.missiles > 0).forEach(s => {
+    const d = dist({ x, y }, s);
+    if (d < minDist) { minDist = d; launchSilo = s; }
+  });
+  if (!launchSilo) return;
+  const start = { x: launchSilo.x, y: launchSilo.y };
+  const target = { x, y };
+  const angle = angleBetweenPoints(start, target);
+  launchSilo.missiles--;
+  counterMissiles.push({
+    start: { x: launchSilo.x, y: launchSilo.y },
+    target,
+    pos: { x: launchSilo.x, y: launchSilo.y },
+    dx: counterMissileSpeed * Math.sin(angle),
+    dy: counterMissileSpeed * -Math.cos(angle),
+    alive: true
+  });
+}
+
+function updateHUD() {
+  const cityIcons = cities.filter(c => c.alive).length;
+  document.getElementById('citiesEl').textContent = '🏙️'.repeat(cityIcons) + '💥'.repeat(6 - cityIcons);
+  document.getElementById('scoreEl').textContent = '⭐ ' + score;
+  if (score > best) {
+    best = score;
+    localStorage.setItem('tg-missile-best', best);
+    document.getElementById('bestEl').textContent = '🏆 ' + best;
+  }
+}
+
+function startGame() {
+  cancelAnimationFrame(rAF);
+  missiles = []; counterMissiles = []; explosions = [];
+  cities = cityDefs.map(c => ({ ...c, alive: true }));
+  silos = siloPos.map(x => ({ x, y: siloY, missiles: 10, alive: true }));
+  score = 0; currLevel = 0; currInterval = 0; lastTime = -2000; gameOver = false;
+  updateHUD();
+  rAF = requestAnimationFrame(loop);
+}
+
+function showMessage(msg) {
+  context.fillStyle = 'rgba(0,0,0,0.75)';
+  context.fillRect(0, canvas.height / 2 - 36, canvas.width, 72);
+  context.fillStyle = 'white';
+  context.font = '32px monospace';
+  context.textAlign = 'center';
+  context.textBaseline = 'middle';
+  context.fillText(msg, canvas.width / 2, canvas.height / 2);
+}
+
+function loop(time) {
+  rAF = requestAnimationFrame(loop);
+  context.fillStyle = '#000010';
+  context.fillRect(0, 0, canvas.width, canvas.height);
+
+  if (!gameOver) {
+    const lvl = levels[Math.min(currLevel, levels.length - 1)];
+    if (time - lastTime > 3000 && currInterval < lvl.length) {
+      for (let i = 0; i < lvl[currInterval]; i++) spawnMissile();
+      currInterval++;
+      lastTime = time;
+    }
+    if (currInterval >= lvl.length && missiles.length === 0 && counterMissiles.length === 0 && explosions.length === 0) {
+      currLevel++;
+      currInterval = 0;
+      lastTime = time + 1000;
+    }
+  }
+
+  context.fillStyle = 'blue';
+  cities.filter(c => c.alive).forEach(city => {
+    context.fillRect(city.x - cityWidth / 2, city.y, cityWidth, cityHeight);
+  });
+
+  context.fillStyle = 'yellow';
+  context.beginPath();
+  context.moveTo(0, canvas.height);
+  context.lineTo(0, groundY);
+  siloPos.forEach(x => {
+    context.lineTo(x - 40, groundY);
+    context.lineTo(x - 20, siloY);
+    context.lineTo(x + 20, siloY);
+    context.lineTo(x + 40, groundY);
+  });
+  context.lineTo(canvas.width, groundY);
+  context.lineTo(canvas.width, canvas.height);
+  context.fill();
+
+  context.fillStyle = 'black';
+  silos.filter(s => s.alive).forEach(silo => {
+    let mpr = 1, count = 0, x = silo.x, y = silo.y + 5;
+    for (let i = 0; i < silo.missiles; i++) {
+      context.fillRect(x, y, 4, 10);
+      x += 12;
+      if (++count === mpr) { x = silo.x - 6 * count; mpr++; y += 7; count = 0; }
+    }
+  });
+
+  context.strokeStyle = 'red';
+  context.lineWidth = 2;
+  context.fillStyle = Math.round(time / 2) % 2 === 0 ? 'white' : 'black';
+  missiles.forEach(m => {
+    m.pos.x += m.dx;
+    m.pos.y += m.dy;
+    explosions.forEach(ex => {
+      if (dist(ex, m.pos) < missileSize + ex.size) m.alive = false;
+    });
+    if (dist(m.pos, m.target) < missileSpeed) {
+      m.alive = false;
+      m.target.alive = false;
+      updateHUD();
+    }
+    if (m.alive) {
+      context.beginPath();
+      context.moveTo(m.start.x, m.start.y);
+      context.lineTo(m.pos.x, m.pos.y);
+      context.stroke();
+      context.fillRect(m.pos.x - missileSize / 2, m.pos.y - missileSize / 2, missileSize, missileSize);
+    } else {
+      explosions.push({ x: m.pos.x, y: m.pos.y, size: 2, dir: 1, alive: true, player: false });
+    }
+  });
+
+  context.strokeStyle = 'cyan';
+  context.fillStyle = 'white';
+  counterMissiles.forEach(m => {
+    m.pos.x += m.dx;
+    m.pos.y += m.dy;
+    if (dist(m.pos, m.target) < counterMissileSpeed) {
+      m.alive = false;
+      explosions.push({ x: m.pos.x, y: m.pos.y, size: 2, dir: 1, alive: true, player: true });
+    } else {
+      context.strokeStyle = 'cyan';
+      context.lineWidth = 2;
+      context.beginPath();
+      context.moveTo(m.start.x, m.start.y);
+      context.lineTo(m.pos.x, m.pos.y);
+      context.stroke();
+      context.fillRect(m.pos.x - 2, m.pos.y - 2, 4, 4);
+    }
+  });
+
+  explosions.forEach(ex => {
+    ex.size += 0.35 * ex.dir;
+    if (ex.size > 30) ex.dir = -1;
+    if (ex.size <= 0) { ex.alive = false; return; }
+    if (ex.player) {
+      missiles.forEach(m => {
+        if (m.alive && dist(ex, m.pos) < missileSize + ex.size) {
+          m.alive = false;
+          score += 10;
+          updateHUD();
+        }
+      });
+    }
+    context.fillStyle = Math.round(time / 3) % 2 === 0 ? 'blue' : 'white';
+    context.beginPath();
+    context.arc(ex.x, ex.y, ex.size, 0, 2 * Math.PI);
+    context.fill();
+  });
+
+  missiles = missiles.filter(m => m.alive);
+  counterMissiles = counterMissiles.filter(m => m.alive);
+  explosions = explosions.filter(ex => ex.alive);
+
+  if (!gameOver && cities.filter(c => c.alive).length === 0) {
+    gameOver = true;
+    const L = localStorage.getItem('tg-lang') || 'sr';
+    showMessage(L === 'sr' ? 'КРАЈ ИГРЕ!' : 'GAME OVER!');
+  }
+}
+
+canvas.addEventListener('click', e => {
+  const { x, y } = getCanvasPos(e);
+  fireMissile(x, y);
+});
+canvas.addEventListener('touchstart', e => {
+  e.preventDefault();
+  const { x, y } = getCanvasPos(e);
+  fireMissile(x, y);
+}, { passive: false });
+
+startGame();
+</script>
+</body>
+</html>
