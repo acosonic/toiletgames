@@ -38,12 +38,12 @@
 ## Screenshots
 
 <p align="center">
-  <img src="screenshots/connect4.png" width="220" alt="Connect Four">
-  <img src="screenshots/breakout.png" width="220" alt="Breakout">
-  <img src="screenshots/minesweeper.png" width="220" alt="Minesweeper">
+  <img src="screenshots/connect4.png" width="220" alt="Drop Four">
+  <img src="screenshots/breakout.png" width="220" alt="Brick Bash">
+  <img src="screenshots/minesweeper.png" width="220" alt="Minefield">
 </p>
 <p align="center">
-  <img src="screenshots/wordle.png" width="220" alt="Wordle">
+  <img src="screenshots/wordle.png" width="220" alt="Letterbox">
   <img src="screenshots/sudoku.png" width="220" alt="Sudoku">
   <img src="screenshots/snake.png" width="220" alt="Snake">
 </p>
