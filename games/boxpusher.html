@@ -240,16 +240,21 @@ function generateLevel(numBoxes, numMoves) {
 let cells, playerPos, width, moves, won, history;
 let currentLevelStr = '';
 let sharedLevel = false;
+let sharedScore = 0;
 
 function L() { return localStorage.getItem('tg-lang') || 'sr'; }
 
 function updateHUD() {
   const isSR = L() === 'sr';
   document.getElementById('levelEl').textContent = sharedLevel ? '🔗' : '🎲';
-  const b = +localStorage.getItem('tg-sokoban-random-best') || 0;
-  document.getElementById('levelInfo').textContent =
-    (sharedLevel ? (isSR ? 'Дељени ниво' : 'Shared level') : (isSR ? 'Случајни ниво' : 'Random level')) +
-    (b > 0 ? (isSR ? ' · 🏆 рекорд: ' + b : ' · 🏆 best: ' + b) : '');
+  let info = sharedLevel ? (isSR ? 'Дељени ниво' : 'Shared level') : (isSR ? 'Случајни ниво' : 'Random level');
+  if (sharedLevel && sharedScore > 0) {
+    info += isSR ? ' · рeшeно зa ' + sharedScore + ' пот.' : ' · solved in ' + sharedScore;
+  } else if (!sharedLevel) {
+    const b = +localStorage.getItem('tg-sokoban-random-best') || 0;
+    if (b > 0) info += isSR ? ' · 🏆 рекорд: ' + b : ' · 🏆 best: ' + b;
+  }
+  document.getElementById('levelInfo').textContent = info;
   document.getElementById('movesEl').textContent = '🚶 ' + moves;
 }
 
@@ -409,7 +414,8 @@ function onNext() { startRandom(); }
 
 function shareLevel() {
   try {
-    const encoded = btoa(unescape(encodeURIComponent(currentLevelStr)));
+    const data = won ? currentLevelStr + '|' + moves : currentLevelStr;
+    const encoded = btoa(unescape(encodeURIComponent(data)));
     const url = location.href.split('#')[0] + '#' + encoded;
     navigator.clipboard.writeText(url).then(() => {
       const btn = document.querySelector('[onclick="shareLevel()"]');
@@ -446,7 +452,14 @@ document.addEventListener('keydown', e => {
 const _hash = location.hash.slice(1);
 if (_hash) {
   try {
-    currentLevelStr = decodeURIComponent(escape(atob(_hash)));
+    const decoded = decodeURIComponent(escape(atob(_hash)));
+    const pipeIdx = decoded.lastIndexOf('|');
+    if (pipeIdx !== -1 && /^\d+$/.test(decoded.slice(pipeIdx + 1))) {
+      sharedScore = +decoded.slice(pipeIdx + 1);
+      currentLevelStr = decoded.slice(0, pipeIdx);
+    } else {
+      currentLevelStr = decoded;
+    }
     sharedLevel = true;
     resetLevel();
   } catch(e) { startRandom(); }
