@@ -555,15 +555,21 @@ function startRandom() {
   document.getElementById('levelEl').textContent = '⏳';
   document.getElementById('levelInfo').textContent = isSR ? 'Генеришем...' : 'Generating...';
   document.getElementById('nextBtn').style.display = 'none';
+  const _t0 = Date.now();
+  const _ticker = setInterval(() => {
+    const s = ((Date.now() - _t0) / 1000).toFixed(1);
+    document.getElementById('levelInfo').textContent = (isSR ? '⏳ Решавање ' : '⏳ Solving ') + s + 's';
+  }, 100);
   setTimeout(() => {
     const result = generateLevel(4, 80);
     if (result) {
       currentLevelStr = result.level;
       const sol = solveSokoban(currentLevelStr, 100000);
       moveLimit = sol !== null
-        ? Math.ceil(sol.totalMoves * 1.75)  // optimal + 75% slack (covers avg player at ~1.5× optimal)
-        : 150;                               // fixed fallback — solutionMoves from backtracing is unreliable
+        ? Math.ceil(sol.totalMoves * 1.75)
+        : 150;
     } else { currentLevelStr = FALLBACK; moveLimit = 150; }
+    clearInterval(_ticker);
     try { history.replaceState(null, '', '#' + btoa(unescape(encodeURIComponent(currentLevelStr + '|' + moveLimit)))); } catch(e) {}
     resetLevel();
   }, 20);
