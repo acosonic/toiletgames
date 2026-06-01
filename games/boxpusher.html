@@ -50,7 +50,8 @@ canvas{display:block;max-width:100%;height:auto;border:1px solid var(--surface2)
     <div class="hud-btns">
       <button class="ctrl-btn i18n" data-sr="↩ Поништи" data-en="↩ Undo" onclick="undo()">↩ Поништи</button>
       <button class="ctrl-btn i18n" data-sr="↺ Ресет" data-en="↺ Reset" onclick="resetLevel()">↺ Ресет</button>
-      <button class="ctrl-btn" onclick="startRandom()" title="Random level">🎲</button>
+      <button class="ctrl-btn" onclick="shareLevel()" title="Share">🔗</button>
+      <button class="ctrl-btn" onclick="startRandom()" title="New random">🎲</button>
     </div>
     <span id="movesEl">🚶 0</span>
   </div>
@@ -100,55 +101,8 @@ const T = { wall:'#', player:'@', playerOnGoal:'+', block:'$', blockOnGoal:'*', 
 function statRec(g,inc,hi,lo){const j=JSON.parse(localStorage.getItem('tg-stats')||'{}');const e=j[g]||{};for(const[k,v]of Object.entries(inc||{}))e[k]=(e[k]||0)+v;for(const[k,v]of Object.entries(hi||{}))if(v!=null&&(!e[k]||v>e[k]))e[k]=v;for(const[k,v]of Object.entries(lo||{}))if(v!=null&&(!e[k]||v<e[k]))e[k]=v;j[g]=e;localStorage.setItem('tg-stats',JSON.stringify(j));}
 const SFX=(()=>{let ac;const A=()=>(ac=ac||new(window.AudioContext||window.webkitAudioContext)());const t=(f,d,tp,v)=>{if(localStorage.getItem('tg-sound')==='0')return;try{const c=A(),o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.type=tp||'sine';o.frequency.value=f;g.gain.setValueAtTime(v||.25,c.currentTime);g.gain.exponentialRampToValueAtTime(.001,c.currentTime+d);o.start();o.stop(c.currentTime+d);}catch(e){}};return{step:()=>t(400,.04,'square',.08),push:()=>t(250,.06,'square',.12),win(){t(523,.1);setTimeout(()=>t(659,.1),100);setTimeout(()=>t(784,.25),200);}};})();
 
-// ── curated levels (auto-generated, guaranteed solvable) ──────
-const LEVELS = [
-// 1: 3 boxes / 9×9
-`#########
-#########
-###  @###
-###$#  ##
-###. $ ##
-##.  ####
-##.$ ####
-#########
-#########`,
-
-// 2: 3 boxes / 10×10
-`##########
-##########
-##   #####
-##@ $$ ###
-###.$# ###
-####   ###
-##.   ####
-####.#####
-##########
-##########`,
-
-// 3: 4 boxes / 9×9
-`#########
-####  ###
-##.# $###
-## #  ###
-##  @ ###
-## .$ .##
-## $$.###
-#### ####
-#########`,
-
-// 4: 4 boxes / 10×10
-`##########
-##########
-####  @###
-##.# $ ###
-## #.# .##
-## ###  ##
-## $  $ ##
-## $ .  ##
-##  ######
-##########`,
-
-// 5: 4 boxes / 10×10 hard
+// ── fallback level (used when generator fails) ────────────────
+const FALLBACK =
 `##########
 ##########
 ##.###  ##
@@ -158,20 +112,7 @@ const LEVELS = [
 ##  $   ##
 ### $..###
 ###  #####
-##########`,
-
-// 6: 5 boxes / 10×10
-`##########
-##########
-###  .####
-##  .#####
-##$#   ###
-## @$$ ###
-# $.  $###
-# . ##.###
-##########
-##########`
-];
+##########`;
 
 // ── level generator ──────────────────────────────────────────
 // Backward generation: start from solved state, apply reverse moves.
@@ -297,30 +238,18 @@ function generateLevel(numBoxes, numMoves) {
 
 // ── game state ───────────────────────────────────────────────
 let cells, playerPos, width, moves, won, history;
-let currentLevel = +localStorage.getItem('tg-sokoban-level') || 0;
-if (currentLevel >= LEVELS.length) currentLevel = 0;
-let isRandom = false;
-let currentLevelStr = LEVELS[currentLevel];
-
-function bestKey(n) { return 'tg-sokoban-best-' + n; }
+let currentLevelStr = '';
+let sharedLevel = false;
 
 function L() { return localStorage.getItem('tg-lang') || 'sr'; }
 
 function updateHUD() {
   const isSR = L() === 'sr';
-  if (isRandom) {
-    document.getElementById('levelEl').textContent = '🎲';
-    const b = +localStorage.getItem('tg-sokoban-random-best') || 0;
-    document.getElementById('levelInfo').textContent =
-      (isSR ? 'Случајни ниво' : 'Random level') +
-      (b > 0 ? (isSR ? ' · 🏆 рекорд: ' + b : ' · 🏆 best: ' + b) : '');
-  } else {
-    document.getElementById('levelEl').textContent = '🎯 ' + (currentLevel + 1) + '/' + LEVELS.length;
-    const b = +localStorage.getItem(bestKey(currentLevel)) || 0;
-    document.getElementById('levelInfo').textContent =
-      (isSR ? 'Ниво ' : 'Level ') + (currentLevel + 1) +
-      (b > 0 ? (isSR ? ' · 🏆 рекорд: ' + b + ' пот.' : ' · 🏆 best: ' + b) : '');
-  }
+  document.getElementById('levelEl').textContent = sharedLevel ? '🔗' : '🎲';
+  const b = +localStorage.getItem('tg-sokoban-random-best') || 0;
+  document.getElementById('levelInfo').textContent =
+    (sharedLevel ? (isSR ? 'Дељени ниво' : 'Shared level') : (isSR ? 'Случајни ниво' : 'Random level')) +
+    (b > 0 ? (isSR ? ' · 🏆 рекорд: ' + b : ' · 🏆 best: ' + b) : '');
   document.getElementById('movesEl').textContent = '🚶 ' + moves;
 }
 
@@ -398,15 +327,12 @@ function checkWin() {
 
   won = true;
   SFX.win();
-  if(isRandom) statRec('sokoban',{played:1,completedRandom:1});
-  else statRec('sokoban',{played:1,completedCurated:1});
-  const bKey = isRandom ? 'tg-sokoban-random-best' : bestKey(currentLevel);
-  const b = +localStorage.getItem(bKey) || 0;
-  if (b === 0 || moves < b) localStorage.setItem(bKey, moves);
+  statRec('sokoban', {played:1, completedRandom:1});
+  const b = +localStorage.getItem('tg-sokoban-random-best') || 0;
+  if (b === 0 || moves < b) localStorage.setItem('tg-sokoban-random-best', moves);
   updateHUD();
   draw();
 
-  // Win overlay
   context.fillStyle = 'rgba(0,0,0,0.72)';
   context.fillRect(0, canvas.height/2 - 34, canvas.width, 68);
   context.fillStyle = 'white';
@@ -414,22 +340,11 @@ function checkWin() {
   context.textAlign = 'center';
   context.textBaseline = 'middle';
   const isSR = L() === 'sr';
-  const isLast = !isRandom && currentLevel >= LEVELS.length - 1;
-  context.fillText(
-    isLast ? (isSR ? '🏆 Сви нивои!' : '🏆 All done!')
-           : (isSR ? '🎉 Решено!' : '🎉 Solved!'),
-    canvas.width/2, canvas.height/2
-  );
+  context.fillText(isSR ? '🎉 Решено!' : '🎉 Solved!', canvas.width/2, canvas.height/2);
 
   const btn = document.getElementById('nextBtn');
   btn.style.display = 'block';
-  if (isRandom) {
-    btn.textContent = isSR ? '🎲 Нови случајни' : '🎲 New random';
-  } else if (isLast) {
-    btn.textContent = isSR ? '↺ Поново' : '↺ Again';
-  } else {
-    btn.textContent = isSR ? 'Следећи ниво →' : 'Next level →';
-  }
+  btn.textContent = isSR ? '🎲 Следећи' : '🎲 Next';
 }
 
 function draw() {
@@ -490,40 +405,31 @@ function resetLevel() {
   draw();
 }
 
-function nextLevel() {
-  isRandom = false;
-  currentLevel = (currentLevel + 1) % LEVELS.length;
-  localStorage.setItem('tg-sokoban-level', currentLevel);
-  currentLevelStr = LEVELS[currentLevel];
-  resetLevel();
-}
+function onNext() { startRandom(); }
 
-function onNext() {
-  if (isRandom) {
-    startRandom();
-  } else {
-    nextLevel();
-  }
+function shareLevel() {
+  try {
+    const encoded = btoa(unescape(encodeURIComponent(currentLevelStr)));
+    const url = location.href.split('#')[0] + '#' + encoded;
+    navigator.clipboard.writeText(url).then(() => {
+      const btn = document.querySelector('[onclick="shareLevel()"]');
+      const orig = btn.textContent;
+      btn.textContent = '✓';
+      setTimeout(() => { btn.textContent = orig; }, 1500);
+    }).catch(() => { prompt('Copy link:', url); });
+  } catch(e) {}
 }
 
 function startRandom() {
   const isSR = L() === 'sr';
-  // Show loading state
+  sharedLevel = false;
   document.getElementById('levelEl').textContent = '⏳';
   document.getElementById('levelInfo').textContent = isSR ? 'Генеришем...' : 'Generating...';
   document.getElementById('nextBtn').style.display = 'none';
-
-  // Defer to allow UI repaint
   setTimeout(() => {
     const lvl = generateLevel(4, 130);
-    if (!lvl) {
-      // Fallback: use level 6
-      isRandom = true;
-      currentLevelStr = LEVELS[LEVELS.length - 1];
-    } else {
-      isRandom = true;
-      currentLevelStr = lvl;
-    }
+    currentLevelStr = lvl || FALLBACK;
+    try { history.replaceState(null, '', '#' + btoa(unescape(encodeURIComponent(currentLevelStr)))); } catch(e) {}
     resetLevel();
   }, 20);
 }
@@ -536,7 +442,17 @@ document.addEventListener('keydown', e => {
   else if (e.which === 90 && (e.ctrlKey || e.metaKey)) { e.preventDefault(); undo(); }
 });
 
-resetLevel();
+// Load shared level from URL hash, or start random
+const _hash = location.hash.slice(1);
+if (_hash) {
+  try {
+    currentLevelStr = decodeURIComponent(escape(atob(_hash)));
+    sharedLevel = true;
+    resetLevel();
+  } catch(e) { startRandom(); }
+} else {
+  startRandom();
+}
 </script>
 </body>
 </html>
