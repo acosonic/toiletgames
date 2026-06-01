@@ -299,6 +299,159 @@ function computeForwardMoves(levelStr, moveSeq) {
   return total;
 }
 
+// ── optimal-move solver (runs in a Web Worker) ────────────────
+// A* over push-states that minimizes PLAYER MOVES (walk steps + pushes) —
+// the same metric the HUD counts. Used to base the move limit on the TRUE
+// optimum instead of the generator's loose random-walk path. Bounded by the
+// generator's solution length (ub) plus a time budget; on timeout the caller
+// falls back to ub * multiplier. Defined as a plain function and shipped to
+// the worker via toString() so the file stays a self-contained single HTML.
+function solverMain() {
+  self.onmessage = function (e) {
+    const d = e.data;
+    self.postMessage(solve(d.level, d.ub, d.budget || 3000));
+  };
+
+  function solve(levelStr, ub, budgetMs) {
+    const t0 = Date.now();
+    const INF = 1e9;
+    const rows = levelStr.split('\n').filter(function (r) { return r.trim() !== ''; });
+    const H = rows.length;
+    let W = 0;
+    for (let i = 0; i < rows.length; i++) if (rows[i].length > W) W = rows[i].length;
+    const N = W * H;
+    const wall = new Uint8Array(N), goal = new Uint8Array(N);
+    let boxes = [], player = -1;
+    for (let r = 0; r < H; r++) {
+      const row = rows[r] || '';
+      for (let c = 0; c < W; c++) {
+        const ch = row[c] || '#';
+        const i = r * W + c;
+        if (ch === '#') wall[i] = 1;
+        if (ch === '.' || ch === '*' || ch === '+') goal[i] = 1;
+        if (ch === '$' || ch === '*') boxes.push(i);
+        if (ch === '@' || ch === '+') player = i;
+      }
+    }
+    const col = function (i) { return i % W; };
+    const steps = [-W, W, -1, 1]; // 0=up 1=down 2=left 3=right
+    function nb(i, di) { // neighbour cell in dir di, or -1 if off-grid
+      if (di === 2 && col(i) === 0) return -1;
+      if (di === 3 && col(i) === W - 1) return -1;
+      const j = i + steps[di];
+      return (j < 0 || j >= N) ? -1 : j;
+    }
+
+    // pushDist[cell] = min pushes to deliver a box from cell to any goal,
+    // via pull-BFS from goals (ignoring other boxes). INF => dead square.
+    const pushDist = new Int32Array(N);
+    for (let i = 0; i < N; i++) pushDist[i] = INF;
+    const pq = [];
+    for (let i = 0; i < N; i++) if (goal[i] && !wall[i]) { pushDist[i] = 0; pq.push(i); }
+    for (let hd = 0; hd < pq.length; hd++) {
+      const y = pq[hd], dv = pushDist[y];
+      for (let di = 0; di < 4; di++) {
+        const opp = di ^ 1;        // box came from x, was pushed x -> y in dir opp
+        const x = nb(y, opp);
+        if (x < 0 || wall[x]) continue;
+        const pstand = nb(x, opp); // player stood here to push
+        if (pstand < 0 || wall[pstand]) continue;
+        if (pushDist[x] > dv + 1) { pushDist[x] = dv + 1; pq.push(x); }
+      }
+    }
+
+    function hOf(bs) {
+      let s = 0;
+      for (let k = 0; k < bs.length; k++) { const d = pushDist[bs[k]]; if (d >= INF) return INF; s += d; }
+      return s;
+    }
+    function keyOf(bs, p) { return bs.join(',') + '|' + p; }
+
+    boxes.sort(function (a, b) { return a - b; });
+    const h0 = hOf(boxes);
+    if (h0 >= INF) return { fail: true };
+    if (h0 === 0) return { opt: 0 };
+
+    // binary min-heap on f = g + h
+    const heap = [];
+    function hpush(node) {
+      heap.push(node); let i = heap.length - 1;
+      while (i > 0) { const p = (i - 1) >> 1; if (heap[p].f <= heap[i].f) break; const t = heap[p]; heap[p] = heap[i]; heap[i] = t; i = p; }
+    }
+    function hpop() {
+      const top = heap[0], last = heap.pop();
+      if (heap.length) {
+        heap[0] = last; let i = 0;
+        for (;;) {
+          let l = 2 * i + 1, r = l + 1, m = i;
+          if (l < heap.length && heap[l].f < heap[m].f) m = l;
+          if (r < heap.length && heap[r].f < heap[m].f) m = r;
+          if (m === i) break;
+          const t = heap[m]; heap[m] = heap[i]; heap[i] = t; i = m;
+        }
+      }
+      return top;
+    }
+
+    const seen = new Map();
+    seen.set(keyOf(boxes, player), 0);
+    hpush({ f: h0, g: 0, h: h0, boxes: boxes, p: player });
+
+    let expansions = 0;
+    while (heap.length) {
+      const cur = hpop();
+      if (cur.h === 0) return { opt: cur.g };          // all boxes on goals
+      const best = seen.get(keyOf(cur.boxes, cur.p));
+      if (best !== undefined && cur.g > best) continue; // stale heap entry
+      if ((++expansions & 1023) === 0 && Date.now() - t0 > budgetMs) return { timeout: true };
+
+      const bs = cur.boxes, bset = new Set(bs);
+      // BFS player-walk distances over free cells (non-wall, non-box)
+      const dist = new Int32Array(N); for (let i = 0; i < N; i++) dist[i] = -1;
+      dist[cur.p] = 0; const wq = [cur.p];
+      for (let hd = 0; hd < wq.length; hd++) {
+        const c0 = wq[hd];
+        for (let di = 0; di < 4; di++) {
+          const j = nb(c0, di);
+          if (j < 0 || wall[j] || bset.has(j) || dist[j] >= 0) continue;
+          dist[j] = dist[c0] + 1; wq.push(j);
+        }
+      }
+
+      for (let bi = 0; bi < bs.length; bi++) {
+        const b = bs[bi];
+        for (let di = 0; di < 4; di++) {
+          const to = nb(b, di);                          // box destination
+          if (to < 0 || wall[to] || bset.has(to) || pushDist[to] >= INF) continue;
+          const stand = nb(b, di ^ 1);                   // player must stand here
+          if (stand < 0 || wall[stand] || bset.has(stand) || dist[stand] < 0) continue;
+          const g2 = cur.g + dist[stand] + 1;            // walk to stand + 1 push
+          const nb2 = bs.slice(); nb2[bi] = to; nb2.sort(function (a, c) { return a - c; });
+          const h2 = hOf(nb2);
+          if (h2 >= INF) continue;
+          const f2 = g2 + h2;
+          if (f2 > ub) continue;                         // can't beat known solution
+          const k = keyOf(nb2, b);                        // player ends on box's old cell
+          const prev = seen.get(k);
+          if (prev !== undefined && prev <= g2) continue;
+          seen.set(k, g2);
+          hpush({ f: f2, g: g2, h: h2, boxes: nb2, p: b });
+        }
+      }
+    }
+    return { fail: true };
+  }
+}
+
+function makeSolver() {
+  try {
+    const url = URL.createObjectURL(new Blob(['(' + solverMain.toString() + ')()'], { type: 'application/javascript' }));
+    const w = new Worker(url);
+    w._url = url;
+    return w;
+  } catch (e) { return null; }
+}
+
 // ── game state ───────────────────────────────────────────────
 let cells, playerPos, width, moves, won, failed, history;
 let currentLevelStr = '';
@@ -516,18 +669,42 @@ function startRandom() {
   const _t0 = Date.now();
   const _ticker = setInterval(() => {
     const s = ((Date.now() - _t0) / 1000).toFixed(1);
-    document.getElementById('levelInfo').textContent = (isSR ? '⏳ Решавање ' : '⏳ Solving ') + s + 's';
+    document.getElementById('levelInfo').textContent = (isSR ? '⏳ Тражим лимит ' : '⏳ Finding limit ') + s + 's';
   }, 100);
-  setTimeout(() => {
-    const result = generateLevel(4, 80);
-    if (result) {
-      currentLevelStr = result.level;
-      const fwd = computeForwardMoves(result.level, result.moveSeq);
-      moveLimit = fwd ? Math.ceil(fwd * 1.1) : 120;
-    } else { currentLevelStr = FALLBACK; moveLimit = 120; }
+
+  function finishRandom() {
     clearInterval(_ticker);
     try { history.replaceState(null, '', '#' + btoa(unescape(encodeURIComponent(currentLevelStr + '|' + moveLimit)))); } catch(e) {}
     resetLevel();
+  }
+
+  setTimeout(() => {
+    const result = generateLevel(4, 80);
+    if (!result) { currentLevelStr = FALLBACK; moveLimit = 120; finishRandom(); return; }
+
+    currentLevelStr = result.level;
+    const fwd = computeForwardMoves(result.level, result.moveSeq) || 120;
+
+    // Tight limit = 1.1 × the optimum. Players can undo freely (an undo
+    // refunds the move), so a tight cap based on the true optimum is fair.
+    const setLimit = (basis) => {
+      moveLimit = Math.max(basis + 1, Math.ceil(basis * 1.1));
+    };
+
+    const worker = makeSolver();
+    if (!worker) { setLimit(fwd); finishRandom(); return; } // no Worker support
+
+    let done = false;
+    const finish = (opt) => {
+      if (done) return; done = true;
+      try { worker.terminate(); URL.revokeObjectURL(worker._url); } catch(e) {}
+      setLimit(opt && opt > 0 ? Math.min(opt, fwd) : fwd); // opt ≤ fwd always
+      finishRandom();
+    };
+    worker.onmessage = (e) => finish(e.data && e.data.opt);
+    worker.onerror = () => finish(null);
+    setTimeout(() => finish(null), 4000);                  // hard cap if worker hangs
+    worker.postMessage({ level: result.level, ub: fwd, budget: 3000 });
   }, 20);
 }
 
