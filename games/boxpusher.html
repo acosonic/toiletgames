@@ -566,7 +566,7 @@ function startRandom() {
       currentLevelStr = result.level;
       const sol = solveSokoban(currentLevelStr, 100000);
       moveLimit = sol !== null
-        ? Math.ceil(sol.totalMoves * 1.75)
+        ? Math.ceil(sol.totalMoves * 1.5)
         : 150;
     } else { currentLevelStr = FALLBACK; moveLimit = 150; }
     clearInterval(_ticker);
