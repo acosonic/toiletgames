@@ -556,13 +556,13 @@ function startRandom() {
   document.getElementById('levelInfo').textContent = isSR ? 'Генеришем...' : 'Generating...';
   document.getElementById('nextBtn').style.display = 'none';
   setTimeout(() => {
-    const result = generateLevel(4, 130);
+    const result = generateLevel(4, 80);
     if (result) {
       currentLevelStr = result.level;
-      const sol = solveSokoban(currentLevelStr, 60000);
+      const sol = solveSokoban(currentLevelStr, 100000);
       moveLimit = sol !== null
-        ? Math.ceil(sol.totalMoves * 1.3)            // optimal total moves + 30% slack
-        : Math.ceil(result.solutionMoves * 1.5);     // fallback: generator path + 50%
+        ? Math.ceil(sol.totalMoves * 1.75)  // optimal + 75% slack (covers avg player at ~1.5× optimal)
+        : 150;                               // fixed fallback — solutionMoves from backtracing is unreliable
     } else { currentLevelStr = FALLBACK; moveLimit = 150; }
     try { history.replaceState(null, '', '#' + btoa(unescape(encodeURIComponent(currentLevelStr + '|' + moveLimit)))); } catch(e) {}
     resetLevel();
