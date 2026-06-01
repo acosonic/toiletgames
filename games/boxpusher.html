@@ -546,6 +546,21 @@ function startRandom() {
   }, 20);
 }
 
+// Console helper: playSolution('RurrddDL...')
+// Lowercase = walk, Uppercase = push (standard Sokoban notation)
+window.playSolution = function(sol, msPerMove) {
+  msPerMove = msPerMove || 180;
+  resetLevel();
+  const dir = {r:[1,0],l:[-1,0],u:[0,-1],d:[0,1]};
+  let i = 0;
+  const tick = setInterval(() => {
+    if (won || i >= sol.length) { clearInterval(tick); return; }
+    const d = dir[sol[i++].toLowerCase()];
+    if (d) doMove(d[0], d[1]);
+  }, msPerMove);
+  return 'Playing ' + sol.length + ' moves...';
+};
+
 document.addEventListener('keydown', e => {
   if (e.which === 37) { e.preventDefault(); doMove(-1, 0); }
   else if (e.which === 38) { e.preventDefault(); doMove(0, -1); }
