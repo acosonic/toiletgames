@@ -538,7 +538,7 @@ function startRandom() {
       currentLevelStr = result.level;
       const opt = solveSokoban(currentLevelStr, 100000);
       moveLimit = opt !== null
-        ? Math.ceil(opt * 2.5)                       // optimal pushes × 2.5 ≈ total moves
+        ? Math.ceil(opt * 3)                         // optimal pushes × 3 ≈ total moves + ~20% slack
         : Math.ceil(result.solutionMoves * 1.25);    // fallback: generator path
     } else { currentLevelStr = FALLBACK; moveLimit = 150; }
     try { history.replaceState(null, '', '#' + btoa(unescape(encodeURIComponent(currentLevelStr + '|' + moveLimit)))); } catch(e) {}
