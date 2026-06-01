@@ -126,26 +126,21 @@ const FALLBACK =
 //   forward: player at P pushes box from P+d to P+2d
 //   reverse: box at B, player walks to B-d, then box returns to B-d, player to B-2d
 
-function canReach(st, from, to) {
-  if (from.row === to.row && from.col === to.col) return true;
-  const H = st.length, W = st[0].length;
-  const ok = (r, c) => {
-    const v = st[r]?.[c];
-    return v !== undefined && v !== '#' && v !== '$' && v !== '*';
-  };
-  if (!ok(to.row, to.col)) return false;
-  const visited = new Set([from.row * 100 + from.col]);
+function pathLength(st, from, to) {
+  if (from.row === to.row && from.col === to.col) return 0;
+  const ok = (r, c) => { const v = st[r]?.[c]; return v !== undefined && v !== '#' && v !== '$' && v !== '*'; };
+  if (!ok(to.row, to.col)) return Infinity;
+  const dist = new Map([[from.row * 200 + from.col, 0]]);
   const q = [[from.row, from.col]];
   for (let i = 0; i < q.length; i++) {
-    const [r, c] = q[i];
+    const [r, c] = q[i], d = dist.get(r * 200 + c);
     for (const [dr, dc] of [[-1,0],[1,0],[0,-1],[0,1]]) {
-      const nr = r + dr, nc = c + dc;
-      if (nr === to.row && nc === to.col && ok(nr, nc)) return true;
-      const key = nr * 100 + nc;
-      if (!visited.has(key) && ok(nr, nc)) { visited.add(key); q.push([nr, nc]); }
+      const nr = r + dr, nc = c + dc, key = nr * 200 + nc;
+      if (nr === to.row && nc === to.col && ok(nr, nc)) return d + 1;
+      if (!dist.has(key) && ok(nr, nc)) { dist.set(key, d + 1); q.push([nr, nc]); }
     }
   }
-  return false;
+  return Infinity;
 }
 
 function tryGenerate(W, H, numBoxes, numMoves) {
@@ -190,9 +185,9 @@ function tryGenerate(W, H, numBoxes, numMoves) {
   st[pStart[0]][pStart[1]] = '@';
   let pPos = {row: pStart[0], col: pStart[1]};
 
-  // Apply reverse moves
+  // Apply reverse moves, tracking full solution length (walks + pushes)
   const DIRS = [[-1,0],[1,0],[0,-1],[0,1]];
-  let applied = 0;
+  let applied = 0, solutionMoves = 0;
 
   for (let i = 0; i < numMoves; i++) {
     const valid = [];
@@ -200,9 +195,6 @@ function tryGenerate(W, H, numBoxes, numMoves) {
       for (let c = 1; c < W-1; c++) {
         if (st[r][c] !== '$' && st[r][c] !== '*') continue;
         for (const [dr, dc] of DIRS) {
-          // Reverse push in direction d:
-          //   box destination: (r-dr, c-dc)  [box moves back one step]
-          //   player destination: (r-2*dr, c-2*dc)  [player also steps back]
           const bR = r - dr, bC = c - dc;
           const pR = r - 2*dr, pC = c - 2*dc;
           if (bR < 1 || bR > H-2 || bC < 1 || bC > W-2) continue;
@@ -210,20 +202,17 @@ function tryGenerate(W, H, numBoxes, numMoves) {
           if (st[bR][bC] !== ' ' && st[bR][bC] !== '.') continue;
           const pCell = st[pR][pC];
           if (pCell === '#' || pCell === '$' || pCell === '*') continue;
-          // Player must be able to walk to bR,bC (that's where they stand to pull)
-          if (canReach(st, pPos, {row: bR, col: bC})) {
-            valid.push({r, c, bR, bC, pR, pC});
-          }
+          const wl = pathLength(st, pPos, {row: bR, col: bC});
+          if (wl !== Infinity) valid.push({r, c, bR, bC, pR, pC, wl});
         }
       }
     }
     if (!valid.length) break;
     const mv = valid[Math.floor(Math.random() * valid.length)];
+    solutionMoves += mv.wl + 1; // walking steps to reach push position + 1 push
 
-    // Move box (r,c) → (bR,bC)
     st[mv.r][mv.c] = st[mv.r][mv.c] === '*' ? '.' : ' ';
     st[mv.bR][mv.bC] = st[mv.bR][mv.bC] === '.' ? '*' : '$';
-    // Move player pPos → (pR,pC)
     st[pPos.row][pPos.col] = st[pPos.row][pPos.col] === '+' ? '.' : ' ';
     st[mv.pR][mv.pC] = st[mv.pR][mv.pC] === '.' ? '+' : '@';
     pPos = {row: mv.pR, col: mv.pC};
@@ -231,7 +220,7 @@ function tryGenerate(W, H, numBoxes, numMoves) {
   }
 
   if (applied < Math.floor(numMoves * 0.35)) return null;
-  return {level: st.map(row => row.join('')).join('\n'), pushes: applied};
+  return {level: st.map(row => row.join('')).join('\n'), pushes: applied, solutionMoves};
 }
 
 function generateLevel(numBoxes, numMoves) {
@@ -465,7 +454,7 @@ function startRandom() {
   document.getElementById('nextBtn').style.display = 'none';
   setTimeout(() => {
     const result = generateLevel(4, 130);
-    if (result) { currentLevelStr = result.level; moveLimit = Math.ceil(result.pushes * 2.5); }
+    if (result) { currentLevelStr = result.level; moveLimit = Math.ceil(result.solutionMoves * 1.25); }
     else { currentLevelStr = FALLBACK; moveLimit = 150; }
     try { history.replaceState(null, '', '#' + btoa(unescape(encodeURIComponent(currentLevelStr + '|' + moveLimit)))); } catch(e) {}
     resetLevel();
