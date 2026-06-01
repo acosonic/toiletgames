@@ -23,6 +23,17 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,
 .ctrl-btn{background:var(--surface2);border:1px solid var(--dim);color:var(--text);border-radius:8px;padding:5px 12px;font-size:.82rem;cursor:pointer;touch-action:manipulation}
 .level-info{font-size:.8rem;color:var(--dim);text-align:center;width:100%;min-height:1.2em}
 canvas{display:block;max-width:100%;height:auto;border:1px solid var(--surface2)}
+.canvas-wrap{position:relative;display:inline-block;max-width:100%}
+.gameover{position:absolute;inset:0;background:rgba(0,0,0,0.78);display:none;align-items:center;justify-content:center;border-radius:4px}
+.gameover.show{display:flex;animation:fadeIn .2s ease}
+@keyframes fadeIn{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:scale(1)}}
+.go-card{background:var(--surface);border-radius:16px;padding:22px 28px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:14px;box-shadow:0 4px 24px rgba(0,0,0,.5)}
+.go-icon{font-size:2.4rem}
+.go-msg{font-size:1rem;font-weight:700;color:var(--accent)}
+.go-btns{display:flex;gap:10px}
+.go-btn{border:none;border-radius:10px;padding:11px 22px;font-size:.95rem;font-weight:700;cursor:pointer;touch-action:manipulation}
+.go-btn.retry{background:var(--accent);color:#fff}
+.go-btn.newlvl{background:var(--surface2);color:var(--text);border:1px solid var(--dim)}
 .next-btn{background:var(--accent);color:#fff;border:none;border-radius:10px;padding:10px 24px;font-size:1rem;font-weight:700;cursor:pointer;touch-action:manipulation;display:none}
 .dpad{display:grid;grid-template-columns:repeat(3,60px);grid-template-rows:repeat(2,60px);gap:6px;margin-top:6px}
 .dpad button{background:var(--surface);border:1px solid var(--surface2);border-radius:10px;color:var(--text);font-size:1.5rem;cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
@@ -56,7 +67,19 @@ canvas{display:block;max-width:100%;height:auto;border:1px solid var(--surface2)
     <span id="movesEl">🚶 0</span>
   </div>
   <div class="level-info" id="levelInfo"></div>
-  <canvas id="game"></canvas>
+  <div class="canvas-wrap">
+    <canvas id="game"></canvas>
+    <div class="gameover" id="gameover">
+      <div class="go-card">
+        <div class="go-icon">💀</div>
+        <div class="go-msg i18n" data-sr="Нема потеза!" data-en="Out of moves!">Нема потеза!</div>
+        <div class="go-btns">
+          <button class="go-btn retry i18n" data-sr="↺ Поново" data-en="↺ Try again" onclick="resetLevel()">↺ Поново</button>
+          <button class="go-btn newlvl i18n" data-sr="🎲 Нови" data-en="🎲 New" onclick="startRandom()">🎲 Нови</button>
+        </div>
+      </div>
+    </div>
+  </div>
   <button class="next-btn" id="nextBtn" onclick="onNext()">→</button>
   <div class="dpad">
     <button class="up" onclick="doMove(0,-1)">▲</button>
@@ -382,17 +405,9 @@ function doMove(dc, dr) {
 function outOfMoves() {
   failed = true;
   SFX.error();
-  context.fillStyle = 'rgba(0,0,0,0.72)';
-  context.fillRect(0, canvas.height/2 - 34, canvas.width, 68);
-  context.fillStyle = '#e94560';
-  context.font = 'bold 22px monospace';
-  context.textAlign = 'center';
-  context.textBaseline = 'middle';
   const isSR = L() === 'sr';
-  context.fillText(isSR ? '❌ Нема потеза!' : '❌ Out of moves!', canvas.width/2, canvas.height/2);
-  const btn = document.getElementById('nextBtn');
-  btn.style.display = 'block';
-  btn.textContent = isSR ? '↺ Ресет' : '↺ Reset';
+  document.querySelectorAll('#gameover [data-sr]').forEach(el => el.textContent = el.dataset[isSR?'sr':'en']);
+  document.getElementById('gameover').classList.add('show');
 }
 
 function undo() {
@@ -487,6 +502,7 @@ function resetLevel() {
   moves = 0;
   won = false;
   failed = false;
+  document.getElementById('gameover').classList.remove('show');
   document.getElementById('nextBtn').style.display = 'none';
   updateHUD();
   draw();
