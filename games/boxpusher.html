@@ -102,40 +102,41 @@ const SFX=(()=>{let ac;const A=()=>(ac=ac||new(window.AudioContext||window.webki
 
 // ── curated levels ───────────────────────────────────────────
 const LEVELS = [
-`#####
-#   #
-#.$ #
-# @ #
-#####`,
-
-`######
-#    #
-# $  #
-# @. #
-######`,
-
+// 1: 2 boxes, requires routing around (≈12 moves)
 `#######
-#     #
-###$  #
-# .   #
-# @   #
-#######`,
-
-`#######
-#     #
-# . . #
-# $ $ #
 #  @  #
+# $.$ #
+#  .  #
+#     #
 #######`,
 
+// 2: 3 boxes in sequence, order matters (≈18 moves)
 `########
-#  .   #
-#  $   #
-# @    #
-#    $ #
-#    . #
+#      #
+# @$$$ #
+# ...  #
+#      #
 ########`,
 
+// 3: 2 boxes, non-aligned goals (≈10 moves)
+`#########
+# @  .  #
+#   $   #
+#       #
+#   $   #
+#  .    #
+#########`,
+
+// 4: 3 boxes, tight routing (≈25 moves)
+`########
+#   .  #
+# $$   #
+# ..@  #
+#  $   #
+#      #
+########`,
+
+// 5: classic complex layout (hard)
 `  #####
 ###   #
 #.@$  #
@@ -144,7 +145,18 @@ const LEVELS = [
 # # . ##
 #$ *$$.#
 #   .  #
-########`
+########`,
+
+// 6: 4 boxes, symmetric (very hard, ≈40 moves)
+`#########
+#       #
+#  . .  #
+# $   $ #
+#   @   #
+# $   $ #
+#  . .  #
+#       #
+#########`
 ];
 
 // ── level generator ──────────────────────────────────────────
@@ -263,7 +275,7 @@ function tryGenerate(W, H, numBoxes, numMoves) {
 
 function generateLevel(numBoxes, numMoves) {
   for (let i = 0; i < 40; i++) {
-    const r = tryGenerate(9, 8, numBoxes, numMoves);
+    const r = tryGenerate(10, 9, numBoxes, numMoves);
     if (r) return r;
   }
   return null;
@@ -489,7 +501,7 @@ function startRandom() {
 
   // Defer to allow UI repaint
   setTimeout(() => {
-    const lvl = generateLevel(3, 90);
+    const lvl = generateLevel(4, 130);
     if (!lvl) {
       // Fallback: use level 6
       isRandom = true;
