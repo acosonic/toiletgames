@@ -208,9 +208,10 @@ function tryGenerate(W, H, numBoxes, numMoves) {
   st[pStart[0]][pStart[1]] = '@';
   let pPos = {row: pStart[0], col: pStart[1]};
 
-  // Apply reverse moves, tracking full solution length (walks + pushes)
+  // Apply reverse moves, storing sequence for later forward replay
   const DIRS = [[-1,0],[1,0],[0,-1],[0,1]];
-  let applied = 0, solutionMoves = 0;
+  let applied = 0;
+  const moveSeq = [];
 
   for (let i = 0; i < numMoves; i++) {
     const valid = [];
@@ -225,14 +226,14 @@ function tryGenerate(W, H, numBoxes, numMoves) {
           if (st[bR][bC] !== ' ' && st[bR][bC] !== '.') continue;
           const pCell = st[pR][pC];
           if (pCell === '#' || pCell === '$' || pCell === '*') continue;
-          const wl = pathLength(st, pPos, {row: bR, col: bC});
-          if (wl !== Infinity) valid.push({r, c, bR, bC, pR, pC, wl});
+          if (pathLength(st, pPos, {row: bR, col: bC}) !== Infinity)
+            valid.push({r, c, bR, bC, pR, pC});
         }
       }
     }
     if (!valid.length) break;
     const mv = valid[Math.floor(Math.random() * valid.length)];
-    solutionMoves += mv.wl + 1; // walking steps to reach push position + 1 push
+    moveSeq.push({r: mv.r, c: mv.c, bR: mv.bR, bC: mv.bC, pR: mv.pR, pC: mv.pC});
 
     st[mv.r][mv.c] = st[mv.r][mv.c] === '*' ? '.' : ' ';
     st[mv.bR][mv.bC] = st[mv.bR][mv.bC] === '.' ? '*' : '$';
@@ -243,9 +244,8 @@ function tryGenerate(W, H, numBoxes, numMoves) {
   }
 
   if (applied < Math.floor(numMoves * 0.35)) return null;
-  // Reject if any box is still sitting on a goal (makes puzzle trivially easier)
   if (st.some(row => row.includes('*'))) return null;
-  return {level: st.map(row => row.join('')).join('\n'), pushes: applied, solutionMoves};
+  return {level: st.map(row => row.join('')).join('\n'), moveSeq};
 }
 
 function generateLevel(numBoxes, numMoves) {
@@ -256,84 +256,47 @@ function generateLevel(numBoxes, numMoves) {
   return null;
 }
 
-// ── moves-optimal Dijkstra solver ────────────────────────────
-// Finds minimum total moves (walks + pushes). Uses a min-heap ordered
-// by total moves. Falls back to null if state limit exceeded.
-function solveSokoban(levelStr, maxStates) {
-  maxStates = maxStates || 60000;
+// ── forward solution replay ───────────────────────────────────
+// Replays the generator's solution on the FINAL grid (all walls carved)
+// to get accurate walk + push counts. O(applied × grid) ≈ sub-ms.
+function computeForwardMoves(levelStr, moveSeq) {
   const rows = levelStr.split('\n').filter(r => r.trim() !== '');
   const H = rows.length, W = Math.max(...rows.map(r => r.length));
+  const walls = new Set(), boxes = new Set();
   let pr = -1, pc = -1;
-  const boxes0 = [], goalKeys = [], walls = new Set();
   for (let r = 0; r < H; r++) for (let c = 0; c < W; c++) {
-    const ch = ((rows[r] || '')[c]) || '#';
-    if (ch === '#') { walls.add(r * 100 + c); continue; }
+    const ch = (rows[r]||'')[c]||'#';
+    if (ch === '#') walls.add(r*100+c);
     if ('@+'.includes(ch)) { pr = r; pc = c; }
-    if ('$*'.includes(ch)) boxes0.push(r * 100 + c);
-    if ('.*+'.includes(ch)) goalKeys.push(r * 100 + c);
+    if ('$*'.includes(ch)) boxes.add(r*100+c);
   }
-  if (pr < 0) return null;
-  const goalSet = new Set(goalKeys);
-  const isFloor = (r, c) => r >= 0 && r < H && c >= 0 && c < W && !walls.has(r * 100 + c);
-  const isOpen  = (r, c, bx) => isFloor(r, c) && !bx.has(r * 100 + c);
-  const deadlock = (r, c, bx) => {
-    if (goalSet.has(r * 100 + c)) return false;
-    const u=!isFloor(r-1,c), d=!isFloor(r+1,c), l=!isFloor(r,c-1), ri=!isFloor(r,c+1);
-    if ((u||d) && (l||ri)) return true;
-    if (u||d) { let f=false; for(let c2=c-1;isFloor(r,c2);c2--){if(u?isFloor(r-1,c2):isFloor(r+1,c2))break;if(goalSet.has(r*100+c2)){f=true;break;}} for(let c2=c+1;!f&&isFloor(r,c2);c2++){if(u?isFloor(r-1,c2):isFloor(r+1,c2)){f=true;break;}if(goalSet.has(r*100+c2)){f=true;break;}} if(!f)return true; }
-    if (l||ri) { let f=false; for(let r2=r-1;isFloor(r2,c);r2--){if(l?isFloor(r2,c-1):isFloor(r2,c+1))break;if(goalSet.has(r2*100+c)){f=true;break;}} for(let r2=r+1;!f&&isFloor(r2,c);r2++){if(l?isFloor(r2,c-1):isFloor(r2,c+1)){f=true;break;}if(goalSet.has(r2*100+c)){f=true;break;}} if(!f)return true; }
-    return false;
-  };
-  const getDist = (pr, pc, bx) => {
-    const d = new Map([[pr*100+pc, 0]]), q = [pr*100+pc];
+  const isOpen = (r, c) => r>=0&&r<H&&c>=0&&c<W&&!walls.has(r*100+c)&&!boxes.has(r*100+c);
+  const bfs = (fr, fc, tr, tc) => {
+    if (fr===tr&&fc===tc) return 0;
+    const d = new Map([[fr*100+fc,0]]), q = [fr*100+fc];
     for (let i = 0; i < q.length; i++) {
-      const k = q[i], r=(k/100)|0, c=k%100;
+      const k=q[i], r=(k/100)|0, c=k%100, cd=d.get(k);
       for (const [dr,dc] of [[-1,0],[1,0],[0,-1],[0,1]]) {
-        const nk=(r+dr)*100+(c+dc);
-        if (!d.has(nk) && isOpen(r+dr,c+dc,bx)) { d.set(nk, d.get(k)+1); q.push(nk); }
+        const nr=r+dr, nc=c+dc;
+        if (nr===tr&&nc===tc) return cd+1;
+        const nk=nr*100+nc;
+        if (!d.has(nk)&&isOpen(nr,nc)) { d.set(nk,cd+1); q.push(nk); }
       }
     }
-    return d;
+    return Infinity;
   };
-  // Numeric box key (base-1000 packed sorted positions, avoids string alloc)
-  const bKey = bx => { const s=[...bx].sort((a,b)=>a-b); return s[0]+s[1]*1000+(s[2]||0)*1e6+(s[3]||0)*1e9; };
-  const sKey = (pk, bk) => pk * 1e12 + bk;
-  const heap = [];
-  const hpush = v => { heap.push(v); let i=heap.length-1; while(i>0){const p=(i-1)>>1;if(heap[p].tm<=heap[i].tm)break;[heap[p],heap[i]]=[heap[i],heap[p]];i=p;} };
-  const hpop  = () => { const top=heap[0],last=heap.pop(); if(heap.length){heap[0]=last;let i=0;for(;;){let j=2*i+1;if(j>=heap.length)break;if(j+1<heap.length&&heap[j+1].tm<heap[j].tm)j++;if(heap[i].tm<=heap[j].tm)break;[heap[i],heap[j]]=[heap[j],heap[i]];i=j;}} return top; };
-  const b0 = new Set(boxes0);
-  if (goalKeys.every(g => b0.has(g))) return {totalMoves: 0};
-  const dist = new Map();
-  dist.set(sKey(pr*100+pc, bKey(b0)), 0);
-  hpush({tm:0, pk:pr*100+pc, b:b0, bk:bKey(b0)});
-  let processed = 0;
-  while (heap.length && processed < maxStates) {
-    const {tm, pk, b, bk} = hpop(); processed++;
-    const sk = sKey(pk, bk);
-    if ((dist.get(sk) ?? Infinity) < tm) continue;
-    const pr=(pk/100)|0, pc=pk%100, d=getDist(pr,pc,b);
-    for (const box of b) {
-      const br=(box/100)|0, bc=box%100;
-      for (const [dr,dc] of [[-1,0],[1,0],[0,-1],[0,1]]) {
-        const fromK=(br-dr)*100+(bc-dc);
-        if (!d.has(fromK)) continue;
-        const tr=br+dr, tc=bc+dc;
-        if (!isOpen(tr,tc,b)) continue;
-        const newTm = tm + d.get(fromK) + 1;
-        // In-place modify + undo (avoids new Set() per candidate)
-        b.delete(box); b.add(tr*100+tc);
-        if (deadlock(tr,tc,b)) { b.delete(tr*100+tc); b.add(box); continue; }
-        if (goalKeys.every(g => b.has(g))) return {totalMoves: newTm};
-        const npk=br*100+bc, nbk=bKey(b), nsk=sKey(npk,nbk);
-        if (!dist.has(nsk) || newTm < dist.get(nsk)) {
-          dist.set(nsk, newTm);
-          hpush({tm:newTm, pk:npk, b:new Set(b), bk:nbk});
-        }
-        b.delete(tr*100+tc); b.add(box);
-      }
-    }
+  let total = 0;
+  // Replay reverse moves in reverse order = forward solution
+  for (let i = moveSeq.length - 1; i >= 0; i--) {
+    const {r, c, bR, bC, pR, pC} = moveSeq[i];
+    const wl = bfs(pr, pc, pR, pC); // walk to push position
+    if (wl === Infinity) return null;
+    total += wl + 1;          // wl steps + 1 push
+    boxes.delete(bR*100+bC);  // box pushed from (bR,bC) to (r,c)
+    boxes.add(r*100+c);
+    pr = bR; pc = bC;         // player ends at box's old position
   }
-  return null;
+  return total;
 }
 
 // ── game state ───────────────────────────────────────────────
@@ -556,18 +519,12 @@ function startRandom() {
     document.getElementById('levelInfo').textContent = (isSR ? '⏳ Решавање ' : '⏳ Solving ') + s + 's';
   }, 100);
   setTimeout(() => {
-    let result = null, sol = null;
-    for (let attempt = 0; attempt < 6; attempt++) {
-      result = generateLevel(4, 80);
-      if (!result) continue;
-      sol = solveSokoban(result.level, 150000);
-      if (sol) break; // solver succeeded — use this level
-      result = null;  // solver timed out — try a new level
-    }
-    if (result && sol) {
+    const result = generateLevel(4, 80);
+    if (result) {
       currentLevelStr = result.level;
-      moveLimit = Math.ceil(sol.totalMoves * 1.1);
-    } else { currentLevelStr = FALLBACK; moveLimit = 150; }
+      const fwd = computeForwardMoves(result.level, result.moveSeq);
+      moveLimit = fwd ? Math.ceil(fwd * 1.1) : 120;
+    } else { currentLevelStr = FALLBACK; moveLimit = 120; }
     clearInterval(_ticker);
     try { history.replaceState(null, '', '#' + btoa(unescape(encodeURIComponent(currentLevelStr + '|' + moveLimit)))); } catch(e) {}
     resetLevel();
