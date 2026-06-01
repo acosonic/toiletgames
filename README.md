@@ -29,7 +29,7 @@
 | 💎 | GemBlast | Match 3+ gems, chain combos before time runs out |
 | 🧱 | Blockfall | Stack the falling tetrominoes, clear lines |
 | 🏓 | Brick Bash | Bounce the ball, smash all the bricks |
-| 🐸 | Road Hop | Guide the frog safely across the road |
+| 🐞 | Ladybug | Guide the ladybug safely across the road |
 | 📦 | Box Pusher | Push all boxes onto their target squares |
 | 🚀 | Missiles | Shoot down incoming missiles before they hit the cities |
 
@@ -89,6 +89,6 @@ Every game is a from-scratch clone of a classic. No game engines, no copied code
 | GemBlast | Bejeweled | PopCap Games (2001); later *Candy Crush Saga*, King (2012) |
 | Blockfall | Tetris | Alexey Pajitnov, Electronika 60 (1984) |
 | Brick Bash | Breakout | Atari (1976); Nolan Bushnell, with hardware by Steve Wozniak |
-| Road Hop | Frogger | Konami (1981) |
+| Ladybug | Frogger | Konami (1981) |
 | Box Pusher | Sokoban (倉庫番) | Hiroyuki Imabayashi, Thinking Rabbit (1981) |
 | Missiles | Missile Command | Dave Theurer, Atari (1980) |
