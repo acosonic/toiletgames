@@ -87,14 +87,20 @@ const grid = 56;
 const wallCanvas = document.createElement('canvas');
 const wallCtx = wallCanvas.getContext('2d');
 wallCanvas.width = wallCanvas.height = grid;
-wallCtx.fillStyle = '#3d3520';
-wallCtx.fillRect(0, 0, grid, grid);
-wallCtx.fillStyle = '#6b5e35';
-wallCtx.fillRect(1, 1, grid - 2, 17);
-wallCtx.fillRect(0, 20, 17, 16);
-wallCtx.fillRect(19, 20, grid - 19, 16);
-wallCtx.fillRect(0, 38, grid - 18, 18);
-wallCtx.fillRect(grid - 16, 38, 16, 18);
+function drawWallTile() {
+  wallCtx.fillStyle = '#3d3520';
+  wallCtx.fillRect(0, 0, grid, grid);
+  wallCtx.fillStyle = '#6b5e35';
+  wallCtx.fillRect(1, 1, grid - 2, 17);
+  wallCtx.fillRect(0, 20, 17, 16);
+  wallCtx.fillRect(19, 20, grid - 19, 16);
+  wallCtx.fillRect(0, 38, grid - 18, 18);
+  wallCtx.fillRect(grid - 16, 38, 16, 18);
+}
+drawWallTile();
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && cells) { drawWallTile(); draw(); }
+});
 
 const T = { wall:'#', player:'@', playerOnGoal:'+', block:'$', blockOnGoal:'*', goal:'.', empty:' ' };
 
