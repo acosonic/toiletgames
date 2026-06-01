@@ -231,7 +231,7 @@ function tryGenerate(W, H, numBoxes, numMoves) {
   }
 
   if (applied < Math.floor(numMoves * 0.35)) return null;
-  return st.map(row => row.join('')).join('\n');
+  return {level: st.map(row => row.join('')).join('\n'), pushes: applied};
 }
 
 function generateLevel(numBoxes, numMoves) {
@@ -243,10 +243,11 @@ function generateLevel(numBoxes, numMoves) {
 }
 
 // ── game state ───────────────────────────────────────────────
-let cells, playerPos, width, moves, won, history;
+let cells, playerPos, width, moves, won, failed, history;
 let currentLevelStr = '';
 let sharedLevel = false;
 let sharedScore = 0;
+let moveLimit = 0;
 
 function L() { return localStorage.getItem('tg-lang') || 'sr'; }
 
@@ -261,7 +262,10 @@ function updateHUD() {
     if (b > 0) info += isSR ? ' · 🏆 рекорд: ' + b : ' · 🏆 best: ' + b;
   }
   document.getElementById('levelInfo').textContent = info;
-  document.getElementById('movesEl').textContent = '🚶 ' + moves;
+  const rem = moveLimit > 0 ? moveLimit - moves : Infinity;
+  const mEl = document.getElementById('movesEl');
+  mEl.textContent = moveLimit > 0 ? '🚶 ' + moves + '/' + moveLimit : '🚶 ' + moves;
+  mEl.style.color = rem <= 10 ? 'var(--accent)' : '';
 }
 
 function parseLevel() {
@@ -292,7 +296,7 @@ function moveCell(from, to) {
 }
 
 function doMove(dc, dr) {
-  if (won) return;
+  if (won || failed) return;
   const row = playerPos.row + dr, col = playerPos.col + dc;
   if (row < 0 || row >= cells.length || col < 0 || !cells[row] || col >= cells[row].length) return;
   const cell = cells[row][col];
@@ -318,11 +322,29 @@ function doMove(dc, dr) {
   moves++;
   updateHUD();
   draw();
+  if (moveLimit > 0 && moves >= moveLimit && !won) { outOfMoves(); return; }
   checkWin();
+}
+
+function outOfMoves() {
+  failed = true;
+  SFX.error();
+  context.fillStyle = 'rgba(0,0,0,0.72)';
+  context.fillRect(0, canvas.height/2 - 34, canvas.width, 68);
+  context.fillStyle = '#e94560';
+  context.font = 'bold 22px monospace';
+  context.textAlign = 'center';
+  context.textBaseline = 'middle';
+  const isSR = L() === 'sr';
+  context.fillText(isSR ? '❌ Нема потеза!' : '❌ Out of moves!', canvas.width/2, canvas.height/2);
+  const btn = document.getElementById('nextBtn');
+  btn.style.display = 'block';
+  btn.textContent = isSR ? '↺ Ресет' : '↺ Reset';
 }
 
 function undo() {
   if (won || !history.length) return;
+  if (failed) { failed = false; document.getElementById('nextBtn').style.display = 'none'; }
   const prev = history.pop();
   cells = prev.cells;
   playerPos = {...prev.pos};
@@ -411,16 +433,19 @@ function resetLevel() {
   history = [];
   moves = 0;
   won = false;
+  failed = false;
   document.getElementById('nextBtn').style.display = 'none';
   updateHUD();
   draw();
 }
 
-function onNext() { startRandom(); }
+function onNext() { if (failed) { resetLevel(); } else { startRandom(); } }
 
 function shareLevel() {
   try {
-    const data = won ? currentLevelStr + '|' + moves : currentLevelStr;
+    const data = won
+      ? currentLevelStr + '|' + moveLimit + '|' + moves
+      : currentLevelStr + (moveLimit > 0 ? '|' + moveLimit : '');
     const encoded = btoa(unescape(encodeURIComponent(data)));
     const url = location.href.split('#')[0] + '#' + encoded;
     navigator.clipboard.writeText(url).then(() => {
@@ -439,9 +464,10 @@ function startRandom() {
   document.getElementById('levelInfo').textContent = isSR ? 'Генеришем...' : 'Generating...';
   document.getElementById('nextBtn').style.display = 'none';
   setTimeout(() => {
-    const lvl = generateLevel(4, 130);
-    currentLevelStr = lvl || FALLBACK;
-    try { history.replaceState(null, '', '#' + btoa(unescape(encodeURIComponent(currentLevelStr)))); } catch(e) {}
+    const result = generateLevel(4, 130);
+    if (result) { currentLevelStr = result.level; moveLimit = Math.ceil(result.pushes * 2.5); }
+    else { currentLevelStr = FALLBACK; moveLimit = 150; }
+    try { history.replaceState(null, '', '#' + btoa(unescape(encodeURIComponent(currentLevelStr + '|' + moveLimit)))); } catch(e) {}
     resetLevel();
   }, 20);
 }
@@ -459,12 +485,15 @@ const _hash = location.hash.slice(1);
 if (_hash) {
   try {
     const decoded = decodeURIComponent(escape(atob(_hash)));
-    const pipeIdx = decoded.lastIndexOf('|');
-    if (pipeIdx !== -1 && /^\d+$/.test(decoded.slice(pipeIdx + 1))) {
-      sharedScore = +decoded.slice(pipeIdx + 1);
-      currentLevelStr = decoded.slice(0, pipeIdx);
+    const parts = decoded.split('|'), n = parts.length;
+    if (n >= 3 && /^\d+$/.test(parts[n-1]) && /^\d+$/.test(parts[n-2])) {
+      sharedScore = +parts[n-1]; moveLimit = +parts[n-2];
+      currentLevelStr = parts.slice(0, n-2).join('|');
+    } else if (n >= 2 && /^\d+$/.test(parts[n-1])) {
+      moveLimit = +parts[n-1]; sharedScore = 0;
+      currentLevelStr = parts.slice(0, n-1).join('|');
     } else {
-      currentLevelStr = decoded;
+      currentLevelStr = decoded; moveLimit = 0;
     }
     sharedLevel = true;
     resetLevel();
