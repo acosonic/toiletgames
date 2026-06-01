@@ -10,24 +10,13 @@
 :root{--bg:#0f0f1a;--surface:#1a1a2e;--surface2:#16213e;--accent:#e94560;--text:#e0e0e0;--dim:#888}
 html.light{--bg:#f0f2f5;--surface:#fff;--surface2:#e2e5ea;--text:#1a1a2e;--dim:#666}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html{font-size:18px}html.xl{font-size:22px}
-body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,sans-serif;min-height:100dvh;-webkit-tap-highlight-color:transparent}
-.topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--surface);gap:6px;border-bottom:1px solid var(--surface2)}
+body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,sans-serif;height:100dvh;display:flex;flex-direction:column;-webkit-tap-highlight-color:transparent}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--surface);gap:6px;border-bottom:1px solid var(--surface2);flex-shrink:0}
 .topbar a{color:var(--accent);text-decoration:none;font-size:.95rem;font-weight:700;white-space:nowrap}
 .topbar h2{font-size:.95rem;font-weight:700;flex:1;text-align:center}
-.topbar-btns{display:flex;gap:4px;flex-shrink:0}
-.icon-btn{background:none;border:1px solid var(--dim);color:var(--text);border-radius:6px;padding:5px 8px;font-size:.78rem;cursor:pointer;white-space:nowrap;line-height:1}
-.wrap{padding:8px 10px;max-width:480px;margin:0 auto;display:flex;flex-direction:column;align-items:center;gap:8px}
-.hud{display:flex;align-items:center;justify-content:space-between;width:100%;font-size:.95rem;font-weight:700}
-.new-btn{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:.85rem;font-weight:700;cursor:pointer;touch-action:manipulation}
-canvas{display:block;max-width:100%;height:auto;border:1px solid var(--surface2)}
-.dpad{display:grid;grid-template-columns:repeat(3,60px);grid-template-rows:repeat(2,60px);gap:6px;margin-top:6px}
-.dpad button{background:var(--surface);border:1px solid var(--surface2);border-radius:10px;color:var(--text);font-size:1.5rem;cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
-.dpad button:active{background:var(--accent);color:#fff}
-.dpad .up{grid-column:2;grid-row:1}
-.dpad .left{grid-column:1;grid-row:2}
-.dpad .down{grid-column:2;grid-row:2}
-.dpad .right{grid-column:3;grid-row:2}
+.topbar-btns{display:flex;gap:4px}
+.icon-btn{background:none;border:1px solid var(--dim);color:var(--text);border-radius:6px;padding:5px 8px;font-size:.78rem;cursor:pointer}
+iframe{flex:1;width:100%;border:none;display:block}
 </style>
 </head>
 <body>
@@ -37,253 +26,21 @@ canvas{display:block;max-width:100%;height:auto;border:1px solid var(--surface2)
   <div class="topbar-btns">
     <button class="icon-btn theme-btn" onclick="toggleTheme()">🌙</button>
     <button class="icon-btn lang-btn" onclick="toggleLang()">EN</button>
-    <button class="icon-btn sound-btn" onclick="toggleSound()">🔊</button>
-    <button class="icon-btn" onclick="toggleFont()">Аа</button>
+    <a class="icon-btn" href="https://nataliatepluhina.github.io/Nanodegree/Classic%20Arcade%20Game%20Clone/dist/index.html" target="_blank" rel="noopener" title="Open in new tab">↗</a>
   </div>
 </div>
-<div class="wrap">
-  <div class="hud">
-    <span id="livesEl">🐸🐸🐸</span>
-    <button class="new-btn i18n" data-sr="Нова" data-en="New" onclick="startGame()">Нова</button>
-    <span id="scoreEl">⭐ 0</span>
-    <span id="bestEl">🏆 0</span>
-  </div>
-  <canvas width="624" height="720" id="game"></canvas>
-  <div class="dpad">
-    <button class="up" onclick="moveFrog(0,-1)">▲</button>
-    <button class="left" onclick="moveFrog(-1,0)">◄</button>
-    <button class="down" onclick="moveFrog(0,1)">▼</button>
-    <button class="right" onclick="moveFrog(1,0)">►</button>
-  </div>
-</div>
+<iframe src="https://nataliatepluhina.github.io/Nanodegree/Classic%20Arcade%20Game%20Clone/dist/index.html"
+        allow="autoplay"
+        title="Road Hop"></iframe>
 <script>
 (function(){
-  const _lang=()=>localStorage.getItem('tg-lang')||(/^(sr|hr|bs)/i.test(navigator.language)?'sr':'en');
   const _theme=()=>localStorage.getItem('tg-theme')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');
   function applyTheme(){const d=_theme()==='dark';document.documentElement.classList.toggle('light',!d);document.querySelectorAll('.theme-btn').forEach(b=>b.textContent=d?'☀️':'🌙');}
-  function applyI18n(){const L=_lang();document.querySelectorAll('[data-'+L+']').forEach(el=>el.textContent=el.dataset[L]);document.querySelectorAll('.lang-btn').forEach(b=>b.textContent=L==='sr'?'EN':'СР');document.documentElement.lang=L;}
+  function applyI18n(){const L=localStorage.getItem('tg-lang')||(/^(sr|hr|bs)/i.test(navigator.language)?'sr':'en');document.querySelectorAll('[data-'+L+']').forEach(el=>el.textContent=el.dataset[L]);document.querySelectorAll('.lang-btn').forEach(b=>b.textContent=L==='sr'?'EN':'СР');document.documentElement.lang=L;}
   window.toggleTheme=()=>{localStorage.setItem('tg-theme',_theme()==='dark'?'light':'dark');applyTheme();};
-  window.toggleLang=()=>{localStorage.setItem('tg-lang',_lang()==='sr'?'en':'sr');location.reload();};
-  window.toggleFont=()=>{const xl=document.documentElement.classList.toggle('xl');localStorage.setItem('tg-xl',xl?'1':'0');};
-  window.toggleSound=()=>{const on=localStorage.getItem('tg-sound')!=='0';localStorage.setItem('tg-sound',on?'0':'1');document.querySelectorAll('.sound-btn').forEach(b=>b.textContent=on?'🔇':'🔊');};
-  if(localStorage.getItem('tg-xl')==='1')document.documentElement.classList.add('xl');
-  applyTheme();applyI18n();document.querySelectorAll('.sound-btn').forEach(b=>b.textContent=localStorage.getItem('tg-sound')==='0'?'🔇':'🔊');
+  window.toggleLang=()=>{const L=localStorage.getItem('tg-lang')||'sr';localStorage.setItem('tg-lang',L==='sr'?'en':'sr');location.reload();};
+  applyTheme();applyI18n();
 })();
-
-function statRec(g,inc,hi,lo){const j=JSON.parse(localStorage.getItem('tg-stats')||'{}');const e=j[g]||{};for(const[k,v]of Object.entries(inc||{}))e[k]=(e[k]||0)+v;for(const[k,v]of Object.entries(hi||{}))if(v!=null&&(!e[k]||v>e[k]))e[k]=v;for(const[k,v]of Object.entries(lo||{}))if(v!=null&&(!e[k]||v<e[k]))e[k]=v;j[g]=e;localStorage.setItem('tg-stats',JSON.stringify(j));}
-const SFX=(()=>{let ac;const A=()=>(ac=ac||new(window.AudioContext||window.webkitAudioContext)());const t=(f,d,tp,v)=>{if(localStorage.getItem('tg-sound')==='0')return;try{const c=A(),o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.type=tp||'sine';o.frequency.value=f;g.gain.setValueAtTime(v||.25,c.currentTime);g.gain.exponentialRampToValueAtTime(.001,c.currentTime+d);o.start();o.stop(c.currentTime+d);}catch(e){}};return{hop:()=>t(500,.05,'square',.1),death(){t(300,.08,'sawtooth',.2);setTimeout(()=>t(200,.1,'sawtooth',.2),100);setTimeout(()=>t(100,.2,'sawtooth',.15),200);},win(){t(523,.1);setTimeout(()=>t(659,.1),100);setTimeout(()=>t(784,.25),200);}};})();
-
-const canvas = document.getElementById('game');
-const context = canvas.getContext('2d');
-const grid = 48;
-const gridGap = 10;
-
-function Sprite(props) { Object.assign(this, props); }
-Sprite.prototype.render = function() {
-  context.fillStyle = this.color;
-  if (this.shape === 'rect') {
-    context.fillRect(this.x, this.y + gridGap / 2, this.size, grid - gridGap);
-  } else {
-    context.beginPath();
-    context.arc(this.x + this.size / 2, this.y + this.size / 2, this.size / 2 - gridGap / 2, 0, 2 * Math.PI);
-    context.fill();
-  }
-};
-
-const patterns = [
-  null,
-  { spacing:[2], color:'#c55843', size:grid*4, shape:'rect', speed:0.75 },
-  { spacing:[0,2,0,2,0,2,0,4], color:'#de0004', size:grid, shape:'circle', speed:-1 },
-  { spacing:[2], color:'#c55843', size:grid*7, shape:'rect', speed:1.5 },
-  { spacing:[3], color:'#c55843', size:grid*3, shape:'rect', speed:0.5 },
-  { spacing:[0,0,1], color:'#de0004', size:grid, shape:'circle', speed:-1 },
-  null,
-  { spacing:[3,8], color:'#c2c4da', size:grid*2, shape:'rect', speed:-1 },
-  { spacing:[14], color:'#c2c4da', size:grid, shape:'rect', speed:0.75 },
-  { spacing:[3,3,7], color:'#de3cdd', size:grid, shape:'rect', speed:-0.75 },
-  { spacing:[3,3,7], color:'#0bcb00', size:grid, shape:'rect', speed:0.5 },
-  { spacing:[4], color:'#e5e401', size:grid, shape:'rect', speed:-0.5 },
-  null
-];
-
-let rows, frogger, scoredFroggers, lives, score, rAF, gameOver;
-let best = +localStorage.getItem('tg-frogger-best') || 0;
-document.getElementById('bestEl').textContent = '🏆 ' + best;
-
-function buildRows() {
-  const r = [];
-  for (let i = 0; i < patterns.length; i++) {
-    r[i] = [];
-    const pattern = patterns[i];
-    if (!pattern) continue;
-    let totalPatternWidth = pattern.spacing.reduce((acc, s) => acc + s, 0) * grid + pattern.spacing.length * pattern.size;
-    let endX = 0;
-    while (endX < canvas.width) endX += totalPatternWidth;
-    endX += totalPatternWidth;
-    let x = 0, index = 0;
-    while (x < endX) {
-      r[i].push(new Sprite({ x, y: grid * (i + 1), index, ...pattern }));
-      x += pattern.size + pattern.spacing[index] * grid;
-      index = (index + 1) % pattern.spacing.length;
-    }
-  }
-  return r;
-}
-
-function updateHUD() {
-  const frogs = '🐸'.repeat(lives) + '💀'.repeat(3 - lives);
-  document.getElementById('livesEl').textContent = frogs;
-  document.getElementById('scoreEl').textContent = '⭐ ' + score;
-  if (score > best) {
-    best = score;
-    localStorage.setItem('tg-frogger-best', best);
-    document.getElementById('bestEl').textContent = '🏆 ' + best;
-  }
-}
-
-function startGame() {
-  cancelAnimationFrame(rAF);
-  rows = buildRows();
-  frogger = new Sprite({ x: grid * 6, y: grid * 13, color: 'greenyellow', size: grid, shape: 'circle' });
-  scoredFroggers = [];
-  lives = 3;
-  score = 0;
-  gameOver = false;
-  updateHUD();
-  rAF = requestAnimationFrame(loop);
-}
-
-function killFrog() {
-  SFX.death();
-  lives--;
-  updateHUD();
-  if (lives <= 0) {
-    gameOver = true;
-    showMessage(localStorage.getItem('tg-lang') === 'en' ? 'GAME OVER!' : 'КРАЈ ИГРЕ!');
-    statRec('frogger',{played:1,losses:1},{bestScore:score});
-    cancelAnimationFrame(rAF);
-    return false;
-  }
-  frogger.x = grid * 6;
-  frogger.y = grid * 13;
-  frogger.speed = 0;
-  return true;
-}
-
-function showMessage(msg) {
-  context.fillStyle = 'rgba(0,0,0,0.75)';
-  context.fillRect(0, canvas.height / 2 - 30, canvas.width, 60);
-  context.fillStyle = 'white';
-  context.font = '36px monospace';
-  context.textAlign = 'center';
-  context.textBaseline = 'middle';
-  context.fillText(msg, canvas.width / 2, canvas.height / 2);
-}
-
-function loop() {
-  rAF = requestAnimationFrame(loop);
-  context.fillStyle = '#1a1a1a';
-  context.fillRect(0, 0, canvas.width, canvas.height);
-
-  context.fillStyle = '#000047';
-  context.fillRect(0, grid, canvas.width, grid * 6);
-  context.fillStyle = '#1ac300';
-  context.fillRect(0, grid, canvas.width, 5);
-  context.fillRect(0, grid, 5, grid);
-  context.fillRect(canvas.width - 5, grid, 5, grid);
-  for (let i = 0; i < 4; i++) context.fillRect(grid + grid * 3 * i, grid, grid * 2, grid);
-  context.fillStyle = '#8500da';
-  context.fillRect(0, 7 * grid, canvas.width, grid);
-  context.fillRect(0, canvas.height - grid * 2, canvas.width, grid);
-
-  for (let r = 0; r < rows.length; r++) {
-    const row = rows[r];
-    for (let i = 0; i < row.length; i++) {
-      const sprite = row[i];
-      sprite.x += sprite.speed;
-      sprite.render();
-      if (sprite.speed < 0 && sprite.x < 0 - sprite.size) {
-        let rightMost = sprite;
-        for (let j = 0; j < row.length; j++) if (row[j].x > rightMost.x) rightMost = row[j];
-        const spacing = patterns[r].spacing;
-        sprite.x = rightMost.x + rightMost.size + spacing[rightMost.index] * grid;
-        sprite.index = (rightMost.index + 1) % spacing.length;
-      }
-      if (sprite.speed > 0 && sprite.x > canvas.width) {
-        let leftMost = sprite;
-        for (let j = 0; j < row.length; j++) if (row[j].x < leftMost.x) leftMost = row[j];
-        const spacing = patterns[r].spacing;
-        let index = leftMost.index - 1;
-        index = index >= 0 ? index : spacing.length - 1;
-        sprite.x = leftMost.x - spacing[index] * grid - sprite.size;
-        sprite.index = index;
-      }
-    }
-  }
-
-  frogger.x += frogger.speed || 0;
-  frogger.render();
-  scoredFroggers.forEach(frog => frog.render());
-
-  const froggerRow = frogger.y / grid - 1 | 0;
-  let collision = false;
-  if (froggerRow >= 0 && froggerRow < rows.length) {
-    for (let i = 0; i < rows[froggerRow].length; i++) {
-      const sprite = rows[froggerRow][i];
-      if (frogger.x < sprite.x + sprite.size - gridGap &&
-          frogger.x + grid - gridGap > sprite.x &&
-          frogger.y < sprite.y + grid &&
-          frogger.y + grid > sprite.y) {
-        collision = true;
-        if (froggerRow > rows.length / 2) {
-          if (!killFrog()) return;
-        } else {
-          frogger.speed = sprite.speed;
-        }
-      }
-    }
-  }
-
-  if (!collision) {
-    frogger.speed = 0;
-    const col = (frogger.x + grid / 2) / grid | 0;
-    if (froggerRow === 0 && col % 3 === 0 && !scoredFroggers.find(f => f.x === col * grid)) {
-      scoredFroggers.push(new Sprite({ ...frogger, x: col * grid, y: frogger.y + 5 }));
-      score += 100;
-      updateHUD();
-      frogger.x = grid * 6;
-      frogger.y = grid * 13;
-      if (scoredFroggers.length >= 4) {
-        SFX.win();
-        showMessage(localStorage.getItem('tg-lang') === 'en' ? 'YOU WIN!' : 'ПОБЕДА!');
-        gameOver = true;
-        statRec('frogger',{played:1,wins:1},{bestScore:score});
-        cancelAnimationFrame(rAF);
-        return;
-      }
-    }
-    if (froggerRow > 0 && froggerRow < rows.length / 2 - 1) {
-      if (!killFrog()) return;
-    }
-  }
-}
-
-function moveFrog(dx, dy) {
-  if (gameOver) return;
-  SFX.hop();
-  frogger.x = Math.min(Math.max(0, frogger.x + dx * grid), canvas.width - grid);
-  frogger.y = Math.min(Math.max(grid, frogger.y + dy * grid), canvas.height - grid * 2);
-}
-
-document.addEventListener('keydown', e => {
-  if (gameOver) return;
-  if (e.which === 37) moveFrog(-1, 0);
-  else if (e.which === 39) moveFrog(1, 0);
-  else if (e.which === 38) { e.preventDefault(); moveFrog(0, -1); }
-  else if (e.which === 40) { e.preventDefault(); moveFrog(0, 1); }
-});
-
-startGame();
 </script>
 </body>
 </html>
