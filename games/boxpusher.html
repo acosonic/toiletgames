@@ -243,6 +243,8 @@ function tryGenerate(W, H, numBoxes, numMoves) {
   }
 
   if (applied < Math.floor(numMoves * 0.35)) return null;
+  // Reject if any box is still sitting on a goal (makes puzzle trivially easier)
+  if (st.some(row => row.includes('*'))) return null;
   return {level: st.map(row => row.join('')).join('\n'), pushes: applied, solutionMoves};
 }
 
@@ -254,12 +256,11 @@ function generateLevel(numBoxes, numMoves) {
   return null;
 }
 
-// ── push-optimal BFS solver ───────────────────────────────────
-// Returns minimum push count to solve, or null if not found within maxStates.
-// Uses zone-normalised states: player position collapsed to "reachable zone"
-// so identical configurations with different player positions are deduplicated.
+// ── moves-optimal Dijkstra solver ────────────────────────────
+// Finds minimum total moves (walks + pushes). Uses a min-heap ordered
+// by total moves. Falls back to null if state limit exceeded.
 function solveSokoban(levelStr, maxStates) {
-  maxStates = maxStates || 100000;
+  maxStates = maxStates || 60000;
   const rows = levelStr.split('\n').filter(r => r.trim() !== '');
   const H = rows.length, W = Math.max(...rows.map(r => r.length));
   let pr = -1, pc = -1;
@@ -275,43 +276,65 @@ function solveSokoban(levelStr, maxStates) {
   const goalSet = new Set(goalKeys);
   const isFloor = (r, c) => r >= 0 && r < H && c >= 0 && c < W && !walls.has(r * 100 + c);
   const isOpen  = (r, c, bx) => isFloor(r, c) && !bx.has(r * 100 + c);
-  // Simple corner deadlock: box ends up in corner not on goal → prune
   const deadlock = (r, c, bx) => {
     if (goalSet.has(r * 100 + c)) return false;
     const u = !isFloor(r-1,c), d = !isFloor(r+1,c), l = !isFloor(r,c-1), ri = !isFloor(r,c+1);
     return (u || d) && (l || ri);
   };
-  const getZone = (pr, pc, bx) => {
-    const s = new Set(), q = [pr * 100 + pc]; s.add(q[0]);
+  // BFS from player, returns Map: cell_key → walk distance
+  const getDist = (pr, pc, bx) => {
+    const d = new Map([[pr*100+pc, 0]]), q = [pr*100+pc];
     for (let i = 0; i < q.length; i++) {
-      const k = q[i], r = (k / 100) | 0, c = k % 100;
-      for (const [dr, dc] of [[-1,0],[1,0],[0,-1],[0,1]]) {
+      const k = q[i], r = (k/100)|0, c = k%100;
+      for (const [dr,dc] of [[-1,0],[1,0],[0,-1],[0,1]]) {
         const nk = (r+dr)*100+(c+dc);
-        if (!s.has(nk) && isOpen(r+dr, c+dc, bx)) { s.add(nk); q.push(nk); }
+        if (!d.has(nk) && isOpen(r+dr,c+dc,bx)) { d.set(nk, d.get(k)+1); q.push(nk); }
       }
     }
-    return s;
+    return d;
   };
-  const stateKey = (bx, z) => [...bx].sort((a,b)=>a-b).join(',') + ':' + Math.min(...z);
+  // Compact box key: sorted positions packed into a string (faster than Set spread each time)
+  const bKey = bx => [...bx].sort((a,b)=>a-b).join(',');
+  // Min-heap by .tm
+  const heap = [];
+  const hpush = v => {
+    heap.push(v); let i = heap.length-1;
+    while (i > 0) { const p=(i-1)>>1; if(heap[p].tm<=heap[i].tm)break; [heap[p],heap[i]]=[heap[i],heap[p]]; i=p; }
+  };
+  const hpop = () => {
+    const top=heap[0], last=heap.pop();
+    if (heap.length) { heap[0]=last; let i=0; for(;;){ let j=2*i+1; if(j>=heap.length)break; if(j+1<heap.length&&heap[j+1].tm<heap[j].tm)j++; if(heap[i].tm<=heap[j].tm)break; [heap[i],heap[j]]=[heap[j],heap[i]]; i=j; } }
+    return top;
+  };
   const b0 = new Set(boxes0);
-  if (goalKeys.every(g => b0.has(g))) return 0;
-  const z0 = getZone(pr, pc, b0);
-  const visited = new Set([stateKey(b0, z0)]);
-  const q = [{b: b0, z: z0, p: 0}];
-  for (let head = 0; head < q.length && head < maxStates; head++) {
-    const {b, z, p} = q[head];
-    for (const bk of b) {
-      const br = (bk / 100) | 0, bc = bk % 100;
-      for (const [dr, dc] of [[-1,0],[1,0],[0,-1],[0,1]]) {
-        if (!z.has((br-dr)*100+(bc-dc))) continue;
-        const tr = br+dr, tc = bc+dc, tk = tr*100+tc;
-        if (!isOpen(tr, tc, b)) continue;
-        if (deadlock(tr, tc, b)) continue;
-        const nb = new Set(b); nb.delete(bk); nb.add(tk);
-        if (goalKeys.every(g => nb.has(g))) return p + 1;
-        const nz = getZone(br, bc, nb);
-        const sk = stateKey(nb, nz);
-        if (!visited.has(sk)) { visited.add(sk); q.push({b: nb, z: nz, p: p+1}); }
+  if (goalKeys.every(g => b0.has(g))) return {totalMoves: 0};
+  const dist = new Map();
+  const bk0 = bKey(b0);
+  dist.set(`${pr*100+pc}:${bk0}`, 0);
+  hpush({tm:0, pk:pr*100+pc, b:b0, bk:bk0});
+  let processed = 0;
+  while (heap.length && processed < maxStates) {
+    const {tm, pk, b, bk} = hpop(); processed++;
+    const sk = `${pk}:${bk}`;
+    if ((dist.get(sk) ?? Infinity) < tm) continue;
+    const pr = (pk/100)|0, pc = pk%100;
+    const d = getDist(pr, pc, b);
+    for (const box of b) {
+      const br=(box/100)|0, bc=box%100;
+      for (const [dr,dc] of [[-1,0],[1,0],[0,-1],[0,1]]) {
+        const fromK = (br-dr)*100+(bc-dc);
+        if (!d.has(fromK)) continue;
+        const tr=br+dr, tc=bc+dc, tk=tr*100+tc;
+        if (!isOpen(tr,tc,b)) continue;
+        if (deadlock(tr,tc,b)) continue;
+        const newTm = tm + d.get(fromK) + 1;
+        const nb = new Set(b); nb.delete(box); nb.add(tk);
+        if (goalKeys.every(g => nb.has(g))) return {totalMoves: newTm};
+        const npk = br*100+bc, nbk = bKey(nb), nsk = `${npk}:${nbk}`;
+        if (!dist.has(nsk) || newTm < dist.get(nsk)) {
+          dist.set(nsk, newTm);
+          hpush({tm:newTm, pk:npk, b:nb, bk:nbk});
+        }
       }
     }
   }
@@ -536,10 +559,10 @@ function startRandom() {
     const result = generateLevel(4, 130);
     if (result) {
       currentLevelStr = result.level;
-      const opt = solveSokoban(currentLevelStr, 100000);
-      moveLimit = opt !== null
-        ? Math.ceil(opt * 3)                         // optimal pushes × 3 ≈ total moves + ~20% slack
-        : Math.ceil(result.solutionMoves * 1.25);    // fallback: generator path
+      const sol = solveSokoban(currentLevelStr, 60000);
+      moveLimit = sol !== null
+        ? Math.ceil(sol.totalMoves * 1.3)            // optimal total moves + 30% slack
+        : Math.ceil(result.solutionMoves * 1.5);     // fallback: generator path + 50%
     } else { currentLevelStr = FALLBACK; moveLimit = 150; }
     try { history.replaceState(null, '', '#' + btoa(unescape(encodeURIComponent(currentLevelStr + '|' + moveLimit)))); } catch(e) {}
     resetLevel();
