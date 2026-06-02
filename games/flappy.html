@@ -116,49 +116,49 @@ function die() {
   setup();
 }
 
-const render = () => {
+// One fixed simulation tick. Run at a constant 60 Hz (see frame()) so the
+// game plays at the same speed on 60/120/144 Hz displays — otherwise rAF
+// fires at the monitor's refresh rate and the bird/pipes move 2-2.4× too
+// fast on high-refresh desktop monitors.
+function step() {
   index++;
+  if (!gamePlaying) { flyHeight = (canvas.height / 2) - (size[1] / 2); return; }
+  pipes.forEach(pipe => {
+    pipe[0] -= speed;
+    // passed a pipe — score & recycle
+    if (pipe[0] <= -pipeWidth) {
+      currentScore++;
+      SFX.point();
+      if (currentScore > best) { best = currentScore; localStorage.setItem('tg-flappy-best', best); }
+      syncHUD();
+      pipes = [...pipes.slice(1), [pipes[pipes.length - 1][0] + pipeGap + pipeWidth, pipeLoc()]];
+    }
+    // collision (guard on gamePlaying so only the first hit this tick counts)
+    if (gamePlaying && [
+      pipe[0] <= cTenth + size[0],
+      pipe[0] + pipeWidth >= cTenth,
+      pipe[1] > flyHeight || pipe[1] + pipeGap < flyHeight + size[1]
+    ].every(e => e)) {
+      die();
+    }
+  });
+  flight += gravity;
+  flyHeight = Math.min(flyHeight + flight, canvas.height - size[1]);
+}
 
+function draw() {
   // scrolling background (two halves of the sprite's left region)
   ctx.drawImage(img, 0, 0, canvas.width, canvas.height, -((index * (speed / 2)) % canvas.width) + canvas.width, 0, canvas.width, canvas.height);
   ctx.drawImage(img, 0, 0, canvas.width, canvas.height, -(index * (speed / 2)) % canvas.width, 0, canvas.width, canvas.height);
 
   if (gamePlaying) {
     pipes.forEach(pipe => {
-      pipe[0] -= speed;
-      // top pipe
       ctx.drawImage(img, 432, 588 - pipe[1], pipeWidth, pipe[1], pipe[0], 0, pipeWidth, pipe[1]);
-      // bottom pipe
       ctx.drawImage(img, 432 + pipeWidth, 108, pipeWidth, canvas.height - pipe[1] + pipeGap, pipe[0], pipe[1] + pipeGap, pipeWidth, canvas.height - pipe[1] + pipeGap);
-
-      // passed a pipe — score & recycle
-      if (pipe[0] <= -pipeWidth) {
-        currentScore++;
-        SFX.point();
-        if (currentScore > best) { best = currentScore; localStorage.setItem('tg-flappy-best', best); }
-        syncHUD();
-        pipes = [...pipes.slice(1), [pipes[pipes.length - 1][0] + pipeGap + pipeWidth, pipeLoc()]];
-      }
-
-      // collision
-      if ([
-        pipe[0] <= cTenth + size[0],
-        pipe[0] + pipeWidth >= cTenth,
-        pipe[1] > flyHeight || pipe[1] + pipeGap < flyHeight + size[1]
-      ].every(e => e)) {
-        die();
-      }
     });
-  }
-
-  // bird
-  if (gamePlaying) {
     ctx.drawImage(img, 432, Math.floor((index % 9) / 3) * size[1], size[0], size[1], cTenth, flyHeight, size[0], size[1]);
-    flight += gravity;
-    flyHeight = Math.min(flyHeight + flight, canvas.height - size[1]);
   } else {
     ctx.drawImage(img, 432, Math.floor((index % 9) / 3) * size[1], size[0], size[1], (canvas.width / 2) - size[0] / 2, flyHeight, size[0], size[1]);
-    flyHeight = (canvas.height / 2) - (size[1] / 2);
     ctx.fillStyle = '#fff';
     ctx.strokeStyle = 'rgba(0,0,0,0.55)';
     ctx.lineWidth = 4;
@@ -173,9 +173,18 @@ const render = () => {
     ctx.fillText(bs, canvas.width / 2, 300);
     ctx.textAlign = 'start';
   }
+}
 
-  window.requestAnimationFrame(render);
-};
+const STEP_MS = 1000 / 60;
+let lastTime = 0, acc = 0;
+function frame(now) {
+  if (!lastTime) lastTime = now;
+  acc += Math.min(now - lastTime, 100); // clamp so a backgrounded tab can't spiral
+  lastTime = now;
+  while (acc >= STEP_MS) { step(); acc -= STEP_MS; }
+  draw();
+  window.requestAnimationFrame(frame);
+}
 
 function flap() {
   if (performance.now() < cooldownUntil) return;
@@ -203,7 +212,7 @@ window.addEventListener('resize', fit);
 fit();
 
 setup();
-if (img.complete) render(); else img.onload = render;
+if (img.complete) requestAnimationFrame(frame); else img.onload = () => requestAnimationFrame(frame);
 </script>
 </body>
 </html>
