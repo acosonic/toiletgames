@@ -88,15 +88,17 @@ canvas.width = W; canvas.height = H;
 const ctx = canvas.getContext('2d');
 
 // Row 0 = goal (top safe), rows 1-7 = traffic, row 8 = start (bottom safe)
+// Tuned for fairness: all lanes n:2 (bigger gaps), gentler speeds, fewer
+// long buses. Player must always have a passable gap to time.
 const LANE = [
   null,
-  {dir: 1,  spd:85,  n:2, len:2, clr:'#4a9eff'},
-  {dir:-1,  spd:125, n:2, len:1, clr:'#ffbb5b'},
-  {dir: 1,  spd:75,  n:3, len:2, clr:'#5cb85c'},
-  {dir:-1,  spd:155, n:2, len:1, clr:'#e94560'},
-  {dir: 1,  spd:105, n:3, len:1, clr:'#9b59b6'},
-  {dir:-1,  spd:90,  n:2, len:2, clr:'#ff7043'},
-  {dir: 1,  spd:140, n:2, len:2, clr:'#26c6da'},
+  {dir: 1,  spd:55, n:2, len:2, clr:'#4a9eff'},
+  {dir:-1,  spd:80, n:2, len:1, clr:'#ffbb5b'},
+  {dir: 1,  spd:50, n:2, len:1, clr:'#5cb85c'},
+  {dir:-1,  spd:95, n:2, len:1, clr:'#e94560'},
+  {dir: 1,  spd:70, n:2, len:1, clr:'#9b59b6'},
+  {dir:-1,  spd:60, n:2, len:2, clr:'#ff7043'},
+  {dir: 1,  spd:85, n:2, len:2, clr:'#26c6da'},
   null,
 ];
 
@@ -124,7 +126,7 @@ function makeCars() {
     const gap = W / cfg.n;
     for (let i = 0; i < cfg.n; i++) {
       cars.push({row, x: i * gap + Math.random() * (gap * 0.4),
-        len: cfg.len, spd: cfg.spd * (1 + (lvl-1)*0.2),
+        len: cfg.len, spd: cfg.spd * (1 + Math.min(lvl-1, 8)*0.1),
         dir: cfg.dir, clr: cfg.clr});
     }
   });
