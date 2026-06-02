@@ -107,22 +107,22 @@ const canvas = document.getElementById('game');
 const context = canvas.getContext('2d');
 const grid = 56;
 
-const wallCanvas = document.createElement('canvas');
-const wallCtx = wallCanvas.getContext('2d');
-wallCanvas.width = wallCanvas.height = grid;
-function drawWallTile() {
-  wallCtx.fillStyle = '#3d3520';
-  wallCtx.fillRect(0, 0, grid, grid);
-  wallCtx.fillStyle = '#6b5e35';
-  wallCtx.fillRect(1, 1, grid - 2, 17);
-  wallCtx.fillRect(0, 20, 17, 16);
-  wallCtx.fillRect(19, 20, grid - 19, 16);
-  wallCtx.fillRect(0, 38, grid - 18, 18);
-  wallCtx.fillRect(grid - 16, 38, 16, 18);
+// Draw a brick wall directly on the main canvas at (x, y). Done inline (no
+// offscreen wallCanvas) because some mobile browsers purge an offscreen
+// canvas's backing store when the app is backgrounded — which left the walls
+// blank on return while everything else (drawn with primitives) survived.
+function drawWall(x, y) {
+  context.fillStyle = '#3d3520';
+  context.fillRect(x, y, grid, grid);
+  context.fillStyle = '#6b5e35';
+  context.fillRect(x + 1, y + 1, grid - 2, 17);
+  context.fillRect(x, y + 20, 17, 16);
+  context.fillRect(x + 19, y + 20, grid - 19, 16);
+  context.fillRect(x, y + 38, grid - 18, 18);
+  context.fillRect(x + grid - 16, y + 38, 16, 18);
 }
-drawWallTile();
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible' && cells) { drawWallTile(); draw(); }
+  if (document.visibilityState === 'visible' && cells) draw();
 });
 
 const T = { wall:'#', player:'@', playerOnGoal:'+', block:'$', blockOnGoal:'*', goal:'.', empty:' ' };
@@ -592,7 +592,7 @@ function draw() {
     for (let col = 0; col < (cells[row]||[]).length; col++) {
       const cell = cells[row][col];
       if (cell === T.wall) {
-        context.drawImage(wallCanvas, col*grid, row*grid, grid, grid);
+        drawWall(col*grid, row*grid);
       }
       if (cell === T.block || cell === T.blockOnGoal) {
         context.fillStyle = cell === T.block ? '#ffbb5b' : '#ba6a15';
