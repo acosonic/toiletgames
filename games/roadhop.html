@@ -95,7 +95,7 @@ const LANE = [
   {dir: 1,  spd:55, n:2, len:2, clr:'#4a9eff'},
   {dir:-1,  spd:80, n:2, len:1, clr:'#ffbb5b'},
   {dir: 1,  spd:50, n:2, len:1, clr:'#5cb85c'},
-  {dir:-1,  spd:95, n:2, len:1, clr:'#e94560'},
+  null,  // safe median — rest stop in the middle
   {dir: 1,  spd:70, n:2, len:1, clr:'#9b59b6'},
   {dir:-1,  spd:60, n:2, len:2, clr:'#ff7043'},
   {dir: 1,  spd:85, n:2, len:2, clr:'#26c6da'},
@@ -216,7 +216,7 @@ window.move = function(dc, dr) {
 function draw() {
   // Background rows
   for (let r = 0; r < ROWS; r++) {
-    ctx.fillStyle = (r === 0 || r === ROWS-1) ? '#2d5a1b' : (r % 2 === 0 ? '#555' : '#444');
+    ctx.fillStyle = LANE[r] ? (r % 2 === 0 ? '#555' : '#444') : '#2d5a1b';
     ctx.fillRect(0, r * CELL, W, CELL);
   }
   // Goal markers

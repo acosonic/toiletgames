@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Птичица — Тоалет Игрице</title>
+<meta name="theme-color" content="#e94560">
+<script>(function(){var t=localStorage.getItem('tg-theme')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');if(t==='light')document.documentElement.classList.add('light');})()</script>
+<style>
+:root{--bg:#0f0f1a;--surface:#1a1a2e;--surface2:#16213e;--accent:#e94560;--text:#e0e0e0;--dim:#888}
+html.light{--bg:#f0f2f5;--surface:#fff;--surface2:#e2e5ea;--text:#1a1a2e;--dim:#666}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:18px}html.xl{font-size:22px}
+body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,sans-serif;min-height:100dvh;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--surface);gap:6px;border-bottom:1px solid var(--surface2)}
+.topbar a{color:var(--accent);text-decoration:none;font-size:.95rem;font-weight:700;white-space:nowrap}
+.topbar h2{font-size:.95rem;font-weight:700;flex:1;text-align:center}
+.topbar-btns{display:flex;gap:4px;flex-shrink:0}
+.icon-btn{background:none;border:1px solid var(--dim);color:var(--text);border-radius:6px;padding:5px 8px;font-size:.78rem;cursor:pointer;white-space:nowrap;line-height:1}
+.wrap{padding:8px 4px 12px;display:flex;flex-direction:column;align-items:center;gap:6px}
+.hud{display:flex;align-items:center;justify-content:space-between;width:100%;max-width:431px;font-size:1rem;font-weight:700;padding:0 6px}
+canvas{display:block;border:1px solid var(--surface2);border-radius:6px;background:#70c5ce;touch-action:none}
+.hint{font-size:.8rem;color:var(--dim);text-align:center}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <a href="../" class="i18n" data-sr="← Назад" data-en="← Back">← Назад</a>
+  <h2 class="i18n" data-sr="🐦 Птичица" data-en="🐦 Flappy Bird">🐦 Птичица</h2>
+  <div class="topbar-btns">
+    <button class="icon-btn theme-btn" onclick="toggleTheme()">🌙</button>
+    <button class="icon-btn lang-btn" onclick="toggleLang()">EN</button>
+    <button class="icon-btn sound-btn" onclick="toggleSound()">🔊</button>
+    <button class="icon-btn" onclick="toggleFont()">Аа</button>
+  </div>
+</div>
+<div class="wrap">
+  <div class="hud">
+    <span id="scoreEl">0</span>
+    <span id="bestEl">🏆 0</span>
+  </div>
+  <canvas id="canvas" width="431" height="768"></canvas>
+  <p class="hint i18n" data-sr="Тапни / размак да летиш" data-en="Tap / space to flap">Тапни / размак да летиш</p>
+</div>
+<script>
+(function(){
+  const _lang=()=>localStorage.getItem('tg-lang')||(/^(sr|hr|bs)/i.test(navigator.language)?'sr':'en');
+  const _theme=()=>localStorage.getItem('tg-theme')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');
+  function applyTheme(){const d=_theme()==='dark';document.documentElement.classList.toggle('light',!d);document.querySelectorAll('.theme-btn').forEach(b=>b.textContent=d?'☀️':'🌙');}
+  function applyI18n(){const L=_lang();document.querySelectorAll('[data-'+L+']').forEach(el=>el.textContent=el.dataset[L]);document.querySelectorAll('.lang-btn').forEach(b=>b.textContent=L==='sr'?'EN':'СР');document.documentElement.lang=L;}
+  window.toggleTheme=()=>{localStorage.setItem('tg-theme',_theme()==='dark'?'light':'dark');applyTheme();};
+  window.toggleLang=()=>{localStorage.setItem('tg-lang',_lang()==='sr'?'en':'sr');location.reload();};
+  window.toggleFont=()=>{const xl=document.documentElement.classList.toggle('xl');localStorage.setItem('tg-xl',xl?'1':'0');};
+  window.toggleSound=()=>{const on=localStorage.getItem('tg-sound')!=='0';localStorage.setItem('tg-sound',on?'0':'1');document.querySelectorAll('.sound-btn').forEach(b=>b.textContent=on?'🔇':'🔊');};
+  if(localStorage.getItem('tg-xl')==='1')document.documentElement.classList.add('xl');
+  applyTheme();applyI18n();document.querySelectorAll('.sound-btn').forEach(b=>b.textContent=localStorage.getItem('tg-sound')==='0'?'🔇':'🔊');
+})();
+
+function statRec(g,inc,hi){const j=JSON.parse(localStorage.getItem('tg-stats')||'{}');const e=j[g]||{};for(const[k,v]of Object.entries(inc||{}))e[k]=(e[k]||0)+v;for(const[k,v]of Object.entries(hi||{}))if(v!=null&&(!e[k]||v>e[k]))e[k]=v;j[g]=e;localStorage.setItem('tg-stats',JSON.stringify(j));}
+
+const SFX=(()=>{let ac;const A=()=>(ac=ac||new(window.AudioContext||window.webkitAudioContext)());const t=(f,d,tp,v)=>{if(localStorage.getItem('tg-sound')==='0')return;try{const c=A(),o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.type=tp||'sine';o.frequency.value=f;g.gain.setValueAtTime(v||.2,c.currentTime);g.gain.exponentialRampToValueAtTime(.001,c.currentTime+d);o.start();o.stop(c.currentTime+d);}catch(e){}};
+return{
+  flap:()=>t(620,.06,'square',.08),
+  point:()=>{t(880,.07,'sine',.14);setTimeout(()=>t(1175,.1,'sine',.12),70);},
+  hit:()=>{t(200,.12,'sawtooth',.22);setTimeout(()=>t(140,.25,'sawtooth',.2),110);}
+};})();
+
+// ── Flappy Bird — adapted from ju-az's "Floppy Bird" CodePen (eYJQwLx).
+// Same physics & sprite-sheet rendering; wrapped in the hub conventions
+// (topbar, theme/lang/sound/font, localStorage best) and vendored sprite
+// so the game runs fully offline with no external assets.
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const scoreEl = document.getElementById('scoreEl');
+const bestEl  = document.getElementById('bestEl');
+const img = new Image();
+img.src = './flappy-bird-set.png';
+
+const L = () => localStorage.getItem('tg-lang') || 'sr';
+
+// general settings
+let gamePlaying = false;
+const gravity = .5;
+const speed = 6.2;
+const size = [51, 36];
+const jump = -11.5;
+const cTenth = (canvas.width / 10);
+
+let index = 0, flight, flyHeight, currentScore, pipes, cooldownUntil = 0;
+let best = +localStorage.getItem('tg-flappy-best') || 0;
+
+// pipe settings
+const pipeWidth = 78;
+const pipeGap = 270;
+const pipeLoc = () => (Math.random() * ((canvas.height - (pipeGap + pipeWidth)) - pipeWidth)) + pipeWidth;
+
+function syncHUD() {
+  scoreEl.textContent = currentScore;
+  bestEl.textContent = '🏆 ' + best;
+}
+
+const setup = () => {
+  currentScore = 0;
+  flight = jump;
+  flyHeight = (canvas.height / 2) - (size[1] / 2);
+  pipes = Array(3).fill().map((a, i) => [canvas.width + (i * (pipeGap + pipeWidth)), pipeLoc()]);
+  syncHUD();
+};
+
+function die() {
+  gamePlaying = false;
+  SFX.hit();
+  if (currentScore > best) { best = currentScore; localStorage.setItem('tg-flappy-best', best); }
+  statRec('flappy', { played: 1 }, { bestScore: currentScore });
+  cooldownUntil = performance.now() + 500; // ignore the death tap
+  setup();
+}
+
+const render = () => {
+  index++;
+
+  // scrolling background (two halves of the sprite's left region)
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height, -((index * (speed / 2)) % canvas.width) + canvas.width, 0, canvas.width, canvas.height);
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height, -(index * (speed / 2)) % canvas.width, 0, canvas.width, canvas.height);
+
+  if (gamePlaying) {
+    pipes.forEach(pipe => {
+      pipe[0] -= speed;
+      // top pipe
+      ctx.drawImage(img, 432, 588 - pipe[1], pipeWidth, pipe[1], pipe[0], 0, pipeWidth, pipe[1]);
+      // bottom pipe
+      ctx.drawImage(img, 432 + pipeWidth, 108, pipeWidth, canvas.height - pipe[1] + pipeGap, pipe[0], pipe[1] + pipeGap, pipeWidth, canvas.height - pipe[1] + pipeGap);
+
+      // passed a pipe — score & recycle
+      if (pipe[0] <= -pipeWidth) {
+        currentScore++;
+        SFX.point();
+        if (currentScore > best) { best = currentScore; localStorage.setItem('tg-flappy-best', best); }
+        syncHUD();
+        pipes = [...pipes.slice(1), [pipes[pipes.length - 1][0] + pipeGap + pipeWidth, pipeLoc()]];
+      }
+
+      // collision
+      if ([
+        pipe[0] <= cTenth + size[0],
+        pipe[0] + pipeWidth >= cTenth,
+        pipe[1] > flyHeight || pipe[1] + pipeGap < flyHeight + size[1]
+      ].every(e => e)) {
+        die();
+      }
+    });
+  }
+
+  // bird
+  if (gamePlaying) {
+    ctx.drawImage(img, 432, Math.floor((index % 9) / 3) * size[1], size[0], size[1], cTenth, flyHeight, size[0], size[1]);
+    flight += gravity;
+    flyHeight = Math.min(flyHeight + flight, canvas.height - size[1]);
+  } else {
+    ctx.drawImage(img, 432, Math.floor((index % 9) / 3) * size[1], size[0], size[1], (canvas.width / 2) - size[0] / 2, flyHeight, size[0], size[1]);
+    flyHeight = (canvas.height / 2) - (size[1] / 2);
+    ctx.fillStyle = '#fff';
+    ctx.strokeStyle = 'rgba(0,0,0,0.55)';
+    ctx.lineWidth = 4;
+    ctx.textAlign = 'center';
+    ctx.font = 'bold 30px monospace';
+    const msg = L() === 'sr' ? 'Тапни да играш' : 'Tap to play';
+    ctx.strokeText(msg, canvas.width / 2, 250);
+    ctx.fillText(msg, canvas.width / 2, 250);
+    ctx.font = 'bold 22px monospace';
+    const bs = (L() === 'sr' ? 'Рекорд: ' : 'Best: ') + best;
+    ctx.strokeText(bs, canvas.width / 2, 300);
+    ctx.fillText(bs, canvas.width / 2, 300);
+    ctx.textAlign = 'start';
+  }
+
+  window.requestAnimationFrame(render);
+};
+
+function flap() {
+  if (performance.now() < cooldownUntil) return;
+  if (!gamePlaying) { gamePlaying = true; }
+  flight = jump;
+  SFX.flap();
+}
+
+// controls: pointer + keyboard
+canvas.addEventListener('pointerdown', e => { e.preventDefault(); flap(); });
+document.addEventListener('keydown', e => {
+  if (e.code === 'Space' || e.code === 'ArrowUp') { e.preventDefault(); flap(); }
+});
+
+// fit the fixed 431×768 canvas into the viewport without distortion
+function fit() {
+  const availH = window.innerHeight - 132;
+  const availW = Math.min(window.innerWidth - 8, 431);
+  let h = availH, w = h * 431 / 768;
+  if (w > availW) { w = availW; h = w * 768 / 431; }
+  canvas.style.width = Math.round(w) + 'px';
+  canvas.style.height = Math.round(h) + 'px';
+}
+window.addEventListener('resize', fit);
+fit();
+
+setup();
+if (img.complete) render(); else img.onload = render;
+</script>
+</body>
+</html>

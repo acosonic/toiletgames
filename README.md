@@ -1,11 +1,11 @@
 # Toilet Games 🚽🎮
 
-18 free, offline-capable browser games as a PWA — built for phones. Large touch targets, dark/light theme toggle, font-size toggle, sound toggle (🔊/🔇), fully bilingual (Serbian / English).
+19 free, offline-capable browser games as a PWA — built for phones. Large touch targets, dark/light theme toggle, font-size toggle, sound toggle (🔊/🔇), fully bilingual (Serbian / English).
 
 **Play now:** https://acosonic.github.io/toiletgames/
 
 <p align="center">
-  <img src="screenshots/hub.png" width="480" alt="Toilet Games — main screen showing all 18 games">
+  <img src="screenshots/hub.png" width="480" alt="Toilet Games — main screen showing all 19 games">
 </p>
 
 ---
@@ -32,6 +32,7 @@
 | 🐞 | Ladybug | Guide the ladybug safely across the road |
 | 📦 | Box Pusher | Push all boxes onto their target squares |
 | 🚀 | Missiles | Shoot down incoming missiles before they hit the cities |
+| 🐦 | Flappy Bird | Tap to flap, fly through the gaps in the pipes |
 
 ---
 
@@ -52,7 +53,7 @@
 
 ## Install as PWA
 
-Open the link in **Chrome** (Android) or **Safari** (iOS) and tap the install banner. Once installed the app runs fully offline — the service worker pre-caches all 18 game files on first visit.
+Open the link in **Chrome** (Android) or **Safari** (iOS) and tap the install banner. Once installed the app runs fully offline — the service worker pre-caches all 19 game files on first visit.
 
 ---
 
@@ -100,6 +101,9 @@ Every game is a from-scratch clone of a classic. No game engines, no copied code
 | Brick Bash | Breakout | Atari (1976); Nolan Bushnell, with hardware by Steve Wozniak |
 | Ladybug | Frogger | Konami (1981) |
 | Box Pusher | Sokoban (倉庫番) | Hiroyuki Imabayashi, Thinking Rabbit (1981) |
+| Missiles | Missile Command | Dave Theurer, Atari (1980) |
+| Flappy Bird | Flappy Bird | Dong Nguyen / .Gears (2013) |
 
 The Box Pusher **optimal-move solver** is an original pure-JS A\* implementation — no third-party code. The idea of basing the move limit on a *true optimal solve* (rather than a loose heuristic) was inspired by [dangarfield/sokoban-solver](https://github.com/dangarfield/sokoban-solver), which ports Yaron Shoham's **Festival** solver to Rust/WebAssembly. That project was the inspiration only; none of its code (or the WASM dependency) is used here — the search, heuristic, and dead-square pruning were written from scratch to keep the game a single self-contained, build-free HTML file.
-| Missiles | Missile Command | Dave Theurer, Atari (1980) |
+
+The Flappy Bird game is adapted from [ju-az's *Floppy Bird* CodePen](https://codepen.io/ju-az/pen/eYJQwLx) — same physics and sprite-sheet rendering, wrapped in the hub's conventions (topbar, theme/language/sound/font toggles, `localStorage` best). The sprite sheet is vendored locally so the game runs fully offline with no external assets.
