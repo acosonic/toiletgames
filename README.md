@@ -66,6 +66,15 @@ Open the link in **Chrome** (Android) or **Safari** (iOS) and tap the install ba
 - Scores and personal bests stored in `localStorage`
 - Bilingual UI (Serbian Cyrillic / English), toggled at runtime and persisted
 
+### Box Pusher — level generation & move limit
+
+Box Pusher levels are **procedurally generated and always solvable**, with a *tight but fair* move limit:
+
+1. **Backward generation.** Each level starts from the *solved* state (all boxes on goals) and applies a random sequence of **reverse pushes**. Because the level is built by undoing a solution, a valid solution is known *by construction* — no separate solve needed to guarantee solvability.
+2. **True-optimum move limit.** The generator's own path is far from optimal, so a small **pure-JS A\* solver** finds the genuine shortest solution. It searches over *push-states* and minimises **total player moves** (walk steps + pushes) — the exact metric the HUD counts. It uses an admissible heuristic (sum of per-box pull-distances to the nearest goal, precomputed by reverse BFS), static **dead-square pruning**, a transposition table, and is bounded above by the generator's known path length.
+3. **Runs off the main thread.** The solver runs in a **Web Worker** (shipped to the worker via `Function.prototype.toString()` + a `Blob` URL, so the game stays a single self-contained file) with a time budget. If it can't prove the optimum in time — or `Worker` is unavailable — it falls back to the generator's path length.
+4. **10% error tolerance.** The limit is `max(optimum + 1, ⌈optimum × 1.1⌉)` — i.e. **10 % slack over the true optimum**. Since **Undo refunds a move**, players can freely self-correct, so a tight cap on the optimum stays fair rather than punishing.
+
 ---
 
 ## Inspiration & attribution
@@ -91,4 +100,6 @@ Every game is a from-scratch clone of a classic. No game engines, no copied code
 | Brick Bash | Breakout | Atari (1976); Nolan Bushnell, with hardware by Steve Wozniak |
 | Ladybug | Frogger | Konami (1981) |
 | Box Pusher | Sokoban (倉庫番) | Hiroyuki Imabayashi, Thinking Rabbit (1981) |
+
+The Box Pusher **optimal-move solver** is an original pure-JS A\* implementation — no third-party code. The idea of basing the move limit on a *true optimal solve* (rather than a loose heuristic) was inspired by [dangarfield/sokoban-solver](https://github.com/dangarfield/sokoban-solver), which ports Yaron Shoham's **Festival** solver to Rust/WebAssembly. That project was the inspiration only; none of its code (or the WASM dependency) is used here — the search, heuristic, and dead-square pruning were written from scratch to keep the game a single self-contained, build-free HTML file.
 | Missiles | Missile Command | Dave Theurer, Atari (1980) |
