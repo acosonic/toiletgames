@@ -21,6 +21,9 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,
 .hud{display:flex;align-items:center;justify-content:space-between;width:100%;max-width:431px;font-size:1rem;font-weight:700;padding:0 6px}
 canvas{display:block;border:1px solid var(--surface2);border-radius:6px;background:#70c5ce;touch-action:none}
 .hint{font-size:.8rem;color:var(--dim);text-align:center}
+.speed-row{display:flex;align-items:center;gap:8px;width:100%;max-width:431px;padding:2px 6px;font-size:.82rem;color:var(--dim);font-weight:700}
+.speed-row input[type=range]{flex:1;accent-color:var(--accent);height:24px}
+#speedVal{min-width:2.6em;text-align:right}
 </style>
 </head>
 <body>
@@ -40,6 +43,11 @@ canvas{display:block;border:1px solid var(--surface2);border-radius:6px;backgrou
     <span id="bestEl">🏆 0</span>
   </div>
   <canvas id="canvas" width="431" height="768"></canvas>
+  <div class="speed-row">
+    <span class="i18n" data-sr="Брзина" data-en="Speed">Брзина</span>
+    <input type="range" id="speedSlider" min="0.5" max="1.6" step="0.1" value="1" aria-label="Speed">
+    <span id="speedVal">1.0×</span>
+  </div>
   <p class="hint i18n" data-sr="Тапни / размак да летиш" data-en="Tap / space to flap">Тапни / размак да летиш</p>
 </div>
 <script>
@@ -88,6 +96,7 @@ const cTenth = (canvas.width / 10);
 
 let index = 0, flight, flyHeight, currentScore, pipes, cooldownUntil = 0;
 let best = +localStorage.getItem('tg-flappy-best') || 0;
+let speedMult = +localStorage.getItem('tg-flappy-speed') || 1; // game-speed multiplier
 
 // pipe settings
 const pipeWidth = 78;
@@ -175,13 +184,14 @@ function draw() {
   }
 }
 
-const STEP_MS = 1000 / 60;
+const BASE_STEP_MS = 1000 / 60;
 let lastTime = 0, acc = 0;
 function frame(now) {
   if (!lastTime) lastTime = now;
   acc += Math.min(now - lastTime, 100); // clamp so a backgrounded tab can't spiral
   lastTime = now;
-  while (acc >= STEP_MS) { step(); acc -= STEP_MS; }
+  const stepMs = BASE_STEP_MS / speedMult; // slider scales the whole simulation
+  while (acc >= stepMs) { step(); acc -= stepMs; }
   draw();
   window.requestAnimationFrame(frame);
 }
@@ -196,8 +206,21 @@ function flap() {
 // controls: pointer + keyboard
 canvas.addEventListener('pointerdown', e => { e.preventDefault(); flap(); });
 document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT') return; // let the slider keep arrow keys
   if (e.code === 'Space' || e.code === 'ArrowUp') { e.preventDefault(); flap(); }
 });
+
+// speed slider
+const speedSlider = document.getElementById('speedSlider');
+const speedVal = document.getElementById('speedVal');
+function applySpeed() { speedVal.textContent = speedMult.toFixed(1) + '×'; }
+speedSlider.value = speedMult;
+speedSlider.addEventListener('input', () => {
+  speedMult = +speedSlider.value;
+  localStorage.setItem('tg-flappy-speed', speedMult);
+  applySpeed();
+});
+applySpeed();
 
 // fit the fixed 431×768 canvas into the viewport without distortion
 function fit() {
