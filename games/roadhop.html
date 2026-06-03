@@ -27,6 +27,9 @@ canvas{display:block;touch-action:none}
 .dpad .left{grid-column:1;grid-row:2}
 .dpad .down{grid-column:2;grid-row:2}
 .dpad .right{grid-column:3;grid-row:2}
+.diff-row{display:flex;gap:6px;margin-top:6px}
+.diff-btn{background:var(--surface);border:1px solid var(--surface2);color:var(--text);border-radius:8px;padding:6px 14px;font-size:.8rem;font-weight:700;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+.diff-btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
 </style>
 </head>
 <body>
@@ -43,6 +46,7 @@ canvas{display:block;touch-action:none}
 <div class="wrap">
   <div class="hud">
     <span id="livesEl">❤️❤️❤️</span>
+    <span id="lvlEl">Ниво 1</span>
     <span id="scoreEl">0</span>
     <span id="bestEl">🏆 0</span>
   </div>
@@ -52,6 +56,11 @@ canvas{display:block;touch-action:none}
     <button class="left"  ontouchstart="move(-1,0)" onclick="move(-1,0)">◄</button>
     <button class="down"  ontouchstart="move(0,1)"  onclick="move(0,1)">▼</button>
     <button class="right" ontouchstart="move(1,0)"  onclick="move(1,0)">►</button>
+  </div>
+  <div class="diff-row">
+    <button class="diff-btn" id="dEasy" onclick="setDiff('easy')"></button>
+    <button class="diff-btn" id="dMed"  onclick="setDiff('medium')"></button>
+    <button class="diff-btn" id="dHard" onclick="setDiff('hard')"></button>
   </div>
 </div>
 <script>
@@ -102,16 +111,44 @@ const LANE = [
   null,
 ];
 
+// ── difficulty ─────────────────────────────────────────────────
+// base = starting speed multiplier, ramp = extra speed per level.
+const DIFF = {
+  easy:   { base: 0.75, ramp: 0.07 },
+  medium: { base: 1.00, ramp: 0.10 },
+  hard:   { base: 1.30, ramp: 0.14 },
+};
+let diff = DIFF[localStorage.getItem('tg-frogger-diff')] ? localStorage.getItem('tg-frogger-diff') : 'medium';
+
 // ── state ──────────────────────────────────────────────────────
-let cars, pCol, pRow, lives, score, best, lvl, dead, deadTimer, over, lastTs, raf;
+let cars, pCol, pRow, lives, score, best, lvl, crossings, dead, deadTimer, over, lastTs, raf;
 
 function initGame() {
   best = +localStorage.getItem('tg-frogger-best') || 0;
+  applyDiffUI();
   newGame();
 }
 
+function applyDiffUI() {
+  const L = localStorage.getItem('tg-lang') || 'sr';
+  const lbl = { easy: ['Лако','Easy'], medium: ['Средње','Medium'], hard: ['Тешко','Hard'] };
+  for (const [key, id] of [['easy','dEasy'],['medium','dMed'],['hard','dHard']]) {
+    const b = document.getElementById(id);
+    b.textContent = lbl[key][L === 'sr' ? 0 : 1];
+    b.classList.toggle('active', diff === key);
+  }
+}
+
+window.setDiff = function(d) {
+  if (!DIFF[d]) return;
+  diff = d;
+  localStorage.setItem('tg-frogger-diff', d);
+  applyDiffUI();
+  newGame(); // restart so the new speed applies cleanly
+};
+
 function newGame() {
-  score = 0; lives = 3; lvl = 1; over = false;
+  score = 0; lives = 3; lvl = 1; crossings = 0; over = false;
   makeCars(); resetPlayer();
   updateHUD();
   if (raf) cancelAnimationFrame(raf);
@@ -126,7 +163,7 @@ function makeCars() {
     const gap = W / cfg.n;
     for (let i = 0; i < cfg.n; i++) {
       cars.push({row, x: i * gap + Math.random() * (gap * 0.4),
-        len: cfg.len, spd: cfg.spd * (1 + Math.min(lvl-1, 8)*0.1),
+        len: cfg.len, spd: cfg.spd * DIFF[diff].base * (1 + Math.min(lvl-1, 8) * DIFF[diff].ramp),
         dir: cfg.dir, clr: cfg.clr});
     }
   });
@@ -200,9 +237,12 @@ window.move = function(dc, dr) {
     score += 10 * lvl;
     if (score > best) { best = score; localStorage.setItem('tg-frogger-best', best); }
     statRec('frogger', {played:0, wins:1}, {bestScore:score});
-    SFX.score(); updateHUD();
-    // Level up every 5 crossings
-    if (score > 0 && score % (50 * lvl) === 0) { lvl++; makeCars(); }
+    SFX.score();
+    // Level up every 3 successful crossings; faster cars each level.
+    crossings++;
+    const newLvl = Math.floor(crossings / 3) + 1;
+    if (newLvl !== lvl) { lvl = newLvl; makeCars(); }
+    updateHUD();
     resetPlayer();
     return;
   }
@@ -279,7 +319,9 @@ function drawLadybug(cx, cy, shake) {
 }
 
 function updateHUD() {
+  const L = localStorage.getItem('tg-lang') || 'sr';
   document.getElementById('livesEl').textContent = '❤️'.repeat(Math.max(0, lives));
+  document.getElementById('lvlEl').textContent = (L === 'sr' ? 'Ниво ' : 'Lvl ') + lvl;
   document.getElementById('scoreEl').textContent = score;
   document.getElementById('bestEl').textContent = '🏆 ' + best;
 }
