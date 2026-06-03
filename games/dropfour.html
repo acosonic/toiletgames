@@ -62,6 +62,11 @@ html.light .hole.win-y{box-shadow:0 0 10px #f1c40f}
     <button class="mode-btn active" id="m2p" onclick="setMode('2p')"></button>
     <button class="mode-btn" id="mai" onclick="setMode('ai')"></button>
   </div>
+  <div class="mode-row" id="diffRow" style="display:none">
+    <button class="mode-btn" id="dEasy" onclick="setDiff('easy')"></button>
+    <button class="mode-btn" id="dMed" onclick="setDiff('medium')"></button>
+    <button class="mode-btn" id="dHard" onclick="setDiff('hard')"></button>
+  </div>
   <div class="scorebar">
     <div class="sc"><div class="lbl">🔴 <span class="i18n" data-sr="Победе" data-en="Wins">Победе</span></div><div class="val" id="sr2">0</div></div>
     <div class="sc"><div class="lbl">🟡 <span class="i18n" data-sr="Победе" data-en="Wins">Победе</span></div><div class="val" id="sy2">0</div></div>
@@ -95,19 +100,33 @@ html.light .hole.win-y{box-shadow:0 0 10px #f1c40f}
   if(localStorage.getItem('tg-xl')==='1')document.documentElement.classList.add('xl');
   applyTheme();applyI18n();document.querySelectorAll('.sound-btn').forEach(b=>b.textContent=localStorage.getItem('tg-sound')==='0'?'🔇':'🔊');
   const L=_lang();
-  const T={sr:{p2:'2 играча',ai:'Против АИ',turn:'Ред: ',won:' победио!',draw:'🤝 Нерешено!'},en:{p2:'2 players',ai:'vs AI',turn:'Turn: ',won:' won!',draw:'🤝 Draw!'}};
+  const T={sr:{p2:'2 играча',ai:'Против АИ',turn:'Ред: ',won:' победио!',draw:'🤝 Нерешено!',easy:'Лако',med:'Средње',hard:'Тешко'},en:{p2:'2 players',ai:'vs AI',turn:'Turn: ',won:' won!',draw:'🤝 Draw!',easy:'Easy',med:'Medium',hard:'Hard'}};
   const t=k=>T[L][k];
   document.getElementById('m2p').textContent=t('p2');
   document.getElementById('mai').textContent=t('ai');
+  document.getElementById('dEasy').textContent=t('easy');
+  document.getElementById('dMed').textContent=t('med');
+  document.getElementById('dHard').textContent=t('hard');
 
   function statRec(g,inc,hi,lo){const j=JSON.parse(localStorage.getItem('tg-stats')||'{}');const e=j[g]||{};for(const[k,v]of Object.entries(inc||{}))e[k]=(e[k]||0)+v;for(const[k,v]of Object.entries(hi||{}))if(v!=null&&(!e[k]||v>e[k]))e[k]=v;for(const[k,v]of Object.entries(lo||{}))if(v!=null&&(!e[k]||v<e[k]))e[k]=v;j[g]=e;localStorage.setItem('tg-stats',JSON.stringify(j));}
   const SFX=(()=>{let ac;const A=()=>(ac=ac||new(window.AudioContext||window.webkitAudioContext)());const t=(f,d,tp,v)=>{if(localStorage.getItem('tg-sound')==='0')return;try{const c=A(),o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.type=tp||'sine';o.frequency.value=f;g.gain.setValueAtTime(v||.25,c.currentTime);g.gain.exponentialRampToValueAtTime(.001,c.currentTime+d);o.start();o.stop(c.currentTime+d);}catch(e){}};return{drop(){if(localStorage.getItem('tg-sound')==='0')return;try{const c=A(),o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.type='sine';o.frequency.setValueAtTime(400,c.currentTime);o.frequency.linearRampToValueAtTime(150,c.currentTime+.25);g.gain.setValueAtTime(.25,c.currentTime);g.gain.exponentialRampToValueAtTime(.001,c.currentTime+.25);o.start();o.stop(c.currentTime+.25);}catch(e){}},win(){t(523,.1);setTimeout(()=>t(659,.1),100);setTimeout(()=>t(784,.25),200);},draw:()=>t(350,.3,'sine',.12)};})();
 
   const ROWS=6,COLS=7;
   let board,cur,mode='2p',sr=0,sy=0,over,cells=[];
+  let diff=localStorage.getItem('tg-dropfour-diff')||'medium';
+  const DEPTH={easy:1,medium:4,hard:6};
   const dbg=(msg,data={})=>console.debug('[connect4]',msg,data);
 
-  function setMode(m){mode=m;document.getElementById('m2p').classList.toggle('active',m==='2p');document.getElementById('mai').classList.toggle('active',m==='ai');newGame();}
+  function applyDiffUI(){
+    document.getElementById('dEasy').classList.toggle('active',diff==='easy');
+    document.getElementById('dMed').classList.toggle('active',diff==='medium');
+    document.getElementById('dHard').classList.toggle('active',diff==='hard');
+  }
+  applyDiffUI();
+
+  function setMode(m){mode=m;document.getElementById('m2p').classList.toggle('active',m==='2p');document.getElementById('mai').classList.toggle('active',m==='ai');document.getElementById('diffRow').style.display=m==='ai'?'flex':'none';newGame();}
+  function setDiff(d){diff=d;localStorage.setItem('tg-dropfour-diff',d);applyDiffUI();newGame();}
+  window.setDiff=setDiff;
 
   function newGame(){
     initGrid();
@@ -167,7 +186,81 @@ html.light .hole.win-y{box-shadow:0 0 10px #f1c40f}
     });
   }
 
-  function aiMove(){for(let c=0;c<COLS;c++){const r=topRow(c);if(r>=0){board[r][c]=2;if(checkWin(r,c).length){board[r][c]=0;doMove(c);return;}board[r][c]=0;}}for(let c=0;c<COLS;c++){const r=topRow(c);if(r>=0){board[r][c]=1;if(checkWin(r,c).length){board[r][c]=0;doMove(c);return;}board[r][c]=0;}}const avail=[];for(let c=0;c<COLS;c++)if(topRow(c)>=0)avail.push(c);doMove(avail[Math.floor(Math.random()*avail.length)]);}
+  const ORDER=[3,2,4,1,5,0,6]; // centre-first for better alpha-beta pruning
+
+  function aiMove(){
+    let c;
+    if(diff==='easy') c=aiEasy();
+    else c=aiSearch(DEPTH[diff]);
+    dbg('aiMove',{diff,col:c});
+    doMove(c);
+  }
+
+  // Easy: win if you can, block if you must, otherwise random.
+  function aiEasy(){
+    for(let c=0;c<COLS;c++){const r=topRow(c);if(r>=0){board[r][c]=2;if(checkWin(r,c).length){board[r][c]=0;return c;}board[r][c]=0;}}
+    for(let c=0;c<COLS;c++){const r=topRow(c);if(r>=0){board[r][c]=1;if(checkWin(r,c).length){board[r][c]=0;return c;}board[r][c]=0;}}
+    const avail=[];for(let c=0;c<COLS;c++)if(topRow(c)>=0)avail.push(c);
+    return avail[Math.floor(Math.random()*avail.length)];
+  }
+
+  // Medium / Hard: negamax with alpha-beta, AI is player 2.
+  function aiSearch(depth){
+    let bestC=-1,bestV=-Infinity;
+    for(const c of ORDER){
+      const r=topRow(c);if(r<0)continue;
+      board[r][c]=2;
+      const v=checkWin(r,c).length ? 1e6 : -negamax(depth-1,-Infinity,Infinity,1);
+      board[r][c]=0;
+      if(v>bestV){bestV=v;bestC=c;}
+    }
+    return bestC<0?aiEasy():bestC;
+  }
+
+  // Score from the perspective of `player` to move.
+  function negamax(depth,alpha,beta,player){
+    const avail=[];for(const c of ORDER)if(topRow(c)>=0)avail.push(c);
+    if(avail.length===0)return 0; // board full → draw
+    if(depth===0)return evaluate(player);
+    let best=-Infinity;
+    for(const c of avail){
+      const r=topRow(c);
+      board[r][c]=player;
+      let v;
+      if(checkWin(r,c).length) v=1e6+depth; // sooner win scores higher
+      else v=-negamax(depth-1,-beta,-alpha,3-player);
+      board[r][c]=0;
+      if(v>best)best=v;
+      if(best>alpha)alpha=best;
+      if(alpha>=beta)break; // prune
+    }
+    return best;
+  }
+
+  // Static evaluation: sum of all 4-in-a-row windows, from `player` perspective.
+  function evaluate(player){
+    let s=0;
+    const score=(a,b,c,d)=>{
+      let me=0,opp=0,empt=0;
+      for(const v of [a,b,c,d]){if(v===player)me++;else if(v===0)empt++;else opp++;}
+      if(me&&opp)return 0;
+      if(me===4)return 1000;
+      if(me===3&&empt===1)return 50;
+      if(me===2&&empt===2)return 10;
+      if(opp===4)return -1000;
+      if(opp===3&&empt===1)return -80; // weight defence slightly higher
+      if(opp===2&&empt===2)return -10;
+      return 0;
+    };
+    for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
+      if(c+3<COLS)s+=score(board[r][c],board[r][c+1],board[r][c+2],board[r][c+3]);
+      if(r+3<ROWS)s+=score(board[r][c],board[r+1][c],board[r+2][c],board[r+3][c]);
+      if(r+3<ROWS&&c+3<COLS)s+=score(board[r][c],board[r+1][c+1],board[r+2][c+2],board[r+3][c+3]);
+      if(r+3<ROWS&&c-3>=0)s+=score(board[r][c],board[r+1][c-1],board[r+2][c-2],board[r+3][c-3]);
+    }
+    for(let r=0;r<ROWS;r++)if(board[r][3]===player)s+=6; // centre control
+    return s;
+  }
 
   function topRow(c){for(let r=ROWS-1;r>=0;r--)if(!board[r][c])return r;return -1;}
 
