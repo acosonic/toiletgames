@@ -114,7 +114,7 @@ html.light .hole.win-y{box-shadow:0 0 10px #f1c40f}
   const ROWS=6,COLS=7;
   let board,cur,mode='2p',sr=0,sy=0,over,cells=[];
   let diff=localStorage.getItem('tg-dropfour-diff')||'medium';
-  const DEPTH={easy:1,medium:4,hard:6};
+  const DEPTH={easy:1,medium:5,hard:7};
   const dbg=(msg,data={})=>console.debug('[connect4]',msg,data);
 
   function applyDiffUI(){
@@ -206,15 +206,17 @@ html.light .hole.win-y{box-shadow:0 0 10px #f1c40f}
 
   // Medium / Hard: negamax with alpha-beta, AI is player 2.
   function aiSearch(depth){
-    let bestC=-1,bestV=-Infinity;
+    let bestV=-Infinity,best=[];
     for(const c of ORDER){
       const r=topRow(c);if(r<0)continue;
       board[r][c]=2;
       const v=checkWin(r,c).length ? 1e6 : -negamax(depth-1,-Infinity,Infinity,1);
       board[r][c]=0;
-      if(v>bestV){bestV=v;bestC=c;}
+      if(v>bestV){bestV=v;best=[c];}
+      else if(v===bestV)best.push(c); // collect equally-good moves
     }
-    return bestC<0?aiEasy():bestC;
+    if(!best.length)return aiEasy();
+    return best[Math.floor(Math.random()*best.length)]; // vary among equals so games differ
   }
 
   // Score from the perspective of `player` to move.
