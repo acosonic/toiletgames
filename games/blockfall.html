@@ -207,11 +207,12 @@ function startGame() {
 
 function loop() {
   rAF = requestAnimationFrame(loop);
-  context.fillStyle = '#0f0f1a';
+  const light = (localStorage.getItem('tg-theme') || (window.matchMedia('(prefers-color-scheme:dark)').matches ? 'dark' : 'light')) === 'light';
+  context.fillStyle = light ? '#e8eaed' : '#0f0f1a';
   context.fillRect(0, 0, canvas.width, canvas.height);
 
   // grid lines so the cells the pieces fall into are visible
-  context.strokeStyle = 'rgba(255,255,255,0.06)';
+  context.strokeStyle = light ? 'rgba(0,0,0,0.16)' : 'rgba(255,255,255,0.06)';
   context.lineWidth = 1;
   context.beginPath();
   for (let col = 1; col < 10; col++) { context.moveTo(col * grid + .5, 0); context.lineTo(col * grid + .5, canvas.height); }
