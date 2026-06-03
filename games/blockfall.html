@@ -21,8 +21,8 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,
 .hud{display:flex;align-items:center;justify-content:space-between;width:100%}
 .score{font-size:1rem;font-weight:700}
 .new-btn{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:.85rem;font-weight:700;cursor:pointer;touch-action:manipulation}
-canvas{border:1px solid var(--surface2);display:block;max-width:100%;height:auto}
-.dpad{display:grid;grid-template-columns:repeat(3,56px);grid-template-rows:repeat(3,56px);gap:4px;margin-top:4px}
+canvas{border:1px solid var(--surface2);display:block;max-width:100%}
+.dpad{display:grid;grid-template-columns:repeat(3,56px);grid-template-rows:repeat(2,56px);gap:4px;margin-top:4px}
 .dpad button{background:var(--surface);border:1px solid var(--surface2);border-radius:10px;color:var(--text);font-size:1.4rem;cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
 .dpad button:active{background:var(--accent);color:#fff}
 .hint{font-size:.75rem;color:var(--dim);text-align:center}
@@ -271,7 +271,26 @@ document.addEventListener('keydown', function(e) {
   }
 });
 
+// Scale the board (intrinsic 320×640, ratio 1:2) so the whole layout fits the
+// viewport height — otherwise the fixed 640px canvas pushes the page off-screen.
+function fitBoard() {
+  const wrap = document.querySelector('.wrap');
+  const cs = getComputedStyle(wrap);
+  const gap = (parseFloat(cs.rowGap) || 0) * (wrap.children.length - 1);
+  const pad = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom);
+  let others = document.querySelector('.topbar').offsetHeight + gap + pad + 4;
+  for (const el of wrap.children) if (el !== canvas) others += el.offsetHeight;
+  const maxW = Math.min(320, window.innerWidth - 20);
+  let h = Math.min(window.innerHeight - others, maxW * 2);
+  let w = h / 2;
+  if (w > maxW) { w = maxW; h = w * 2; }
+  canvas.style.width = w + 'px';
+  canvas.style.height = h + 'px';
+}
+window.addEventListener('resize', fitBoard);
+
 startGame();
+fitBoard();
 </script>
 </body>
 </html>
