@@ -68,7 +68,35 @@ function statRec(g,inc,hi){const j=JSON.parse(localStorage.getItem('tg-stats')||
 
 const SFX=(()=>{let ac;const A=()=>(ac=ac||new(window.AudioContext||window.webkitAudioContext)());const t=(f,d,tp,v)=>{if(localStorage.getItem('tg-sound')==='0')return;try{const c=A(),o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.type=tp||'sine';o.frequency.value=f;g.gain.setValueAtTime(v||.2,c.currentTime);g.gain.exponentialRampToValueAtTime(.001,c.currentTime+d);o.start();o.stop(c.currentTime+d);}catch(e){}};
 return{
-  flap:()=>t(620,.06,'square',.08),
+  // Wing-flap: a quick downward pitch "whoosh" + a short burst of filtered
+  // air noise — synthesized so it works fully offline (no audio asset).
+  flap(){
+    if(localStorage.getItem('tg-sound')==='0')return;
+    try{
+      const c=A(),now=c.currentTime;
+      // downward pitch sweep (the "flap")
+      const o=c.createOscillator(),g=c.createGain();
+      o.type='triangle';
+      o.frequency.setValueAtTime(900,now);
+      o.frequency.exponentialRampToValueAtTime(300,now+.09);
+      g.gain.setValueAtTime(.0001,now);
+      g.gain.exponentialRampToValueAtTime(.16,now+.012);
+      g.gain.exponentialRampToValueAtTime(.0001,now+.13);
+      o.connect(g);g.connect(c.destination);
+      o.start(now);o.stop(now+.14);
+      // air/wing noise burst through a bandpass
+      const len=Math.floor(c.sampleRate*.08),buf=c.createBuffer(1,len,c.sampleRate),d=buf.getChannelData(0);
+      for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*(1-i/len);
+      const ns=c.createBufferSource();ns.buffer=buf;
+      const bp=c.createBiquadFilter();bp.type='bandpass';bp.frequency.value=1300;bp.Q.value=.8;
+      const ng=c.createGain();
+      ng.gain.setValueAtTime(.0001,now);
+      ng.gain.exponentialRampToValueAtTime(.11,now+.01);
+      ng.gain.exponentialRampToValueAtTime(.0001,now+.08);
+      ns.connect(bp);bp.connect(ng);ng.connect(c.destination);
+      ns.start(now);ns.stop(now+.08);
+    }catch(e){}
+  },
   point:()=>{t(880,.07,'sine',.14);setTimeout(()=>t(1175,.1,'sine',.12),70);},
   hit:()=>{t(200,.12,'sawtooth',.22);setTimeout(()=>t(140,.25,'sawtooth',.2),110);}
 };})();
