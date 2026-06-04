@@ -85,6 +85,7 @@ return{
 
 const canvas=document.getElementById('game');
 const ctx=canvas.getContext('2d');
+const isLight=()=>(localStorage.getItem('tg-theme')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light'))==='light';
 
 // ── difficulty ─────────────────────────────────────────────────
 // fire = enemy bullet rate, dive = swoop frequency, espd = enemy speed mult.
@@ -320,7 +321,7 @@ function endGame(){
 
 // ── draw ───────────────────────────────────────────────────────
 function draw(){
-  const light=_theme()==='light';
+  const light=isLight();
   ctx.fillStyle=light?'#dfe3ea':'#070711';
   ctx.fillRect(0,0,W,H);
   // stars (drift down for parallax)
