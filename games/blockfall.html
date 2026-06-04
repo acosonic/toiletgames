@@ -262,13 +262,10 @@ function dpadKey(which) {
     const matrix = rotate(tetromino.matrix);
     if (isValidMove(matrix, tetromino.row, tetromino.col)) tetromino.matrix = matrix;
   } else if (which === 40) {
-    const row = tetromino.row + 1;
-    if (!isValidMove(tetromino.matrix, row, tetromino.col)) {
-      tetromino.row = row - 1;
-      placeTetromino();
-      return;
-    }
-    tetromino.row = row;
+    // Hard drop: slam straight to the bottom and lock.
+    while (isValidMove(tetromino.matrix, tetromino.row + 1, tetromino.col)) tetromino.row++;
+    placeTetromino();
+    count = 0;
   }
 }
 
