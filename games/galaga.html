@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Галага — Тоалет Игрице</title>
+<meta name="theme-color" content="#e94560">
+<script>(function(){var t=localStorage.getItem('tg-theme')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');if(t==='light')document.documentElement.classList.add('light');})()</script>
+<style>
+:root{--bg:#0f0f1a;--surface:#1a1a2e;--surface2:#16213e;--accent:#e94560;--text:#e0e0e0;--dim:#888}
+html.light{--bg:#f0f2f5;--surface:#fff;--surface2:#e2e5ea;--text:#1a1a2e;--dim:#666}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:18px}html.xl{font-size:22px}
+body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,sans-serif;min-height:100dvh;-webkit-tap-highlight-color:transparent;touch-action:none;overflow:hidden;transition:background .2s,color .2s}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--surface);gap:6px;border-bottom:1px solid var(--surface2)}
+.topbar a{color:var(--accent);text-decoration:none;font-size:.95rem;font-weight:700;white-space:nowrap}
+.topbar h2{font-size:.95rem;font-weight:700;flex:1;text-align:center}
+.topbar-btns{display:flex;gap:4px;flex-shrink:0}
+.icon-btn{background:none;border:1px solid var(--dim);color:var(--text);border-radius:6px;padding:5px 8px;font-size:.78rem;cursor:pointer;white-space:nowrap;line-height:1}
+.wrap{padding:6px 4px 10px;display:flex;flex-direction:column;align-items:center;gap:6px}
+.hud{display:flex;align-items:center;justify-content:space-between;width:100%;max-width:440px;font-size:.9rem;font-weight:700;padding:0 6px}
+canvas{display:block;border-radius:10px;touch-action:none}
+.dpad{display:grid;grid-template-columns:repeat(3,76px);grid-template-rows:64px;gap:8px;margin-top:2px}
+.dpad button{background:var(--surface);border:1px solid var(--surface2);border-radius:12px;color:var(--text);font-size:1.7rem;cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent;touch-action:none;user-select:none}
+.dpad button:active{background:var(--accent);color:#fff}
+.diff-row{display:flex;gap:6px;margin-top:2px}
+.diff-btn{background:var(--surface);border:1px solid var(--surface2);color:var(--text);border-radius:8px;padding:6px 14px;font-size:.8rem;font-weight:700;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+.diff-btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <a href="../" class="i18n" data-sr="← Назад" data-en="← Back">← Назад</a>
+  <h2 class="i18n" data-sr="👾 Галага" data-en="👾 Galaga">👾 Галага</h2>
+  <div class="topbar-btns">
+    <button class="icon-btn theme-btn" onclick="toggleTheme()">🌙</button>
+    <button class="icon-btn lang-btn" onclick="toggleLang()">EN</button>
+    <button class="icon-btn sound-btn" onclick="toggleSound()">🔊</button>
+    <button class="icon-btn" onclick="toggleFont()">Аа</button>
+  </div>
+</div>
+<div class="wrap">
+  <div class="hud">
+    <span id="livesEl">🚀🚀🚀</span>
+    <span id="lvlEl">Ниво 1</span>
+    <span id="scoreEl">0</span>
+    <span id="bestEl">🏆 0</span>
+  </div>
+  <canvas id="game"></canvas>
+  <div class="dpad">
+    <button id="leftBtn">◄</button>
+    <button id="fireBtn">🔫</button>
+    <button id="rightBtn">►</button>
+  </div>
+  <div class="diff-row">
+    <button class="diff-btn" id="dEasy" onclick="setDiff('easy')"></button>
+    <button class="diff-btn" id="dMed"  onclick="setDiff('medium')"></button>
+    <button class="diff-btn" id="dHard" onclick="setDiff('hard')"></button>
+  </div>
+</div>
+<script>
+(function(){
+  const _lang=()=>localStorage.getItem('tg-lang')||(/^(sr|hr|bs)/i.test(navigator.language)?'sr':'en');
+  const _theme=()=>localStorage.getItem('tg-theme')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');
+  function applyTheme(){const d=_theme()==='dark';document.documentElement.classList.toggle('light',!d);document.querySelectorAll('.theme-btn').forEach(b=>b.textContent=d?'☀️':'🌙');}
+  function applyI18n(){const L=_lang();document.querySelectorAll('[data-'+L+']').forEach(el=>el.textContent=el.dataset[L]);document.querySelectorAll('.lang-btn').forEach(b=>b.textContent=L==='sr'?'EN':'СР');document.documentElement.lang=L;}
+  window.toggleTheme=()=>{localStorage.setItem('tg-theme',_theme()==='dark'?'light':'dark');applyTheme();};
+  window.toggleLang=()=>{localStorage.setItem('tg-lang',_lang()==='sr'?'en':'sr');location.reload();};
+  window.toggleFont=()=>{const xl=document.documentElement.classList.toggle('xl');localStorage.setItem('tg-xl',xl?'1':'0');};
+  window.toggleSound=()=>{const on=localStorage.getItem('tg-sound')!=='0';localStorage.setItem('tg-sound',on?'0':'1');document.querySelectorAll('.sound-btn').forEach(b=>b.textContent=on?'🔇':'🔊');};
+  if(localStorage.getItem('tg-xl')==='1')document.documentElement.classList.add('xl');
+  applyTheme();applyI18n();document.querySelectorAll('.sound-btn').forEach(b=>b.textContent=localStorage.getItem('tg-sound')==='0'?'🔇':'🔊');
+})();
+
+function statRec(g,inc,hi){const j=JSON.parse(localStorage.getItem('tg-stats')||'{}');const e=j[g]||{};for(const[k,v]of Object.entries(inc||{}))e[k]=(e[k]||0)+v;for(const[k,v]of Object.entries(hi||{}))if(v!=null&&(!e[k]||v>e[k]))e[k]=v;j[g]=e;localStorage.setItem('tg-stats',JSON.stringify(j));}
+
+const SFX=(()=>{let ac;const A=()=>(ac=ac||new(window.AudioContext||window.webkitAudioContext)());const t=(f,d,tp,v)=>{if(localStorage.getItem('tg-sound')==='0')return;try{const c=A(),o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.type=tp||'sine';o.frequency.value=f;g.gain.setValueAtTime(v||.2,c.currentTime);g.gain.exponentialRampToValueAtTime(.001,c.currentTime+d);o.start();o.stop(c.currentTime+d);}catch(e){}};
+return{
+  shoot:()=>t(880,.05,'square',.06),
+  hit:()=>{t(330,.06,'square',.12);setTimeout(()=>t(160,.12,'sawtooth',.14),40);},
+  die:()=>{t(200,.12,'sawtooth',.22);setTimeout(()=>t(140,.2,'sawtooth',.2),110);},
+  level:()=>{t(523,.08);setTimeout(()=>t(659,.08),80);setTimeout(()=>t(880,.16),160);},
+  over:()=>{t(300,.15,'sawtooth',.2);setTimeout(()=>t(200,.15,'sawtooth',.2),150);setTimeout(()=>t(120,.3,'sawtooth',.2),300);}
+};})();
+
+const canvas=document.getElementById('game');
+const ctx=canvas.getContext('2d');
+
+// ── difficulty ─────────────────────────────────────────────────
+// fire = enemy bullet rate, dive = swoop frequency, espd = enemy speed mult.
+const DIFF={
+  easy:   {fire:0.55, dive:0.5, espd:0.80},
+  medium: {fire:1.00, dive:1.0, espd:1.00},
+  hard:   {fire:1.70, dive:1.8, espd:1.35},
+};
+let diff=DIFF[localStorage.getItem('tg-galaga-diff')]?localStorage.getItem('tg-galaga-diff'):'medium';
+
+const COLS=6;
+const ROW_CLR=['#ff5b7a','#ffb05b','#5bd6ff','#9b6bff','#5cdb7a'];
+
+// ── sizes (set in resize) ──────────────────────────────────────
+let W,H,shipW,shipH,enR,bw,bh,ebr,gapX,gapY,formX0,formY0,swayAmp,stars=[];
+
+// ── state ──────────────────────────────────────────────────────
+let ship,bullets,ebullets,enemies,lives,score,best,lvl,over,started;
+let moveDir=0,dragX=null,fireCd,time,diveTimer,fireTimer,invuln,raf,lastTs;
+
+function rows(){return Math.min(5,3+Math.floor((lvl+1)/2));}
+function lvlFactor(){return 1+Math.min(lvl-1,9)*0.11;}
+
+function resize(){
+  const wrap=document.querySelector('.wrap');
+  const topbar=document.querySelector('.topbar').offsetHeight;
+  const hud=document.querySelector('.hud').offsetHeight;
+  const dpad=document.querySelector('.dpad').offsetHeight;
+  const drow=document.querySelector('.diff-row').offsetHeight;
+  const cs=getComputedStyle(wrap);
+  const gaps=(parseFloat(cs.rowGap)||0)*3+parseFloat(cs.paddingTop)+parseFloat(cs.paddingBottom)+8;
+  const reserve=topbar+hud+dpad+drow+gaps;
+  let w=Math.min(440,window.innerWidth-8);
+  let h=window.innerHeight-reserve;
+  const minR=1.15,maxR=1.6;
+  if(h>w*maxR)h=w*maxR;
+  if(h<w*minR)w=h/minR;
+  W=Math.round(w);H=Math.round(h);
+  canvas.width=W;canvas.height=H;canvas.style.width=W+'px';canvas.style.height=H+'px';
+  shipW=W*0.11;shipH=shipW*0.8;
+  enR=W*0.036;
+  bw=W*0.012;bh=H*0.035;ebr=W*0.018;
+  gapX=W/(COLS+1);
+  gapY=H*0.085;
+  formX0=gapX;
+  formY0=H*0.10;
+  swayAmp=Math.max(0,(W-gapX*(COLS+1))/2)+gapX*0.35;
+  // starfield
+  stars=[];
+  const n=Math.round(W*H/9000);
+  for(let i=0;i<n;i++)stars.push({x:Math.random()*W,y:Math.random()*H,r:Math.random()*1.4+0.3,s:Math.random()*0.4+0.15});
+  if(ship){ship.y=H-shipH*1.7;ship.x=Math.max(shipW/2,Math.min(W-shipW/2,ship.x));}
+}
+
+function homeX(e){return formX0+(e.col+1)*gapX+swayAmp*Math.sin(time*0.9);}
+function homeY(e){return formY0+e.row*gapY;}
+
+// ── difficulty UI ──────────────────────────────────────────────
+function applyDiffUI(){
+  const L=localStorage.getItem('tg-lang')||'sr';
+  const lbl={easy:['Лако','Easy'],medium:['Средње','Medium'],hard:['Тешко','Hard']};
+  for(const[key,id]of[['easy','dEasy'],['medium','dMed'],['hard','dHard']]){
+    const b=document.getElementById(id);
+    b.textContent=lbl[key][L==='sr'?0:1];
+    b.classList.toggle('active',diff===key);
+  }
+}
+window.setDiff=function(d){if(!DIFF[d])return;diff=d;localStorage.setItem('tg-galaga-diff',d);applyDiffUI();newGame();};
+
+// ── setup ──────────────────────────────────────────────────────
+function buildFormation(){
+  enemies=[];
+  const R=rows();
+  for(let r=0;r<R;r++)for(let c=0;c<COLS;c++){
+    const e={col:c,row:r,alive:true,state:'form',x:0,y:0,t:0,phase:Math.random()*6,dir:1};
+    e.x=homeX(e);e.y=homeY(e);
+    enemies.push(e);
+  }
+}
+
+function newGame(){
+  score=0;lives=3;lvl=1;over=false;started=true;
+  time=0;
+  ship={x:W/2,y:H-shipH*1.7};
+  bullets=[];ebullets=[];
+  invuln=0;fireCd=0;moveDir=0;dragX=null;
+  buildFormation();
+  resetTimers();
+  updateHUD();
+  if(raf)cancelAnimationFrame(raf);
+  lastTs=performance.now();
+  raf=requestAnimationFrame(loop);
+}
+
+function resetTimers(){
+  diveTimer=1.2;
+  fireTimer=1.0;
+}
+
+function nextLevel(){
+  lvl++;
+  SFX.level();
+  buildFormation();
+  ebullets=[];
+  resetTimers();
+  invuln=1.0;
+  updateHUD();
+}
+
+// ── loop ───────────────────────────────────────────────────────
+function loop(ts){
+  const dt=Math.min((ts-lastTs)/1000,0.05);
+  lastTs=ts;
+  if(!over){update(dt);draw();raf=requestAnimationFrame(loop);}
+}
+
+function update(dt){
+  time+=dt;
+  if(invuln>0)invuln-=dt;
+
+  // player move
+  if(dragX!=null)ship.x+=(dragX-ship.x)*Math.min(1,dt*16);
+  else ship.x+=moveDir*W*0.95*dt;
+  ship.x=Math.max(shipW/2,Math.min(W-shipW/2,ship.x));
+
+  // auto-fire
+  fireCd-=dt;
+  if(fireCd<=0&&bullets.length<3){spawnBullet();fireCd=0.30;}
+
+  // player bullets
+  for(let i=bullets.length-1;i>=0;i--){
+    const b=bullets[i];b.y-=H*1.5*dt;
+    if(b.y<-bh){bullets.splice(i,1);continue;}
+    for(const e of enemies){
+      if(!e.alive)continue;
+      if(Math.abs(b.x-e.x)<enR+bw&&Math.abs(b.y-e.y)<enR+bh){
+        e.alive=false;
+        const R=rows();
+        let pts=((R-e.row)*15+25);
+        if(e.state!=='form')pts*=2; // bonus for shooting a diver
+        score+=pts;
+        if(score>best){best=score;localStorage.setItem('tg-galaga-best',best);}
+        SFX.hit();bullets.splice(i,1);updateHUD();
+        break;
+      }
+    }
+  }
+
+  // enemies
+  let aliveForm=0;
+  for(const e of enemies){
+    if(!e.alive)continue;
+    if(e.state==='form'){
+      e.x=homeX(e);e.y=homeY(e);aliveForm++;
+    }else if(e.state==='dive'){
+      e.t+=dt;
+      e.y+=H*0.5*DIFF[diff].espd*lvlFactor()*dt;
+      e.x=Math.max(enR,Math.min(W-enR,e.diveX0+Math.sin(e.t*4+e.phase)*W*0.2*e.dir));
+      if(e.y>H+enR){e.state='return';e.y=-enR;}
+      else if(invuln<=0&&Math.abs(e.x-ship.x)<enR+shipW*0.4&&Math.abs(e.y-ship.y)<enR+shipH*0.5)playerHit();
+    }else{ // return
+      const hx=homeX(e),hy=homeY(e);
+      e.x+=(hx-e.x)*Math.min(1,dt*4);
+      e.y+=H*0.55*dt;
+      if(e.y>=hy){e.y=hy;e.state='form';}
+    }
+  }
+
+  // dive trigger
+  diveTimer-=dt;
+  if(diveTimer<=0){
+    diveTimer=(1.5/(DIFF[diff].dive*lvlFactor()))*(0.6+Math.random()*0.9);
+    const cand=enemies.filter(e=>e.alive&&e.state==='form');
+    if(cand.length){
+      const e=cand[Math.floor(Math.random()*cand.length)];
+      e.state='dive';e.t=0;e.diveX0=e.x;e.dir=e.x<W/2?1:-1;
+    }
+  }
+
+  // enemy fire
+  fireTimer-=dt;
+  if(fireTimer<=0){
+    fireTimer=(0.95/(DIFF[diff].fire*lvlFactor()))*(0.5+Math.random()*0.9);
+    const divers=enemies.filter(e=>e.alive&&e.state==='dive');
+    const pool=divers.length?divers:enemies.filter(e=>e.alive);
+    if(pool.length){
+      const s=pool[Math.floor(Math.random()*pool.length)];
+      const dx=ship.x-s.x,dy=Math.max(1,ship.y-s.y);
+      const sp=H*0.55*DIFF[diff].espd;
+      const len=Math.hypot(dx,dy);
+      ebullets.push({x:s.x,y:s.y+enR,vx:dx/len*sp*0.45,vy:sp});
+    }
+  }
+
+  // enemy bullets
+  for(let i=ebullets.length-1;i>=0;i--){
+    const b=ebullets[i];b.x+=b.vx*dt;b.y+=b.vy*dt;
+    if(b.y>H+ebr||b.x<-ebr||b.x>W+ebr){ebullets.splice(i,1);continue;}
+    if(invuln<=0&&Math.abs(b.x-ship.x)<ebr+shipW*0.38&&Math.abs(b.y-ship.y)<ebr+shipH*0.45){
+      ebullets.splice(i,1);playerHit();
+    }
+  }
+
+  if(aliveForm===0&&!enemies.some(e=>e.alive))nextLevel();
+}
+
+function spawnBullet(){
+  bullets.push({x:ship.x,y:ship.y-shipH*0.6});
+  SFX.shoot();
+}
+
+function playerHit(){
+  if(invuln>0||over)return;
+  lives--;SFX.die();invuln=1.6;updateHUD();
+  if(lives<=0)endGame();
+}
+
+function endGame(){
+  over=true;
+  statRec('galaga',{played:1},{bestScore:score});
+  SFX.over();
+  draw();
+  ctx.fillStyle='rgba(0,0,0,0.72)';
+  ctx.fillRect(0,H/2-44,W,88);
+  ctx.fillStyle='#fff';ctx.textAlign='center';ctx.textBaseline='middle';
+  const L=localStorage.getItem('tg-lang')||'sr';
+  ctx.font=`bold ${W*0.07}px monospace`;
+  ctx.fillText(L==='sr'?'💀 Крај игре':'💀 Game Over',W/2,H/2-12);
+  ctx.font=`${W*0.045}px monospace`;
+  ctx.fillText((L==='sr'?'Резултат: ':'Score: ')+score,W/2,H/2+14);
+  ctx.fillText(L==='sr'?'Тапни за нову':'Tap to restart',W/2,H/2+38);
+}
+
+// ── draw ───────────────────────────────────────────────────────
+function draw(){
+  const light=_theme()==='light';
+  ctx.fillStyle=light?'#dfe3ea':'#070711';
+  ctx.fillRect(0,0,W,H);
+  // stars (drift down for parallax)
+  ctx.fillStyle=light?'rgba(80,90,120,0.5)':'rgba(255,255,255,0.7)';
+  for(const s of stars){
+    s.y+=s.s;if(s.y>H)s.y=0;
+    ctx.beginPath();ctx.arc(s.x,s.y,s.r,0,Math.PI*2);ctx.fill();
+  }
+  // enemies
+  for(const e of enemies)if(e.alive)drawEnemy(e);
+  // enemy bullets
+  ctx.fillStyle='#ffd166';
+  for(const b of ebullets){ctx.beginPath();ctx.arc(b.x,b.y,ebr,0,Math.PI*2);ctx.fill();}
+  // player bullets
+  ctx.fillStyle=light?'#1a1a2e':'#7CFC00';
+  for(const b of bullets)ctx.fillRect(b.x-bw,b.y-bh,bw*2,bh);
+  // ship
+  if(!(invuln>0&&Math.floor(time*16)%2))drawShip();
+}
+
+function drawEnemy(e){
+  const r=enR,x=e.x,y=e.y;
+  ctx.fillStyle=ROW_CLR[e.row%ROW_CLR.length];
+  // body
+  ctx.beginPath();ctx.roundRect(x-r,y-r*0.7,r*2,r*1.4,r*0.4);ctx.fill();
+  // wings
+  ctx.beginPath();
+  ctx.moveTo(x-r,y-r*0.4);ctx.lineTo(x-r*1.5,y);ctx.lineTo(x-r,y+r*0.6);ctx.closePath();
+  ctx.moveTo(x+r,y-r*0.4);ctx.lineTo(x+r*1.5,y);ctx.lineTo(x+r,y+r*0.6);ctx.closePath();
+  ctx.fill();
+  // eyes
+  ctx.fillStyle='#111';
+  ctx.beginPath();ctx.arc(x-r*0.35,y-r*0.1,r*0.18,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.arc(x+r*0.35,y-r*0.1,r*0.18,0,Math.PI*2);ctx.fill();
+}
+
+function drawShip(){
+  const x=ship.x,y=ship.y,w=shipW,h=shipH;
+  ctx.fillStyle='#4dd0e1';
+  ctx.beginPath();
+  ctx.moveTo(x,y-h*0.7);            // nose
+  ctx.lineTo(x-w*0.5,y+h*0.5);      // left base
+  ctx.lineTo(x-w*0.18,y+h*0.3);
+  ctx.lineTo(x+w*0.18,y+h*0.3);
+  ctx.lineTo(x+w*0.5,y+h*0.5);      // right base
+  ctx.closePath();ctx.fill();
+  // cockpit
+  ctx.fillStyle='#e94560';
+  ctx.beginPath();ctx.arc(x,y-h*0.05,w*0.13,0,Math.PI*2);ctx.fill();
+  // thruster flame
+  ctx.fillStyle='#ffb05b';
+  ctx.beginPath();
+  ctx.moveTo(x-w*0.12,y+h*0.3);ctx.lineTo(x,y+h*0.55+Math.random()*h*0.2);ctx.lineTo(x+w*0.12,y+h*0.3);ctx.closePath();
+  ctx.fill();
+}
+
+function updateHUD(){
+  const L=localStorage.getItem('tg-lang')||'sr';
+  document.getElementById('livesEl').textContent='🚀'.repeat(Math.max(0,lives))||'—';
+  document.getElementById('lvlEl').textContent=(L==='sr'?'Ниво ':'Lvl ')+lvl;
+  document.getElementById('scoreEl').textContent=score;
+  document.getElementById('bestEl').textContent='🏆 '+best;
+}
+
+// ── input ──────────────────────────────────────────────────────
+function holdBtn(id,dir){
+  const b=document.getElementById(id);
+  const on=e=>{e.preventDefault();moveDir=dir;dragX=null;};
+  const off=e=>{e.preventDefault();if(moveDir===dir)moveDir=0;};
+  b.addEventListener('pointerdown',on);
+  b.addEventListener('pointerup',off);
+  b.addEventListener('pointerleave',off);
+  b.addEventListener('pointercancel',off);
+}
+holdBtn('leftBtn',-1);
+holdBtn('rightBtn',1);
+document.getElementById('fireBtn').addEventListener('pointerdown',e=>{
+  e.preventDefault();
+  if(over){newGame();return;}
+  if(bullets.length<3){spawnBullet();fireCd=0.12;}
+});
+
+document.addEventListener('keydown',e=>{
+  if(e.which===37){e.preventDefault();moveDir=-1;dragX=null;}
+  else if(e.which===39){e.preventDefault();moveDir=1;dragX=null;}
+  else if(e.which===32){e.preventDefault();if(over){newGame();}else if(bullets.length<3){spawnBullet();fireCd=0.12;}}
+});
+document.addEventListener('keyup',e=>{
+  if(e.which===37&&moveDir===-1)moveDir=0;
+  else if(e.which===39&&moveDir===1)moveDir=0;
+});
+
+// drag on canvas to steer
+function canvasX(clientX){const r=canvas.getBoundingClientRect();return (clientX-r.left)*(W/r.width);}
+canvas.addEventListener('touchstart',e=>{
+  if(over){newGame();return;}
+  dragX=canvasX(e.touches[0].clientX);
+},{passive:true});
+canvas.addEventListener('touchmove',e=>{dragX=canvasX(e.touches[0].clientX);},{passive:true});
+canvas.addEventListener('touchend',()=>{dragX=null;},{passive:true});
+canvas.addEventListener('click',()=>{if(over)newGame();});
+
+window.addEventListener('resize',()=>{resize();if(!started)return;if(over)endGame();else draw();});
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&started&&!over)draw();});
+
+// ── init ───────────────────────────────────────────────────────
+resize();
+applyDiffUI();
+best=+localStorage.getItem('tg-galaga-best')||0;
+newGame();
+</script>
+</body>
+</html>
