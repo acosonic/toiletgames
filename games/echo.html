@@ -24,10 +24,12 @@ html.light .topbar{border-bottom-color:#ddd}
 .start-btn{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:8px 20px;font-size:.95rem;font-weight:700;cursor:pointer}
 .status{font-size:1rem;font-weight:700;min-height:1.4em;text-align:center;color:var(--accent)}
 .simon{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:16px;width:min(460px,calc(100vw-12px));aspect-ratio:1}
-.btn{border-radius:24px;cursor:pointer;opacity:.7;transition:opacity .12s,transform .12s;border:5px solid transparent;user-select:none;min-height:100px}
-.btn:active,.btn.lit{opacity:1;transform:scale(.95);border-color:rgba(255,255,255,.6)}
+.btn{border-radius:24px;cursor:pointer;opacity:.55;transition:opacity .1s,transform .1s,box-shadow .1s,filter .1s;border:5px solid transparent;user-select:none;min-height:90px}
+.btn:active,.btn.lit{opacity:1;transform:scale(.96);border-color:#fff;filter:brightness(1.7) saturate(1.25);box-shadow:0 0 26px 5px rgba(255,255,255,.55)}
 .btn.disabled{cursor:not-allowed}
-#b0{background:#c0392b}#b1{background:#2980b9}#b2{background:#27ae60}#b3{background:#f39c12}
+.diff-row{display:flex;gap:6px}
+.diff-btn{background:var(--surface);border:1px solid var(--dim);color:var(--text);border-radius:8px;padding:6px 16px;font-size:.85rem;font-weight:700;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+.diff-btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
 </style>
 </head>
 <body>
@@ -48,12 +50,12 @@ html.light .topbar{border-bottom-color:#ddd}
     <span class="level"><span class="i18n" data-sr="Рекорд: " data-en="Best: ">Рекорд: </span><span id="best">0</span></span>
   </div>
   <div class="status" id="status"></div>
-  <div class="simon">
-    <div id="b0" class="btn" onclick="press(0)"></div>
-    <div id="b1" class="btn" onclick="press(1)"></div>
-    <div id="b2" class="btn" onclick="press(2)"></div>
-    <div id="b3" class="btn" onclick="press(3)"></div>
+  <div class="diff-row">
+    <button class="diff-btn" id="dEasy" onclick="setDiff('easy')"></button>
+    <button class="diff-btn" id="dMed"  onclick="setDiff('medium')"></button>
+    <button class="diff-btn" id="dHard" onclick="setDiff('hard')"></button>
   </div>
+  <div class="simon"></div>
 </div>
 <script>
 (function(){
@@ -74,37 +76,80 @@ html.light .topbar{border-bottom-color:#ddd}
 
   function statRec(g,inc,hi,lo){const j=JSON.parse(localStorage.getItem('tg-stats')||'{}');const e=j[g]||{};for(const[k,v]of Object.entries(inc||{}))e[k]=(e[k]||0)+v;for(const[k,v]of Object.entries(hi||{}))if(v!=null&&(!e[k]||v>e[k]))e[k]=v;for(const[k,v]of Object.entries(lo||{}))if(v!=null&&(!e[k]||v<e[k]))e[k]=v;j[g]=e;localStorage.setItem('tg-stats',JSON.stringify(j));}
 
-  const FREQS=[261,329,392,523];
-  let seq=[],step,accepting,best=+localStorage.getItem('tg-simon-best')||0,ac;
-  document.getElementById('best').textContent=best;
+  const COLORS=['#c0392b','#2980b9','#27ae60','#f39c12','#8e44ad','#16a085'];
+  const FREQS=[261,294,329,392,440,523];
+  // n = number of pads, flash = light duration, gap = pause between steps (ms)
+  const DIFF={easy:{n:4,flash:430,gap:720},medium:{n:4,flash:300,gap:600},hard:{n:6,flash:230,gap:470}};
+  let diff=DIFF[localStorage.getItem('tg-simon-diff')]?localStorage.getItem('tg-simon-diff'):'medium';
+  let N=DIFF[diff].n;
+  let seq=[],step,accepting,ac,best=0;
+  const simon=document.querySelector('.simon');
+
+  const bestKey=()=>'tg-simon-best-'+diff;
+  function loadBest(){best=+localStorage.getItem(bestKey())||0;document.getElementById('best').textContent=best;}
+
+  function buildBoard(){
+    N=DIFF[diff].n;
+    const cols=N<=4?2:3, rows=Math.ceil(N/cols);
+    simon.style.gridTemplateColumns='repeat('+cols+',1fr)';
+    simon.style.gridTemplateRows='repeat('+rows+',1fr)';
+    simon.style.aspectRatio=cols/rows;
+    simon.innerHTML='';
+    for(let i=0;i<N;i++){
+      const d=document.createElement('div');
+      d.className='btn';d.id='b'+i;d.style.background=COLORS[i];
+      d.addEventListener('click',()=>press(i));
+      simon.appendChild(d);
+    }
+  }
+
+  function applyDiffUI(){
+    const lbl={easy:['Лако','Easy'],medium:['Средње','Medium'],hard:['Тешко','Hard']};
+    for(const[key,id]of[['easy','dEasy'],['medium','dMed'],['hard','dHard']]){
+      const b=document.getElementById(id);
+      b.textContent=lbl[key][L==='sr'?0:1];
+      b.classList.toggle('active',diff===key);
+    }
+  }
+
+  function setDiff(d){
+    if(!DIFF[d])return;
+    diff=d;localStorage.setItem('tg-simon-diff',d);
+    applyDiffUI();buildBoard();loadBest();
+    seq=[];step=0;accepting=false;
+    document.getElementById('level').textContent=0;
+    document.getElementById('status').textContent=t('start');
+  }
 
   function getAC(){if(!ac)ac=new(window.AudioContext||window.webkitAudioContext)();return ac;}
 
   function playTone(i,dur=.3){if(localStorage.getItem('tg-sound')==='0')return;const ctx=getAC();const o=ctx.createOscillator(),g=ctx.createGain();o.connect(g);g.connect(ctx.destination);o.type='sine';o.frequency.value=FREQS[i];g.gain.setValueAtTime(.5,ctx.currentTime);g.gain.exponentialRampToValueAtTime(.01,ctx.currentTime+dur);o.start();o.stop(ctx.currentTime+dur);}
 
-  function flash(i,dur=300){const el=document.getElementById('b'+i);el.classList.add('lit');playTone(i,dur/1000);setTimeout(()=>el.classList.remove('lit'),dur);}
+  function flash(i,dur){dur=dur||DIFF[diff].flash;const el=document.getElementById('b'+i);if(!el)return;el.classList.add('lit');playTone(i,dur/1000);setTimeout(()=>el.classList.remove('lit'),dur);}
 
   function startGame(){seq=[];step=0;accepting=false;setDisabled(true);document.getElementById('level').textContent=0;nextRound();}
 
   function nextRound(){
-    seq.push(Math.floor(Math.random()*4));document.getElementById('level').textContent=seq.length;
+    seq.push(Math.floor(Math.random()*N));document.getElementById('level').textContent=seq.length;
     document.getElementById('status').textContent=t('watch');setDisabled(true);
+    const gap=DIFF[diff].gap;
     let i=0;
-    function playNext(){if(i>=seq.length){setTimeout(()=>{accepting=true;step=0;setDisabled(false);document.getElementById('status').textContent=t('your',seq.length);},400);return;}flash(seq[i++]);setTimeout(playNext,600);}
+    function playNext(){if(i>=seq.length){setTimeout(()=>{accepting=true;step=0;setDisabled(false);document.getElementById('status').textContent=t('your',seq.length);},400);return;}flash(seq[i++]);setTimeout(playNext,gap);}
     setTimeout(playNext,500);
   }
 
   function press(i){
-    if(!accepting)return;flash(i,200);
-    if(seq[step]!==i){accepting=false;setDisabled(true);playFail();document.getElementById('status').textContent=t('wrong',seq.length);if(seq.length>best){best=seq.length;localStorage.setItem('tg-simon-best',best);document.getElementById('best').textContent=best;}statRec('simon',{played:1},{bestScore:seq.length});return;}
+    if(!accepting)return;flash(i,180);
+    if(seq[step]!==i){accepting=false;setDisabled(true);playFail();document.getElementById('status').textContent=t('wrong',seq.length);if(seq.length>best){best=seq.length;localStorage.setItem(bestKey(),best);document.getElementById('best').textContent=best;}statRec('simon',{played:1},{bestScore:seq.length});return;}
     step++;if(step>=seq.length){accepting=false;setDisabled(true);document.getElementById('status').textContent=t('ok');setTimeout(nextRound,800);}
   }
 
   function playFail(){if(localStorage.getItem('tg-sound')==='0')return;const ctx=getAC();const o=ctx.createOscillator(),g=ctx.createGain();o.connect(g);g.connect(ctx.destination);o.type='sawtooth';o.frequency.value=150;g.gain.setValueAtTime(.4,ctx.currentTime);g.gain.exponentialRampToValueAtTime(.01,ctx.currentTime+.6);o.start();o.stop(ctx.currentTime+.6);}
 
-  function setDisabled(d){[0,1,2,3].forEach(i=>document.getElementById('b'+i).classList.toggle('disabled',d));}
+  function setDisabled(d){for(let i=0;i<N;i++){const el=document.getElementById('b'+i);if(el)el.classList.toggle('disabled',d);}}
 
-  window.startGame=startGame;window.press=press;
+  applyDiffUI();buildBoard();loadBest();
+  window.startGame=startGame;window.press=press;window.setDiff=setDiff;
 })();
 </script>
 </body>
