@@ -72,9 +72,10 @@ canvas{border-radius:10px;display:block;touch-action:none}
 
   const COLS=20,ROWS=20;
   const FOOD_PER_LEVEL=5;
+  const FOOD_COUNT=3;
   const speedFor=l=>Math.max(70,160-(l-1)*12);
   const key=(x,y)=>x+','+y;
-  let snake,dir,nextDir,food,score,best=+localStorage.getItem('tg-snake-best')||0,interval,over,canvas,ctx,cell,level,foodCount,obstacles=new Set();
+  let snake,dir,nextDir,foods,score,best=+localStorage.getItem('tg-snake-best')||0,interval,over,canvas,ctx,cell,level,foodCount,obstacles=new Set();
   document.getElementById('best').textContent='🏆 '+best;
 
   function setup(){canvas=document.getElementById('c');const w=Math.min(360,window.innerWidth-20);cell=Math.floor(w/COLS);canvas.width=cell*COLS;canvas.height=cell*ROWS;ctx=canvas.getContext('2d');}
@@ -82,7 +83,7 @@ canvas{border-radius:10px;display:block;touch-action:none}
   function statRec(g,inc,hi,lo){const j=JSON.parse(localStorage.getItem('tg-stats')||'{}');const e=j[g]||{};for(const[k,v]of Object.entries(inc||{}))e[k]=(e[k]||0)+v;for(const[k,v]of Object.entries(hi||{}))if(v!=null&&(!e[k]||v>e[k]))e[k]=v;for(const[k,v]of Object.entries(lo||{}))if(v!=null&&(!e[k]||v<e[k]))e[k]=v;j[g]=e;localStorage.setItem('tg-stats',JSON.stringify(j));}
   const SFX=(()=>{let ac;const A=()=>(ac=ac||new(window.AudioContext||window.webkitAudioContext)());const t=(f,d,tp,v)=>{if(localStorage.getItem('tg-sound')==='0')return;try{const c=A(),o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.type=tp||'sine';o.frequency.value=f;g.gain.setValueAtTime(v||.25,c.currentTime);g.gain.exponentialRampToValueAtTime(.001,c.currentTime+d);o.start();o.stop(c.currentTime+d);}catch(e){}};return{eat:()=>t(523,.07),die(){t(330,.1,'sawtooth',.2);setTimeout(()=>t(220,.15,'sawtooth',.2),100);setTimeout(()=>t(110,.3,'sawtooth',.15),220);}};})();
 
-  function newGame(){clearInterval(interval);snake=[{x:10,y:10},{x:9,y:10},{x:8,y:10}];dir={x:1,y:0};nextDir={x:1,y:0};score=0;over=false;level=1;foodCount=0;genObstacles(1);placeFood();updateScore();updateLevel();document.getElementById('msg').textContent='';interval=setInterval(tick,speedFor(level));draw();}
+  function newGame(){clearInterval(interval);snake=[{x:10,y:10},{x:9,y:10},{x:8,y:10}];dir={x:1,y:0};nextDir={x:1,y:0};score=0;over=false;level=1;foodCount=0;genObstacles(1);foods=[];placeFoods();updateScore();updateLevel();document.getElementById('msg').textContent='';interval=setInterval(tick,speedFor(level));draw();}
 
   function updateScore(){document.getElementById('score').textContent='🍎 '+score;}
   function updateLevel(){document.getElementById('lvl').textContent='· '+(L==='sr'?'Ниво ':'Lvl ')+level;}
@@ -91,12 +92,12 @@ canvas{border-radius:10px;display:block;touch-action:none}
   function onSnake(x,y){return snake.some(s=>s.x===x&&s.y===y);}
   function nearHead(x,y,d){const h=snake[0];const ax=Math.min(Math.abs(x-h.x),COLS-Math.abs(x-h.x)),ay=Math.min(Math.abs(y-h.y),ROWS-Math.abs(y-h.y));return ax+ay<=d;}
   function aheadLane(x,y,n){const h=snake[0];for(let k=1;k<=n;k++){const ax=(h.x+dir.x*k+COLS)%COLS,ay=(h.y+dir.y*k+ROWS)%ROWS;if(ax===x&&ay===y)return true;}return false;}
-  function genObstacles(l){obstacles=new Set();if(l<=1)return;const walls=Math.min(1+l,9);let placed=0,guard=0;while(placed<walls&&guard++<300){const len=2+Math.floor(Math.random()*3),horiz=Math.random()<0.5,x0=Math.floor(Math.random()*COLS),y0=Math.floor(Math.random()*ROWS),cells=[];let ok=true;for(let k=0;k<len;k++){const x=(x0+(horiz?k:0))%COLS,y=(y0+(horiz?0:k))%ROWS;if(onSnake(x,y)||nearHead(x,y,3)||aheadLane(x,y,4)||obstacles.has(key(x,y))){ok=false;break;}cells.push([x,y]);}if(ok){cells.forEach(c=>obstacles.add(key(c[0],c[1])));placed++;}}}
-  function levelUp(){level++;genObstacles(level);clearInterval(interval);interval=setInterval(tick,speedFor(level));updateLevel();}
+  function genObstacles(l){obstacles=new Set();const walls=Math.min(2+l,10);let placed=0,guard=0;while(placed<walls&&guard++<300){const len=2+Math.floor(Math.random()*3),horiz=Math.random()<0.5,x0=Math.floor(Math.random()*COLS),y0=Math.floor(Math.random()*ROWS),cells=[];let ok=true;for(let k=0;k<len;k++){const x=(x0+(horiz?k:0))%COLS,y=(y0+(horiz?0:k))%ROWS;if(onSnake(x,y)||nearHead(x,y,3)||aheadLane(x,y,4)||obstacles.has(key(x,y))){ok=false;break;}cells.push([x,y]);}if(ok){cells.forEach(c=>obstacles.add(key(c[0],c[1])));placed++;}}}
+  function levelUp(){level++;genObstacles(level);foods=foods.filter(f=>!obstacles.has(key(f.x,f.y)));placeFoods();clearInterval(interval);interval=setInterval(tick,speedFor(level));updateLevel();}
 
-  function placeFood(){let p;do{p={x:Math.floor(Math.random()*COLS),y:Math.floor(Math.random()*ROWS)};}while(snake.some(s=>s.x===p.x&&s.y===p.y)||obstacles.has(key(p.x,p.y)));food=p;}
+  function placeFoods(){let guard=0;while(foods.length<FOOD_COUNT&&guard++<400){const p={x:Math.floor(Math.random()*COLS),y:Math.floor(Math.random()*ROWS)};if(snake.some(s=>s.x===p.x&&s.y===p.y)||obstacles.has(key(p.x,p.y))||foods.some(f=>f.x===p.x&&f.y===p.y))continue;foods.push(p);}}
 
-  function tick(){if(over)return;dir=nextDir;const h={x:(snake[0].x+dir.x+COLS)%COLS,y:(snake[0].y+dir.y+ROWS)%ROWS};if(snake.some(s=>s.x===h.x&&s.y===h.y)||obstacles.has(key(h.x,h.y))){over=true;clearInterval(interval);SFX.die();tgFail();statRec('snake',{played:1},{bestScore:score});document.getElementById('msg').textContent=gameOver(score);draw();return;}snake.unshift(h);if(h.x===food.x&&h.y===food.y){score++;foodCount++;SFX.eat();if(score>best){best=score;localStorage.setItem('tg-snake-best',best);document.getElementById('best').textContent='🏆 '+best;}updateScore();if(foodCount%FOOD_PER_LEVEL===0)levelUp();placeFood();}else snake.pop();draw();}
+  function tick(){if(over)return;dir=nextDir;const h={x:(snake[0].x+dir.x+COLS)%COLS,y:(snake[0].y+dir.y+ROWS)%ROWS};if(snake.some(s=>s.x===h.x&&s.y===h.y)||obstacles.has(key(h.x,h.y))){over=true;clearInterval(interval);SFX.die();tgFail();statRec('snake',{played:1},{bestScore:score});document.getElementById('msg').textContent=gameOver(score);draw();return;}snake.unshift(h);const fi=foods.findIndex(f=>f.x===h.x&&f.y===h.y);if(fi>=0){foods.splice(fi,1);score++;foodCount++;SFX.eat();if(score>best){best=score;localStorage.setItem('tg-snake-best',best);document.getElementById('best').textContent='🏆 '+best;}updateScore();if(foodCount%FOOD_PER_LEVEL===0)levelUp();placeFoods();}else snake.pop();draw();}
 
   function draw(){
     const light=_theme()==='light';
@@ -109,7 +110,7 @@ canvas{border-radius:10px;display:block;touch-action:none}
     ctx.stroke();
     // obstacles (walls)
     obstacles.forEach(o=>{const p=o.split(','),ox=+p[0],oy=+p[1];ctx.fillStyle=light?'#9aa0ac':'#3b4252';ctx.fillRect(ox*cell+1,oy*cell+1,cell-2,cell-2);ctx.fillStyle=light?'rgba(255,255,255,.45)':'rgba(255,255,255,.08)';ctx.fillRect(ox*cell+1,oy*cell+1,cell-2,3);});
-    ctx.fillStyle='#e94560';ctx.beginPath();ctx.arc(food.x*cell+cell/2,food.y*cell+cell/2,cell/2-2,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#e94560';foods.forEach(f=>{ctx.beginPath();ctx.arc(f.x*cell+cell/2,f.y*cell+cell/2,cell/2-2,0,Math.PI*2);ctx.fill();});
     snake.forEach((s,i)=>{ctx.fillStyle=i===0?'#5cb85c':'#27ae60';ctx.fillRect(s.x*cell+1,s.y*cell+1,cell-2,cell-2);});
     if(over){ctx.fillStyle='rgba(0,0,0,0.4)';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.fillStyle='#e94560';ctx.font='bold '+cell*1.5+'px system-ui';ctx.textAlign='center';ctx.fillText('💀',canvas.width/2,canvas.height/2+cell/2);}
   }

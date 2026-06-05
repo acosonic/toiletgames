@@ -332,10 +332,25 @@ function draw(){
   }
   // bullets
   for(const b of bullets){ctx.fillStyle=b.color;ctx.beginPath();ctx.arc(b.x,b.y,cell*0.08,0,Math.PI*2);ctx.fill();}
-  // enemies
+  // enemies — little evil smiley faces
   for(const e of enemies){
-    ctx.fillStyle=e.color;ctx.beginPath();ctx.arc(e.x,e.y,cell*e.r,0,Math.PI*2);ctx.fill();
+    const R=cell*e.r;
+    ctx.fillStyle=e.color;ctx.beginPath();ctx.arc(e.x,e.y,R,0,Math.PI*2);ctx.fill();
     if(e.type==='boss'){ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.stroke();}
+    // face
+    const ex=R*0.34, ey=-R*0.06, er=R*0.24;
+    ctx.fillStyle='#fff';
+    ctx.beginPath();ctx.arc(e.x-ex,e.y+ey,er,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.arc(e.x+ex,e.y+ey,er,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#101019';
+    ctx.beginPath();ctx.arc(e.x-ex,e.y+ey+er*0.15,er*0.5,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.arc(e.x+ex,e.y+ey+er*0.15,er*0.5,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle='#101019';ctx.lineWidth=Math.max(1.4,R*0.12);ctx.lineCap='round';
+    // angry brows
+    ctx.beginPath();ctx.moveTo(e.x-ex*1.4,e.y-R*0.46);ctx.lineTo(e.x-ex*0.25,e.y-R*0.2);
+    ctx.moveTo(e.x+ex*1.4,e.y-R*0.46);ctx.lineTo(e.x+ex*0.25,e.y-R*0.2);ctx.stroke();
+    // grin
+    ctx.beginPath();ctx.arc(e.x,e.y+R*0.16,R*0.42,0.18*Math.PI,0.82*Math.PI);ctx.stroke();
     // hp bar
     const w=cell*0.7,hpc=clamp(e.hp/e.maxHp,0,1);
     ctx.fillStyle='rgba(0,0,0,.5)';ctx.fillRect(e.x-w/2,e.y-cell*e.r-7,w,4);
