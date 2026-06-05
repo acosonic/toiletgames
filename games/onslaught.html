@@ -41,6 +41,9 @@ canvas{display:block;border-radius:8px;touch-action:none}
 .mo-unit{font-size:1rem;font-weight:700;color:var(--dim)}
 .mo-comment{font-size:1.02rem;font-weight:800;min-height:1.2em;margin-top:2px}
 .modal-card .pbtn{margin-top:10px;align-self:center;padding:12px 28px;font-size:1.05rem}
+.help-card{text-align:left;max-height:82vh;overflow:auto}
+.help-body{font-size:.92rem;line-height:1.5;font-weight:500}
+.help-body b{color:var(--accent)}
 </style>
 </head>
 <body>
@@ -48,6 +51,7 @@ canvas{display:block;border-radius:8px;touch-action:none}
   <a href="../" class="i18n" data-sr="← Назад" data-en="← Back">← Назад</a>
   <h2 class="i18n" data-sr="🧟 Најезда" data-en="🧟 Onslaught">🧟 Најезда</h2>
   <div class="topbar-btns">
+    <button class="icon-btn" onclick="showHelp()" aria-label="Help">?</button>
     <button class="icon-btn theme-btn" onclick="toggleTheme()">🌙</button>
     <button class="icon-btn lang-btn" onclick="toggleLang()">EN</button>
     <button class="icon-btn sound-btn" onclick="toggleSound()">🔊</button>
@@ -70,6 +74,13 @@ canvas{display:block;border-radius:8px;touch-action:none}
     <button class="pbtn go" id="newBtn" onclick="newGame()">↻</button>
   </div>
   <p class="hint" id="hint"></p>
+</div>
+<div class="modal" id="helpModal">
+  <div class="modal-card help-card">
+    <div class="mo-title" id="helpTitle"></div>
+    <div class="help-body" id="helpBody"></div>
+    <button class="pbtn" id="helpClose"></button>
+  </div>
 </div>
 <div class="modal" id="overModal">
   <div class="modal-card">
@@ -104,14 +115,14 @@ const isLight=()=>(localStorage.getItem('tg-theme')||(window.matchMedia('(prefer
 
 const COLS=5, ROWS=8;
 const PLANTS={
-  sun:  {cost:50, icon:'🌻', sr:'Сунцокрет', en:'Sunflower', hp:60,  kind:'sun', sunEvery:6, sunAmt:25},
-  pea:  {cost:100,icon:'🌱', sr:'Грашак',     en:'Peashooter',hp:60, kind:'shooter', fireEvery:1.4, dmg:20, pspd:6.5},
+  sun:  {cost:50, icon:'🌻', sr:'Сунцокрет', en:'Sunflower', hp:60,  kind:'sun', sunEvery:5, sunAmt:25},
+  pea:  {cost:100,icon:'🌱', sr:'Грашак',     en:'Peashooter',hp:60, kind:'shooter', fireEvery:1.2, dmg:26, pspd:6.5},
   nut:  {cost:50, icon:'🥜', sr:'Орах',       en:'Wall-nut',  hp:400, kind:'wall'},
   chili:{cost:125,icon:'🌶️', sr:'Љута',       en:'Chili',     hp:1,   kind:'bomb'},
 };
 const PORDER=['sun','pea','nut','chili'];
 
-let cell, plants, zombies, peas, sun, lives, killed, best, startBest, elapsed, spawnTimer, skyTimer, over, started, selected, flashLane, flashT, raf, lastTs;
+let cell, plants, zombies, peas, sun, lives, killed, best, startBest, elapsed, spawnTimer, skyTimer, over, started, selected, flashLane, flashT, paused, raf, lastTs;
 best=+localStorage.getItem('tg-onslaught-best')||0;
 
 const cx=c=>c*cell+cell/2;
@@ -135,8 +146,8 @@ function resize(){
 function newGame(){
   document.getElementById('overModal').classList.remove('show');
   plants=new Map();zombies=[];peas=[];
-  sun=150;lives=3;killed=0;elapsed=0;over=false;started=true;
-  spawnTimer=2.5;skyTimer=7;selected=null;flashLane=-1;flashT=0;startBest=best;
+  sun=250;lives=3;killed=0;elapsed=0;over=false;started=true;paused=false;
+  spawnTimer=4;skyTimer=5;selected=null;flashLane=-1;flashT=0;startBest=best;
   updateHUD();updatePalette();
   if(raf)cancelAnimationFrame(raf);
   lastTs=performance.now();raf=requestAnimationFrame(loop);
@@ -145,23 +156,23 @@ function newGame(){
 window.selectType=function(t){if(over)return;selected=selected===t?null:t;updatePalette();};
 
 function zTemplate(kind){
-  if(kind==='bucket')return{kind,hp:260,maxHp:260,spd:0.45,color:'#9aa4b0',face:2};
-  if(kind==='cone')return{kind,hp:140,maxHp:140,spd:0.5,color:'#c78bff',face:2};
-  return{kind:'normal',hp:60,maxHp:60,spd:0.58,color:'#7ec850',face:0};
+  if(kind==='bucket')return{kind,hp:260,maxHp:260,spd:0.42,color:'#9aa4b0',face:2};
+  if(kind==='cone')return{kind,hp:140,maxHp:140,spd:0.46,color:'#c78bff',face:2};
+  return{kind:'normal',hp:48,maxHp:48,spd:0.5,color:'#7ec850',face:0};
 }
 function spawnZombie(){
   const lane=Math.floor(Math.random()*COLS),rr=Math.random();
   let kind='normal';
-  if(elapsed>60&&rr<0.2)kind='bucket';else if(elapsed>30&&rr<0.38)kind='cone';
+  if(elapsed>90&&rr<0.2)kind='bucket';else if(elapsed>45&&rr<0.35)kind='cone';
   const z=zTemplate(kind);z.lane=lane;z.y=-0.5;z.eating=null;zombies.push(z);
 }
 
-function loop(ts){const dt=Math.min((ts-lastTs)/1000,0.05);lastTs=ts;if(!over){update(dt);draw();raf=requestAnimationFrame(loop);}}
+function loop(ts){const dt=Math.min((ts-lastTs)/1000,0.05);lastTs=ts;if(!over){if(!paused)update(dt);draw();raf=requestAnimationFrame(loop);}}
 
 function update(dt){
   elapsed+=dt;
   if(flashT>0)flashT-=dt;
-  skyTimer-=dt;if(skyTimer<=0){sun+=25;skyTimer=7;updateHUD();}
+  skyTimer-=dt;if(skyTimer<=0){sun+=25;skyTimer=5;updateHUD();}
   // plants act
   for(const p of plants.values()){
     const cfg=PLANTS[p.type];
@@ -187,7 +198,7 @@ function update(dt){
   }
   zombies=zombies.filter(z=>!z.dead);
   // spawn
-  spawnTimer-=dt;if(spawnTimer<=0){spawnZombie();spawnTimer=Math.max(0.85,3.6-elapsed*0.03);}
+  spawnTimer-=dt;if(spawnTimer<=0){spawnZombie();spawnTimer=Math.max(1.5,5-elapsed*0.025);}
 }
 
 function endGame(){over=true;statRec('onslaught',{played:1},{bestKills:killed});failSound();draw();showOver();}
@@ -294,10 +305,37 @@ canvas.addEventListener('pointermove',ev=>{if(downXY&&Math.hypot(ev.clientX-down
 canvas.addEventListener('pointerup',()=>{clearLP();if(lpCell&&!moved&&!longFired){const {c,r}=lpCell;if(c>=0&&c<COLS&&r>=0&&r<ROWS&&!plants.has(c+','+r))place(c,r);}lpCell=null;downXY=null;});
 canvas.addEventListener('pointercancel',()=>{clearLP();lpCell=null;downXY=null;});
 document.getElementById('againBtn').addEventListener('click',newGame);
+
+// ── help / how to play ──
+const HELP={
+ sr:`<b>Циљ:</b> зомбији 🧟 силазе одозго ка твојој кући (доле) — не дај да прођу! Имаш 🏠 3 куће (живота).<br><br>
+<b>☀️ Сунце</b> је новац за биљке. Стиже само с неба и из сунцокрета.<br><br>
+Изабери биљку доле па <b>тапни поље</b> да је засадиш:<br>
+🌻 <b>Сунцокрет</b> (50) — прави сунце, посади их прво<br>
+🌱 <b>Грашак</b> (100) — пуца на зомбије у својој колони<br>
+🥜 <b>Орах</b> (50) — зид, зомби мора да га поједе<br>
+🌶️ <b>Љута</b> (125) — спржи целу колону одједном<br><br>
+<b>Дуги притисак</b> на биљку = уклони је.<br><br>
+<b>Тактика:</b> прво 2–3 сунцокрета, па грашак испред зомбија, орах као штит, а Љуту чувај за гужву.`,
+ en:`<b>Goal:</b> zombies 🧟 march down toward your house (bottom) — stop them! You have 🏠 3 houses (lives).<br><br>
+<b>☀️ Sun</b> is the currency. It falls from the sky and from sunflowers.<br><br>
+Pick a plant below and <b>tap a tile</b> to plant it:<br>
+🌻 <b>Sunflower</b> (50) — makes sun, plant these first<br>
+🌱 <b>Peashooter</b> (100) — fires up its lane<br>
+🥜 <b>Wall-nut</b> (50) — a wall zombies must chew through<br>
+🌶️ <b>Chili</b> (125) — wipes a whole lane at once<br><br>
+<b>Long-press</b> a plant to remove it.<br><br>
+<b>Tip:</b> 2–3 sunflowers first, then peashooters ahead of zombies, wall-nuts as shields, save Chili for a crowd.`
+};
+window.showHelp=function(){const sr=L()==='sr';document.getElementById('helpTitle').textContent=sr?'🧟 Како се игра':'🧟 How to play';document.getElementById('helpBody').innerHTML=HELP[sr?'sr':'en'];document.getElementById('helpClose').textContent=sr?'Разумем 👍':'Got it 👍';paused=true;document.getElementById('helpModal').classList.add('show');};
+function closeHelp(){paused=false;lastTs=performance.now();document.getElementById('helpModal').classList.remove('show');}
+document.getElementById('helpClose').addEventListener('click',closeHelp);
+
 window.addEventListener('resize',resize);
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&started&&!over)draw();});
 
 resize();setHint();newGame();
+if(!localStorage.getItem('tg-onslaught-seen')){localStorage.setItem('tg-onslaught-seen','1');showHelp();}
 </script>
 </body>
 </html>

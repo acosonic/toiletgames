@@ -52,6 +52,9 @@ canvas{display:block;border-radius:8px;touch-action:none}
 .mo-unit{font-size:1rem;font-weight:700;color:var(--dim)}
 .mo-comment{font-size:1.02rem;font-weight:800;min-height:1.2em;margin-top:2px}
 .modal-card .pbtn{margin-top:10px;align-self:center;padding:12px 28px;font-size:1.05rem}
+.help-card{text-align:left;max-height:82vh;overflow:auto}
+.help-body{font-size:.92rem;line-height:1.5;font-weight:500}
+.help-body b{color:var(--accent)}
 </style>
 </head>
 <body>
@@ -59,6 +62,7 @@ canvas{display:block;border-radius:8px;touch-action:none}
   <a href="../" class="i18n" data-sr="← Назад" data-en="← Back">← Назад</a>
   <h2 class="i18n" data-sr="🛡️ Одбрана" data-en="🛡️ Tower Defense">🛡️ Одбрана</h2>
   <div class="topbar-btns">
+    <button class="icon-btn" onclick="showHelp()" aria-label="Help">?</button>
     <button class="icon-btn theme-btn" onclick="toggleTheme()">🌙</button>
     <button class="icon-btn lang-btn" onclick="toggleLang()">EN</button>
     <button class="icon-btn sound-btn" onclick="toggleSound()">🔊</button>
@@ -90,6 +94,13 @@ canvas{display:block;border-radius:8px;touch-action:none}
   <div class="tm-row">
     <button class="tm-btn up" id="tmUpgrade" onclick="upgradeTower()"></button>
     <button class="tm-btn sell" id="tmSell" onclick="sellTower()"></button>
+  </div>
+</div>
+<div class="modal" id="helpModal">
+  <div class="modal-card help-card">
+    <div class="mo-title" id="helpTitle"></div>
+    <div class="help-body" id="helpBody"></div>
+    <button class="pbtn" id="helpClose"></button>
   </div>
 </div>
 <div class="modal" id="overModal">
@@ -143,7 +154,7 @@ const tFireCd=t=>TOWERS[t.type].fireCd*Math.pow(0.85,t.lvl-1);
 const upCost=t=>Math.round(TOWERS[t.type].cost*(0.8+(t.lvl-1)*0.7));
 const sellRefund=t=>Math.round(t.spent*0.6);
 
-let cell, order, pathSet, towers, enemies, bullets, money, lives, wave, best, startBest, over, started, selected, waveActive, waveQueue, spawnList, spawnTimer, gapTimer, queuedCount, raf, lastTs;
+let cell, order, pathSet, towers, enemies, bullets, money, lives, wave, best, startBest, over, started, selected, waveActive, waveQueue, spawnList, spawnTimer, gapTimer, queuedCount, paused, raf, lastTs;
 
 best=+localStorage.getItem('tg-td-best')||0;
 
@@ -186,7 +197,7 @@ function newGame(){
   closeMenu();
   genPath();
   towers=[];enemies=[];bullets=[];
-  money=130;lives=15;wave=0;over=false;started=true;
+  money=130;lives=15;wave=0;over=false;started=true;paused=false;
   selected=null;waveActive=false;waveQueue=[];spawnList=[];spawnTimer=0;gapTimer=0;queuedCount=0;
   startBest=best;
   updateHUD();updatePalette();
@@ -230,7 +241,7 @@ function spawn(tpl){
 
 function loop(ts){
   const dt=Math.min((ts-lastTs)/1000,0.05);lastTs=ts;
-  if(!over){update(dt);draw();raf=requestAnimationFrame(loop);}
+  if(!over){if(!paused)update(dt);draw();raf=requestAnimationFrame(loop);}
 }
 
 function update(dt){
@@ -467,10 +478,37 @@ window.sellTower=function(){
   SFX.leak();closeMenu();updateHUD();updatePalette();draw();
 };
 document.getElementById('againBtn').addEventListener('click',newGame);
+
+// ── help / how to play ──
+const HELP={
+ sr:`<b>Циљ:</b> непријатељи 🙂 иду стазом одозго до твоје базе 🏠 — заустави их кулама! Сваки пролаз = −1 живот.<br><br>
+<b>💰 Новац</b> добијаш убијањем и за рано слање таласа.<br><br>
+Изабери кулу доле па <b>тапни поље</b> поред стазе:<br>
+⚡ <b>Брза</b> — брзо, слаб ударац<br>
+💣 <b>Топ</b> — спор, јак ударац<br>
+❄️ <b>Лед</b> — успорава непријатеље<br>
+🎯 <b>Снајпер</b> — велики домет и штета<br><br>
+<b>Дуги притисак</b> на кулу = надоградња ⬆️ или продаја 💲.<br><br>
+🌊 <b>Талас</b> пушта непријатеље — можеш накликати више унапред (стижу један за другим, бонус за рано слање).`,
+ en:`<b>Goal:</b> enemies 🙂 follow the path from the top to your base 🏠 — stop them! Each leak = −1 life.<br><br>
+<b>💰 Money</b> comes from kills and early wave calls.<br><br>
+Pick a tower below and <b>tap a tile</b> next to the path:<br>
+⚡ <b>Rapid</b> — fast, weak hit<br>
+💣 <b>Cannon</b> — slow, big hit<br>
+❄️ <b>Frost</b> — slows enemies<br>
+🎯 <b>Sniper</b> — long range & damage<br><br>
+<b>Long-press</b> a tower to upgrade ⬆️ or sell 💲.<br><br>
+🌊 <b>Wave</b> sends enemies — you can queue several ahead (they arrive one after another, with an early-call bonus).`
+};
+window.showHelp=function(){const sr=L()==='sr';document.getElementById('helpTitle').textContent=sr?'🛡️ Како се игра':'🛡️ How to play';document.getElementById('helpBody').innerHTML=HELP[sr?'sr':'en'];document.getElementById('helpClose').textContent=sr?'Разумем 👍':'Got it 👍';paused=true;document.getElementById('helpModal').classList.add('show');};
+function closeHelp(){paused=false;lastTs=performance.now();document.getElementById('helpModal').classList.remove('show');}
+document.getElementById('helpClose').addEventListener('click',closeHelp);
+
 window.addEventListener('resize',()=>{closeMenu();resize();});
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&started&&!over)draw();});
 
 resize();setHint();newGame();
+if(!localStorage.getItem('tg-td-seen')){localStorage.setItem('tg-td-seen','1');showHelp();}
 </script>
 </body>
 </html>

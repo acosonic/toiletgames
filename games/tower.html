@@ -43,6 +43,9 @@ canvas{display:block;border-radius:10px;touch-action:none}
 .mo-score{font-size:1rem;font-weight:700;color:var(--dim)}
 .mo-comment{font-size:1.02rem;font-weight:800;min-height:1.2em;margin-top:2px}
 .modal-card .drop-btn{margin-top:10px;align-self:center}
+.help-card{text-align:left;max-height:82vh;overflow:auto}
+.help-body{font-size:.92rem;line-height:1.5;font-weight:500}
+.help-body b{color:var(--accent)}
 </style>
 </head>
 <body>
@@ -50,6 +53,7 @@ canvas{display:block;border-radius:10px;touch-action:none}
   <a href="../" class="i18n" data-sr="← Назад" data-en="← Back">← Назад</a>
   <h2 class="i18n" data-sr="🏗️ Торањ" data-en="🏗️ Tower">🏗️ Торањ</h2>
   <div class="topbar-btns">
+    <button class="icon-btn" onclick="showHelp()" aria-label="Help">?</button>
     <button class="icon-btn theme-btn" onclick="toggleTheme()">🌙</button>
     <button class="icon-btn lang-btn" onclick="toggleLang()">EN</button>
     <button class="icon-btn sound-btn" onclick="toggleSound()">🔊</button>
@@ -68,6 +72,13 @@ canvas{display:block;border-radius:10px;touch-action:none}
     <span class="i18n" data-sr="Идеја:" data-en="Concept:">Идеја:</span>
     <a href="https://github.com/iamkun/tower_game" target="_blank" rel="noopener">iamkun/tower_game</a> · MIT
   </p>
+</div>
+<div class="modal" id="helpModal">
+  <div class="modal-card help-card">
+    <div class="mo-title" id="helpTitle"></div>
+    <div class="help-body" id="helpBody"></div>
+    <button class="drop-btn" id="helpClose"></button>
+  </div>
 </div>
 <div class="modal" id="overModal">
   <div class="modal-card">
@@ -111,7 +122,7 @@ const isLight=()=>(localStorage.getItem('tg-theme')||(window.matchMedia('(prefer
 // ── sizes (set in resize) ──────────────────────────────────────
 let W,H,BH,ANCHOR,DROPH,PTHRESH;
 // ── state ──────────────────────────────────────────────────────
-let blocks,incoming,offcuts,camY,score,best,lives,combo,over,started,raf,lastTs,startBest;
+let blocks,incoming,offcuts,camY,score,best,lives,combo,over,started,raf,lastTs,startBest,paused;
 
 best=+localStorage.getItem('tg-tower-best')||0;
 
@@ -148,7 +159,7 @@ function newGame(){
   const bw=W*0.5;
   blocks=[{x:(W-bw)/2,w:bw}];
   offcuts=[];
-  score=0;lives=3;combo=0;over=false;started=true;
+  score=0;lives=3;combo=0;over=false;started=true;paused=false;
   camY=blocks.length*BH;
   spawnIncoming();
   updateHUD();
@@ -166,6 +177,7 @@ function spawnIncoming(){
 }
 
 function drop(){
+  if(paused)return;
   if(over){newGame();return;}
   if(!incoming||incoming.falling)return;
   incoming.falling=true;
@@ -173,7 +185,7 @@ function drop(){
 
 function loop(ts){
   const dt=Math.min((ts-lastTs)/1000,0.05);lastTs=ts;
-  if(!over){update(dt);draw();raf=requestAnimationFrame(loop);}
+  if(!over){if(!paused)update(dt);draw();raf=requestAnimationFrame(loop);}
 }
 
 function update(dt){
@@ -322,6 +334,24 @@ function updateHUD(){
 // ── input ──────────────────────────────────────────────────────
 document.getElementById('dropBtn').addEventListener('click',drop);
 document.getElementById('againBtn').addEventListener('click',newGame);
+
+// ── help / how to play ──
+const HELP={
+ sr:`<b>Циљ:</b> слажи торањ што више спратова! Блок се њише на врху.<br><br>
+<b>Тапни</b> било где, дугме <b>ПУСТИ</b> или размак — да спустиш блок.<br><br>
+Део који се преклопи са доњим блоком остаје, вишак отпада и блок се сужава.<br><br>
+🎯 <b>Савршено</b> поравнање = бонус поени и комбо (блок се не сужава).<br><br>
+Ако потпуно промашиш — губиш живот ❤️ (имаш 3). Игра траје док се торањ не сруши.`,
+ en:`<b>Goal:</b> stack the tower as high as you can! A block swings on top.<br><br>
+<b>Tap</b> anywhere, the <b>DROP</b> button or Space to drop it.<br><br>
+The part overlapping the block below stays; the rest is sliced off and the block narrows.<br><br>
+🎯 A <b>Perfect</b> align = bonus points and a combo (no narrowing).<br><br>
+Miss completely and you lose a life ❤️ (you have 3). Endless until you topple.`
+};
+window.showHelp=function(){const sr=L()==='sr';document.getElementById('helpTitle').textContent=sr?'🏗️ Како се игра':'🏗️ How to play';document.getElementById('helpBody').innerHTML=HELP[sr?'sr':'en'];document.getElementById('helpClose').textContent=sr?'Разумем 👍':'Got it 👍';paused=true;document.getElementById('helpModal').classList.add('show');};
+function closeHelp(){paused=false;lastTs=performance.now();document.getElementById('helpModal').classList.remove('show');}
+document.getElementById('helpClose').addEventListener('click',closeHelp);
+
 canvas.addEventListener('pointerdown',e=>{e.preventDefault();drop();});
 document.addEventListener('keydown',e=>{if(e.code==='Space'||e.code==='ArrowDown'){e.preventDefault();drop();}});
 window.addEventListener('resize',resize);
@@ -329,6 +359,7 @@ document.addEventListener('visibilitychange',()=>{if(document.visibilityState===
 
 resize();
 newGame();
+if(!localStorage.getItem('tg-tower-seen')){localStorage.setItem('tg-tower-seen','1');showHelp();}
 </script>
 </body>
 </html>
