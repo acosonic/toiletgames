@@ -27,7 +27,7 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,
 #board{display:grid;gap:8px;justify-content:center}
 .card{aspect-ratio:1;background:var(--surface);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:2.2rem;cursor:pointer;user-select:none;position:relative;overflow:hidden}
 html.xl .card{font-size:2.8rem}
-.card .back{position:absolute;inset:0;background:var(--surface);border-radius:inherit;display:flex;align-items:center;justify-content:center;font-size:1.4rem;color:var(--dim);transition:transform .25s;backface-visibility:hidden}
+.card .back{position:absolute;inset:0;border-radius:inherit;display:flex;align-items:center;justify-content:center;transition:transform .25s;backface-visibility:hidden;background-color:var(--accent);background-image:repeating-linear-gradient(45deg,rgba(255,255,255,.18) 0 6px,transparent 6px 14px),repeating-linear-gradient(-45deg,rgba(0,0,0,.12) 0 6px,transparent 6px 14px)}
 .card .front{position:absolute;inset:0;background:var(--surface2);border-radius:inherit;display:flex;align-items:center;justify-content:center;transform:rotateY(180deg);transition:transform .25s;backface-visibility:hidden}
 .card.flipped .back{transform:rotateY(180deg)}.card.flipped .front{transform:rotateY(0deg)}
 .card.matched{cursor:default}.card.matched .front{background:#1a3a1a}
@@ -90,7 +90,7 @@ html.light .card.matched .front{background:#d4edda}
 
   function render(){
     const el=document.getElementById('board');el.style.gridTemplateColumns=`repeat(${cols},1fr)`;el.style.width=`min(360px,calc(100vw - 20px))`;el.innerHTML='';
-    cards.forEach((emoji,i)=>{const c=document.createElement('div');c.className='card'+(flipped.includes(i)||matched.has(i)?' flipped':'')+(matched.has(i)?' matched':'');c.innerHTML=`<div class="back">🂠</div><div class="front">${emoji}</div>`;c.addEventListener('click',()=>flip(i));el.appendChild(c);});
+    cards.forEach((emoji,i)=>{const c=document.createElement('div');c.className='card'+(flipped.includes(i)||matched.has(i)?' flipped':'')+(matched.has(i)?' matched':'');c.innerHTML=`<div class="back"></div><div class="front">${emoji}</div>`;c.addEventListener('click',()=>flip(i));el.appendChild(c);});
   }
 
   function flip(i){if(locked||flipped.includes(i)||matched.has(i))return;SFX.flip();flipped.push(i);render();if(flipped.length===2){moves++;document.getElementById('moves').textContent=moves;locked=true;setTimeout(check,700);}}
