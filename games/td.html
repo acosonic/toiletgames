@@ -206,9 +206,11 @@ window.startWave=function(){
   queuedCount++;
   const wn=queuedCount, hp=1+(wn-1)*0.22, list=[], n=4+wn*2;
   for(let i=0;i<n;i++){
-    const strong=wn>=3 && i%3===2;
-    list.push(strong?{type:'strong',hp:46*hp,spd:1.05,r:0.34,reward:16,color:'#9b6bff',life:1}
-                    :{type:'basic',hp:18*hp,spd:1.5,r:0.30,reward:8,color:'#e94560',life:1});
+    let tp;
+    if(wn>=3 && i%3===2) tp={type:'strong',hp:46*hp,spd:1.05,r:0.34,reward:16,color:'#9b6bff',life:1};
+    else if(wn>=2 && i%4===1) tp={type:'fast',hp:12*hp,spd:2.8,r:0.25,reward:10,color:'#5cdb7a',life:1};
+    else tp={type:'basic',hp:18*hp,spd:1.5,r:0.30,reward:8,color:'#e94560',life:1};
+    list.push(tp);
   }
   if(wn%5===0)list.push({type:'boss',hp:340*hp,spd:0.8,r:0.46,reward:90,color:'#ffd166',life:5});
   // Queue this wave; stacking many is fine — they arrive one at a time with a gap.
@@ -222,7 +224,7 @@ window.startWave=function(){
 
 function spawn(tpl){
   enemies.push({type:tpl.type,hp:tpl.hp,maxHp:tpl.hp,spd:tpl.spd,r:tpl.r,reward:tpl.reward,color:tpl.color,life:tpl.life,
-    face:({basic:0,strong:2,boss:0}[tpl.type]),
+    face:({basic:0,fast:1,strong:2,boss:0}[tpl.type]),
     x:cx(order[0].c),y:cy(order[0].r),target:1});
 }
 
@@ -232,13 +234,14 @@ function loop(ts){
 }
 
 function update(dt){
-  // spawning — queued waves arrive one at a time, with a gap between them
+  // spawning — queued waves arrive one at a time; a big backlog rushes them out
+  const rush=1+Math.min(waveQueue.length,12)*0.5; // more queued -> faster
   if(spawnList.length){
     spawnTimer-=dt;
-    if(spawnTimer<=0){spawn(spawnList.shift());spawnTimer=SPAWN_INT;}
+    if(spawnTimer<=0){spawn(spawnList.shift());spawnTimer=Math.max(0.1,SPAWN_INT/rush);}
   }else if(waveQueue.length){
     gapTimer-=dt;
-    if(gapTimer<=0){const it=waveQueue.shift();spawnList=it.enemies;wave=it.num;if(wave>best){best=wave;localStorage.setItem('tg-td-best',best);}spawnTimer=0;gapTimer=WAVE_GAP;updateHUD();updatePalette();}
+    if(gapTimer<=0){const it=waveQueue.shift();spawnList=it.enemies;wave=it.num;if(wave>best){best=wave;localStorage.setItem('tg-td-best',best);}spawnTimer=0;gapTimer=Math.max(0.3,WAVE_GAP/rush);updateHUD();updatePalette();}
   }
   // enemies move
   for(const e of enemies){
@@ -376,11 +379,10 @@ function drawFace(e,R){
     ctx.beginPath();ctx.arc(x,y+R*0.16,R*0.42,0.18*Math.PI,0.82*Math.PI);ctx.stroke();
   }else if(e.face===1){ // open yell
     ctx.fillStyle='#101019';ctx.beginPath();ctx.ellipse(x,y+R*0.34,R*0.18,R*0.24,0,0,Math.PI*2);ctx.fill();
-  }else if(e.face===2){ // jagged teeth
-    const w=R*0.52,y0=y+R*0.26,n=4;
-    ctx.beginPath();ctx.moveTo(x-w/2,y0);
-    for(let i=1;i<=n;i++)ctx.lineTo(x-w/2+(w/n)*i,y0+(i%2?R*0.16:0));
-    ctx.stroke();
+  }else if(e.face===2){ // fanged grin — white fangs
+    ctx.beginPath();ctx.arc(x,y+R*0.14,R*0.4,0.18*Math.PI,0.82*Math.PI);ctx.stroke();
+    ctx.fillStyle='#fff';
+    for(const fx of[-R*0.16,R*0.16]){ctx.beginPath();ctx.moveTo(x+fx-R*0.08,y+R*0.27);ctx.lineTo(x+fx+R*0.08,y+R*0.27);ctx.lineTo(x+fx,y+R*0.46);ctx.closePath();ctx.fill();}
   }else{ // frown
     ctx.beginPath();ctx.arc(x,y+R*0.5,R*0.4,1.18*Math.PI,1.82*Math.PI);ctx.stroke();
   }
