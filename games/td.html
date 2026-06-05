@@ -222,7 +222,7 @@ window.startWave=function(){
 
 function spawn(tpl){
   enemies.push({type:tpl.type,hp:tpl.hp,maxHp:tpl.hp,spd:tpl.spd,r:tpl.r,reward:tpl.reward,color:tpl.color,life:tpl.life,
-    face:(tpl.type==='boss'?0:Math.floor(Math.random()*4)),
+    face:({basic:0,strong:2,boss:0}[tpl.type]),
     x:cx(order[0].c),y:cy(order[0].r),target:1});
 }
 
