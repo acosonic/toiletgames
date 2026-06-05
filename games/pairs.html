@@ -102,10 +102,11 @@ html.light .card.matched .front{background:#d4edda}
 })();
 </script>
 <script>
-// Victory celebration — plays the cheer clip + a starry fireworks burst.
-// Self-contained & offline; sound honors tg-sound, visuals honor reduced-motion.
+// Victory — VICTORY banner (stays until next interaction) + cheer clip + fireworks.
+// Offline & self-contained; sound honors tg-sound, motion honors reduced-motion.
 window.celebrate=function(){
   if(localStorage.getItem("tg-sound")!=="0"){try{var au=new Audio("./cheer.mp3");au.volume=0.85;au.play().catch(function(){});}catch(e){}}
+  (function(){var L=localStorage.getItem("tg-lang")||"sr";var old=document.getElementById("tg-banner");if(old)old.remove();var b=document.createElement("div");b.id="tg-banner";b.textContent=L==="sr"?"ПОБЕДА":"VICTORY";b.style.cssText="position:fixed;top:34%;left:0;right:0;text-align:center;z-index:99998;pointer-events:none;font:900 clamp(2.5rem,15vw,7rem)/1 system-ui,-apple-system,sans-serif;letter-spacing:.08em;color:#ffd166;text-shadow:0 4px 20px rgba(0,0,0,.55),0 0 8px rgba(0,0,0,.45);opacity:0;transform:scale(.6);transition:opacity .25s ease,transform .35s cubic-bezier(.2,1.4,.3,1)";document.body.appendChild(b);requestAnimationFrame(function(){b.style.opacity="1";b.style.transform="scale(1)";});var armed=false;setTimeout(function(){armed=true;},400);function dismiss(){if(!armed)return;document.removeEventListener("pointerdown",dismiss,true);document.removeEventListener("keydown",dismiss,true);b.style.opacity="0";b.style.transform="scale(1.1)";setTimeout(function(){b.remove();},220);}document.addEventListener("pointerdown",dismiss,true);document.addEventListener("keydown",dismiss,true);})();
   if(window.matchMedia&&window.matchMedia("(prefers-reduced-motion:reduce)").matches)return;
   var cv=document.createElement("canvas");
   cv.style.cssText="position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none;z-index:99999";
