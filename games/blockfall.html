@@ -169,6 +169,7 @@ function showGameOver() {
   cancelAnimationFrame(rAF);
   gameOver = true;
   SFX.die();
+  tgFail();
   statRec('tetris',{played:1},{bestScore:score});
   context.fillStyle = 'rgba(0,0,0,0.75)';
   context.fillRect(0, canvas.height / 2 - 30, canvas.width, 60);
@@ -297,6 +298,10 @@ window.addEventListener('resize', fitBoard);
 
 startGame();
 fitBoard();
+</script>
+<script>
+// Loss sound — the "whah-whah" trombone. Offline; honors the tg-sound toggle.
+window.tgFail=function(){if(localStorage.getItem("tg-sound")!=="0"){try{var au=new Audio("./whah.wav");au.volume=0.8;au.play().catch(function(){});}catch(e){}}};
 </script>
 </body>
 </html>

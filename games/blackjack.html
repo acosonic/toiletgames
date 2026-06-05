@@ -123,9 +123,9 @@ html.light .msg.push{background:#cce5ff;color:#004085}
 
   function deal(){if(deck.length<15)buildDeck();player=[draw(),draw()];dealer=[draw(),draw()];SFX.deal();setTimeout(()=>SFX.deal(),120);gameOn=true;setButtons(true);document.getElementById('msg').style.visibility='hidden';render(true);if(value(player)===21)stand();}
 
-  function hit(){if(!gameOn)return;SFX.deal();player.push(draw());render(true);if(value(player)>21){gameOn=false;setButtons(false);render(false);losses++;document.getElementById('losses').textContent=losses;SFX.bust();statRec('blackjack',{played:1,losses:1});setMsg(t('bust'),'lose');}else if(value(player)===21)stand();}
+  function hit(){if(!gameOn)return;SFX.deal();player.push(draw());render(true);if(value(player)>21){gameOn=false;setButtons(false);render(false);losses++;document.getElementById('losses').textContent=losses;SFX.bust();tgFail();statRec('blackjack',{played:1,losses:1});setMsg(t('bust'),'lose');}else if(value(player)===21)stand();}
 
-  function stand(){if(!gameOn&&value(player)!==21)return;gameOn=false;setButtons(false);while(value(dealer)<17)dealer.push(draw());render(false);const p=value(player),d=value(dealer);if(d>21||p>d){wins++;document.getElementById('wins').textContent=wins;SFX.win();celebrate();statRec('blackjack',{played:1,wins:1});setMsg(t('win',p,d),'win');}else if(p===d){pushes++;document.getElementById('pushes').textContent=pushes;SFX.push();statRec('blackjack',{played:1,pushes:1});setMsg(t('push',p),'push');}else{losses++;document.getElementById('losses').textContent=losses;SFX.bust();statRec('blackjack',{played:1,losses:1});setMsg(t('lose',p,d),'lose');}}
+  function stand(){if(!gameOn&&value(player)!==21)return;gameOn=false;setButtons(false);while(value(dealer)<17)dealer.push(draw());render(false);const p=value(player),d=value(dealer);if(d>21||p>d){wins++;document.getElementById('wins').textContent=wins;SFX.win();celebrate();statRec('blackjack',{played:1,wins:1});setMsg(t('win',p,d),'win');}else if(p===d){pushes++;document.getElementById('pushes').textContent=pushes;SFX.push();statRec('blackjack',{played:1,pushes:1});setMsg(t('push',p),'push');}else{losses++;document.getElementById('losses').textContent=losses;SFX.bust();tgFail();statRec('blackjack',{played:1,losses:1});setMsg(t('lose',p,d),'lose');}}
 
   function setButtons(on){document.getElementById('btnHit').disabled=!on;document.getElementById('btnStand').disabled=!on;document.getElementById('btnDeal').disabled=on;}
 
@@ -133,31 +133,10 @@ html.light .msg.push{background:#cce5ff;color:#004085}
 })();
 </script>
 <script>
-// Victory celebration — synthesized crowd applause + cheer, plus a starry
-// fireworks burst. Self-contained & offline; sound honors the tg-sound toggle,
-// visuals honor prefers-reduced-motion. Auto-cleans up.
+// Victory celebration — plays the cheer clip + a starry fireworks burst.
+// Self-contained & offline; sound honors tg-sound, visuals honor reduced-motion.
 window.celebrate=function(){
-  // ── applause + cheering (synthesized) ──
-  if(localStorage.getItem("tg-sound")!=="0"){try{
-    var AC=window.AudioContext||window.webkitAudioContext,c=new AC();
-    if(c.state==="suspended")c.resume();
-    var now=c.currentTime,master=c.createGain();master.gain.value=0.9;master.connect(c.destination);
-    // crowd "roar": band-passed noise that swells then fades (~2.2s)
-    var dur=2.2,nb=c.createBuffer(1,Math.floor(c.sampleRate*dur),c.sampleRate),d=nb.getChannelData(0);
-    for(var i=0;i<d.length;i++)d[i]=Math.random()*2-1;
-    var noise=c.createBufferSource();noise.buffer=nb;
-    var bp=c.createBiquadFilter();bp.type="bandpass";bp.Q.value=0.6;
-    bp.frequency.setValueAtTime(700,now);bp.frequency.linearRampToValueAtTime(1200,now+0.6);bp.frequency.linearRampToValueAtTime(850,now+1.5);
-    var ng=c.createGain();
-    ng.gain.setValueAtTime(0.0001,now);ng.gain.exponentialRampToValueAtTime(0.45,now+0.3);ng.gain.setValueAtTime(0.45,now+1.3);ng.gain.exponentialRampToValueAtTime(0.0001,now+dur);
-    noise.connect(bp);bp.connect(ng);ng.connect(master);noise.start(now);noise.stop(now+dur);
-    // a couple of rising "woo" cheers
-    for(var w=0;w<2;w++){(function(off){var o=c.createOscillator(),g=c.createGain();o.type="sine";o.frequency.setValueAtTime(820+Math.random()*260,now+off);o.frequency.linearRampToValueAtTime(1500+Math.random()*360,now+off+0.4);g.gain.setValueAtTime(0.0001,now+off);g.gain.exponentialRampToValueAtTime(0.07,now+off+0.08);g.gain.exponentialRampToValueAtTime(0.0001,now+off+0.5);o.connect(g);g.connect(master);o.start(now+off);o.stop(now+off+0.55);})(w*0.28);}
-    // applause: ~36 short filtered clap bursts scattered over ~2s
-    for(var k=0;k<36;k++){var t=now+0.04+Math.random()*1.95,len=Math.floor(c.sampleRate*0.03),cbb=c.createBuffer(1,len,c.sampleRate),cd=cbb.getChannelData(0);for(var j=0;j<len;j++)cd[j]=(Math.random()*2-1)*(1-j/len);var cs=c.createBufferSource();cs.buffer=cbb;var hp=c.createBiquadFilter();hp.type="highpass";hp.frequency.value=1100;var cg=c.createGain();cg.gain.value=0.10+Math.random()*0.12;cs.connect(hp);hp.connect(cg);cg.connect(master);cs.start(t);cs.stop(t+0.05);}
-    setTimeout(function(){try{c.close();}catch(e){}},2700);
-  }catch(e){}}
-  // ── fireworks (visual) ──
+  if(localStorage.getItem("tg-sound")!=="0"){try{var au=new Audio("./cheer.mp3");au.volume=0.85;au.play().catch(function(){});}catch(e){}}
   if(window.matchMedia&&window.matchMedia("(prefers-reduced-motion:reduce)").matches)return;
   var cv=document.createElement("canvas");
   cv.style.cssText="position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none;z-index:99999";
@@ -180,6 +159,10 @@ window.celebrate=function(){
   }
   requestAnimationFrame(loop);
 };
+</script>
+<script>
+// Loss sound — the "whah-whah" trombone. Offline; honors the tg-sound toggle.
+window.tgFail=function(){if(localStorage.getItem("tg-sound")!=="0"){try{var au=new Audio("./whah.wav");au.volume=0.8;au.play().catch(function(){});}catch(e){}}};
 </script>
 </body>
 </html>

@@ -140,7 +140,7 @@ html.light .topbar{border-bottom-color:#ddd}
 
   function press(i){
     if(!accepting)return;flash(i,180);
-    if(seq[step]!==i){accepting=false;setDisabled(true);playFail();document.getElementById('status').textContent=t('wrong',seq.length);if(seq.length>best){best=seq.length;localStorage.setItem(bestKey(),best);document.getElementById('best').textContent=best;}statRec('simon',{played:1},{bestScore:seq.length});return;}
+    if(seq[step]!==i){accepting=false;setDisabled(true);tgFail();document.getElementById('status').textContent=t('wrong',seq.length);if(seq.length>best){best=seq.length;localStorage.setItem(bestKey(),best);document.getElementById('best').textContent=best;}statRec('simon',{played:1},{bestScore:seq.length});return;}
     step++;if(step>=seq.length){accepting=false;setDisabled(true);document.getElementById('status').textContent=t('ok');setTimeout(nextRound,800);}
   }
 
@@ -151,6 +151,10 @@ html.light .topbar{border-bottom-color:#ddd}
   applyDiffUI();buildBoard();loadBest();
   window.startGame=startGame;window.press=press;window.setDiff=setDiff;
 })();
+</script>
+<script>
+// Loss sound — the "whah-whah" trombone. Offline; honors the tg-sound toggle.
+window.tgFail=function(){if(localStorage.getItem("tg-sound")!=="0"){try{var au=new Audio("./whah.wav");au.volume=0.8;au.play().catch(function(){});}catch(e){}}};
 </script>
 </body>
 </html>

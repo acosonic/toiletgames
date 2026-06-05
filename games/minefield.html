@@ -142,7 +142,7 @@ html.light .msg.lose{background:#f8d7da;color:#721c24}
   function statRec(g,inc,hi,lo){const j=JSON.parse(localStorage.getItem('tg-stats')||'{}');const e=j[g]||{};for(const[k,v]of Object.entries(inc||{}))e[k]=(e[k]||0)+v;for(const[k,v]of Object.entries(hi||{}))if(v!=null&&(!e[k]||v>e[k]))e[k]=v;for(const[k,v]of Object.entries(lo||{}))if(v!=null&&(!e[k]||v<e[k]))e[k]=v;j[g]=e;localStorage.setItem('tg-stats',JSON.stringify(j));}
   const SFX=(()=>{let ac;const A=()=>(ac=ac||new(window.AudioContext||window.webkitAudioContext)());const t=(f,d,tp,v)=>{if(localStorage.getItem('tg-sound')==='0')return;try{const c=A(),o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.type=tp||'sine';o.frequency.value=f;g.gain.setValueAtTime(v||.25,c.currentTime);g.gain.exponentialRampToValueAtTime(.001,c.currentTime+d);o.start();o.stop(c.currentTime+d);}catch(e){}};const n=(d,v)=>{if(localStorage.getItem('tg-sound')==='0')return;try{const c=A(),b=c.createBuffer(1,~~(c.sampleRate*d),c.sampleRate),da=b.getChannelData(0);for(let i=0;i<da.length;i++)da[i]=Math.random()*2-1;const s=c.createBufferSource(),g=c.createGain();s.buffer=b;s.connect(g);g.connect(c.destination);g.gain.setValueAtTime(v||.15,c.currentTime);g.gain.exponentialRampToValueAtTime(.001,c.currentTime+d);s.start();s.stop(c.currentTime+d);}catch(e){}};return{reveal:()=>t(800,.04,'square',.08),boom(){n(.15,.3);t(80,.4,'sawtooth',.25);},win(){t(523,.1);setTimeout(()=>t(659,.1),100);setTimeout(()=>t(784,.25),200);}};})();
 
-  function flood(i){if(revealed[i]||flagged[i])return;revealed[i]=true;if(board[i]===-1){over=true;clearInterval(timerInterval);SFX.boom();statRec('minesweeper',{played:1,losses:1});showAllMines();showMsg('lose',t('hit'));}else{if(board[i]>0)SFX.reveal();if(board[i]===0)neighbors(i).forEach(flood);}}
+  function flood(i){if(revealed[i]||flagged[i])return;revealed[i]=true;if(board[i]===-1){over=true;clearInterval(timerInterval);SFX.boom();tgFail();statRec('minesweeper',{played:1,losses:1});showAllMines();showMsg('lose',t('hit'));}else{if(board[i]>0)SFX.reveal();if(board[i]===0)neighbors(i).forEach(flood);}}
 
   function showAllMines(){for(let i=0;i<rows*cols;i++)if(board[i]===-1)revealed[i]=true;}
 
@@ -157,31 +157,10 @@ html.light .msg.lose{background:#f8d7da;color:#721c24}
 })();
 </script>
 <script>
-// Victory celebration — synthesized crowd applause + cheer, plus a starry
-// fireworks burst. Self-contained & offline; sound honors the tg-sound toggle,
-// visuals honor prefers-reduced-motion. Auto-cleans up.
+// Victory celebration — plays the cheer clip + a starry fireworks burst.
+// Self-contained & offline; sound honors tg-sound, visuals honor reduced-motion.
 window.celebrate=function(){
-  // ── applause + cheering (synthesized) ──
-  if(localStorage.getItem("tg-sound")!=="0"){try{
-    var AC=window.AudioContext||window.webkitAudioContext,c=new AC();
-    if(c.state==="suspended")c.resume();
-    var now=c.currentTime,master=c.createGain();master.gain.value=0.9;master.connect(c.destination);
-    // crowd "roar": band-passed noise that swells then fades (~2.2s)
-    var dur=2.2,nb=c.createBuffer(1,Math.floor(c.sampleRate*dur),c.sampleRate),d=nb.getChannelData(0);
-    for(var i=0;i<d.length;i++)d[i]=Math.random()*2-1;
-    var noise=c.createBufferSource();noise.buffer=nb;
-    var bp=c.createBiquadFilter();bp.type="bandpass";bp.Q.value=0.6;
-    bp.frequency.setValueAtTime(700,now);bp.frequency.linearRampToValueAtTime(1200,now+0.6);bp.frequency.linearRampToValueAtTime(850,now+1.5);
-    var ng=c.createGain();
-    ng.gain.setValueAtTime(0.0001,now);ng.gain.exponentialRampToValueAtTime(0.45,now+0.3);ng.gain.setValueAtTime(0.45,now+1.3);ng.gain.exponentialRampToValueAtTime(0.0001,now+dur);
-    noise.connect(bp);bp.connect(ng);ng.connect(master);noise.start(now);noise.stop(now+dur);
-    // a couple of rising "woo" cheers
-    for(var w=0;w<2;w++){(function(off){var o=c.createOscillator(),g=c.createGain();o.type="sine";o.frequency.setValueAtTime(820+Math.random()*260,now+off);o.frequency.linearRampToValueAtTime(1500+Math.random()*360,now+off+0.4);g.gain.setValueAtTime(0.0001,now+off);g.gain.exponentialRampToValueAtTime(0.07,now+off+0.08);g.gain.exponentialRampToValueAtTime(0.0001,now+off+0.5);o.connect(g);g.connect(master);o.start(now+off);o.stop(now+off+0.55);})(w*0.28);}
-    // applause: ~36 short filtered clap bursts scattered over ~2s
-    for(var k=0;k<36;k++){var t=now+0.04+Math.random()*1.95,len=Math.floor(c.sampleRate*0.03),cbb=c.createBuffer(1,len,c.sampleRate),cd=cbb.getChannelData(0);for(var j=0;j<len;j++)cd[j]=(Math.random()*2-1)*(1-j/len);var cs=c.createBufferSource();cs.buffer=cbb;var hp=c.createBiquadFilter();hp.type="highpass";hp.frequency.value=1100;var cg=c.createGain();cg.gain.value=0.10+Math.random()*0.12;cs.connect(hp);hp.connect(cg);cg.connect(master);cs.start(t);cs.stop(t+0.05);}
-    setTimeout(function(){try{c.close();}catch(e){}},2700);
-  }catch(e){}}
-  // ── fireworks (visual) ──
+  if(localStorage.getItem("tg-sound")!=="0"){try{var au=new Audio("./cheer.mp3");au.volume=0.85;au.play().catch(function(){});}catch(e){}}
   if(window.matchMedia&&window.matchMedia("(prefers-reduced-motion:reduce)").matches)return;
   var cv=document.createElement("canvas");
   cv.style.cssText="position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none;z-index:99999";
@@ -204,6 +183,10 @@ window.celebrate=function(){
   }
   requestAnimationFrame(loop);
 };
+</script>
+<script>
+// Loss sound — the "whah-whah" trombone. Offline; honors the tg-sound toggle.
+window.tgFail=function(){if(localStorage.getItem("tg-sound")!=="0"){try{var au=new Audio("./whah.wav");au.volume=0.8;au.play().catch(function(){});}catch(e){}}};
 </script>
 </body>
 </html>

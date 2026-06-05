@@ -307,6 +307,7 @@ function endGame(){
   over=true;
   statRec('galaga',{played:1},{bestScore:score});
   SFX.over();
+  tgFail();
   draw();
   ctx.fillStyle='rgba(0,0,0,0.72)';
   ctx.fillRect(0,H/2-44,W,88);
@@ -432,6 +433,10 @@ resize();
 applyDiffUI();
 best=+localStorage.getItem('tg-galaga-best')||0;
 newGame();
+</script>
+<script>
+// Loss sound — the "whah-whah" trombone. Offline; honors the tg-sound toggle.
+window.tgFail=function(){if(localStorage.getItem("tg-sound")!=="0"){try{var au=new Audio("./whah.wav");au.volume=0.8;au.play().catch(function(){});}catch(e){}}};
 </script>
 </body>
 </html>

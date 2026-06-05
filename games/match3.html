@@ -213,9 +213,13 @@ function startGame(){document.getElementById('overlay').style.display='none';sco
 
 function tick(){timeLeft--;timerEl.textContent=timeLeft;progressEl.style.width=(timeLeft/GAME_TIME*100)+'%';if(timeLeft<=10)timerEl.classList.add('urgent');if(timeLeft<=0)endGame();}
 
-function endGame(){clearInterval(timerID);gameActive=false;SFX.gameover();if(score>best){best=score;localStorage.setItem('tg-match3-best',best);bestEl.textContent=best.toLocaleString();}statRec('match3',{played:1},{bestScore:score});const overlay=document.getElementById('overlay');overlay.innerHTML=`<h1>${t('timesup')}</h1><div class="final-score">${score.toLocaleString()}</div><div class="tip">${t('moves')}: ${moves} &nbsp;·&nbsp; ${L==='sr'?'Најбољи комбо':'Best combo'}: ${bestCombo}×</div><button class="play-btn" onclick="startGame()">${t('again')}</button>`;overlay.style.display='flex';}
+function endGame(){clearInterval(timerID);gameActive=false;SFX.gameover();tgFail();if(score>best){best=score;localStorage.setItem('tg-match3-best',best);bestEl.textContent=best.toLocaleString();}statRec('match3',{played:1},{bestScore:score});const overlay=document.getElementById('overlay');overlay.innerHTML=`<h1>${t('timesup')}</h1><div class="final-score">${score.toLocaleString()}</div><div class="tip">${t('moves')}: ${moves} &nbsp;·&nbsp; ${L==='sr'?'Најбољи комбо':'Best combo'}: ${bestCombo}×</div><button class="play-btn" onclick="startGame()">${t('again')}</button>`;overlay.style.display='flex';}
 
 initBoard();renderBoard();
+</script>
+<script>
+// Loss sound — the "whah-whah" trombone. Offline; honors the tg-sound toggle.
+window.tgFail=function(){if(localStorage.getItem("tg-sound")!=="0"){try{var au=new Audio("./whah.wav");au.volume=0.8;au.play().catch(function(){});}catch(e){}}};
 </script>
 </body>
 </html>
