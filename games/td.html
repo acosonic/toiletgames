@@ -35,6 +35,14 @@ canvas{display:block;border-radius:8px;touch-action:none}
 .hint{font-size:.72rem;color:var(--dim);text-align:center;min-height:1.1em}
 .credit{font-size:.66rem;color:var(--dim);text-align:center}
 .credit a{color:var(--dim)}
+.tmenu{position:fixed;z-index:55;display:none;flex-direction:column;gap:6px;background:var(--surface);border:1px solid var(--surface2);border-radius:12px;padding:10px 12px;box-shadow:0 10px 30px rgba(0,0,0,.5);min-width:180px}
+.tmenu.show{display:flex}
+.tm-title{font-size:.88rem;font-weight:800;text-align:center}
+.tm-row{display:flex;gap:6px}
+.tm-btn{flex:1;border:none;border-radius:8px;padding:9px 6px;font-size:.78rem;font-weight:800;cursor:pointer;color:#fff;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+.tm-btn.up{background:#3a8d4e}
+.tm-btn.sell{background:#b0533a}
+.tm-btn:disabled{opacity:.45;cursor:default}
 .modal{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.62);display:none;align-items:center;justify-content:center;padding:20px}
 .modal.show{display:flex;animation:moFade .2s ease}
 @keyframes moFade{from{opacity:0}to{opacity:1}}
@@ -67,6 +75,8 @@ canvas{display:block;border-radius:8px;touch-action:none}
   <div class="palette">
     <button class="pbtn" id="tRapid" onclick="selectType('rapid')"></button>
     <button class="pbtn" id="tCannon" onclick="selectType('cannon')"></button>
+    <button class="pbtn" id="tFrost" onclick="selectType('frost')"></button>
+    <button class="pbtn" id="tSniper" onclick="selectType('sniper')"></button>
     <button class="pbtn go" id="waveBtn" onclick="startWave()"></button>
   </div>
   <p class="hint" id="hint"></p>
@@ -74,6 +84,13 @@ canvas{display:block;border-radius:8px;touch-action:none}
     <span class="i18n" data-sr="Идеја:" data-en="Concept:">Идеја:</span>
     <a href="https://github.com/stevetaggart/td-game" target="_blank" rel="noopener">stevetaggart/td-game</a> · MIT
   </p>
+</div>
+<div class="tmenu" id="towerMenu">
+  <div class="tm-title" id="tmTitle"></div>
+  <div class="tm-row">
+    <button class="tm-btn up" id="tmUpgrade" onclick="upgradeTower()"></button>
+    <button class="tm-btn sell" id="tmSell" onclick="sellTower()"></button>
+  </div>
 </div>
 <div class="modal" id="overModal">
   <div class="modal-card">
@@ -109,11 +126,21 @@ const isLight=()=>(localStorage.getItem('tg-theme')||(window.matchMedia('(prefer
 
 const COLS=7, ROWS=11;
 const TOWERS={
-  rapid:{cost:40,range:2.4,fireCd:0.32,dmg:6,color:'#4dd0e1',bspd:11},
-  cannon:{cost:80,range:3.1,fireCd:1.05,dmg:30,color:'#ff7043',bspd:8},
+  rapid: {cost:40, range:2.4, fireCd:0.32, dmg:6,  color:'#4dd0e1', bspd:11, icon:'⚡', sr:'Брза',  en:'Rapid'},
+  cannon:{cost:80, range:3.1, fireCd:1.05, dmg:30, color:'#ff7043', bspd:8,  icon:'💣', sr:'Топ',   en:'Cannon'},
+  frost: {cost:60, range:2.6, fireCd:0.7,  dmg:4,  color:'#7ec8ff', bspd:10, icon:'❄️', sr:'Лед',   en:'Frost', slow:0.5, slowT:1.3},
+  sniper:{cost:120,range:5.0, fireCd:1.6,  dmg:75, color:'#c084fc', bspd:16, icon:'🎯', sr:'Снајпер',en:'Sniper'},
 };
+const TORDER=['rapid','cannon','frost','sniper'];
+const MAXLVL=3;
 const ri=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
 const clamp=(v,a,b)=>v<a?a:v>b?b:v;
+// effective per-level stats
+const tDmg=t=>TOWERS[t.type].dmg*Math.pow(1.7,t.lvl-1);
+const tRangePx=t=>TOWERS[t.type].range*(1+(t.lvl-1)*0.12)*cell;
+const tFireCd=t=>TOWERS[t.type].fireCd*Math.pow(0.85,t.lvl-1);
+const upCost=t=>Math.round(TOWERS[t.type].cost*(0.8+(t.lvl-1)*0.7));
+const sellRefund=t=>Math.round(t.spent*0.6);
 
 let cell, order, pathSet, towers, enemies, bullets, money, lives, wave, best, startBest, over, started, selected, waveActive, toSpawn, spawnTimer, raf, lastTs;
 
@@ -155,6 +182,7 @@ function genPath(){
 
 function newGame(){
   document.getElementById('overModal').classList.remove('show');
+  closeMenu();
   genPath();
   towers=[];enemies=[];bullets=[];
   money=130;lives=15;wave=0;over=false;started=true;
@@ -174,7 +202,6 @@ window.selectType=function(t){
 
 window.startWave=function(){
   if(over){newGame();return;}
-  if(waveActive)return;
   wave++;
   if(wave>best){best=wave;localStorage.setItem('tg-td-best',best);}
   const hp=1+(wave-1)*0.22;
@@ -186,7 +213,12 @@ window.startWave=function(){
                     :{type:'basic',hp:18*hp,spd:1.5,r:0.30,reward:8,color:'#e94560',life:1});
   }
   if(wave%5===0)list.push({type:'boss',hp:340*hp,spd:0.8,r:0.46,reward:90,color:'#ffd166',life:5});
-  toSpawn=list;spawnTimer=0;waveActive=true;
+  // Queue this wave — you can stack many at once; each early call pays a bonus.
+  const wasEmpty=toSpawn.length===0;
+  toSpawn=toSpawn.concat(list);
+  if(wasEmpty)spawnTimer=0;
+  waveActive=true;
+  money+=10+wave*3;
   SFX.wave();updateHUD();updatePalette();
 }
 
@@ -210,7 +242,9 @@ function update(dt){
   for(const e of enemies){
     if(e.dead||e.leaked)continue;
     const tg=order[e.target];const tx=cx(tg.c),ty=cy(tg.r);
-    const dx=tx-e.x,dy=ty-e.y,d=Math.hypot(dx,dy),step=e.spd*cell*dt;
+    let sp=e.spd*cell;
+    if(e.slowT>0){e.slowT-=dt;sp*=(e.slowF||1);}
+    const dx=tx-e.x,dy=ty-e.y,d=Math.hypot(dx,dy),step=sp*dt;
     if(d<=step){e.x=tx;e.y=ty;
       if(e.target>=order.length-1){e.leaked=true;lives-=e.life;SFX.leak();updateHUD();if(lives<=0){endGame();return;}}
       else e.target++;
@@ -221,10 +255,13 @@ function update(dt){
   for(const t of towers){
     t.cd-=dt;
     if(t.cd>0)continue;
-    const cfg=TOWERS[t.type],rng=cfg.range*cell;
+    const cfg=TOWERS[t.type],rng=tRangePx(t);
     let best2=null,bp=-1;
     for(const e of enemies){const d=Math.hypot(e.x-cx(t.c),e.y-cy(t.r));if(d<=rng&&e.target>bp){bp=e.target;best2=e;}}
-    if(best2){t.cd=cfg.fireCd;bullets.push({x:cx(t.c),y:cy(t.r),target:best2,dmg:cfg.dmg,spd:cfg.bspd*cell,color:cfg.color});SFX.shoot();}
+    if(best2){t.cd=tFireCd(t);
+      const b={x:cx(t.c),y:cy(t.r),target:best2,dmg:tDmg(t),spd:cfg.bspd*cell,color:cfg.color};
+      if(cfg.slow)b.slow={f:Math.max(0.25,cfg.slow-(t.lvl-1)*0.08),t:cfg.slowT+(t.lvl-1)*0.3};
+      bullets.push(b);SFX.shoot();}
   }
   // bullets
   for(let i=bullets.length-1;i>=0;i--){
@@ -232,6 +269,7 @@ function update(dt){
     if(!b.target||b.target.dead||b.target.leaked){bullets.splice(i,1);continue;}
     const dx=b.target.x-b.x,dy=b.target.y-b.y,d=Math.hypot(dx,dy),step=b.spd*dt;
     if(d<=step+cell*0.18){
+      if(b.slow){b.target.slowT=Math.max(b.target.slowT||0,b.slow.t);b.target.slowF=b.slow.f;}
       b.target.hp-=b.dmg;
       if(b.target.hp<=0&&!b.target.dead){b.target.dead=true;money+=b.target.reward;if(b.target.type==='boss')SFX.boom();updateHUD();}
       bullets.splice(i,1);
@@ -239,7 +277,7 @@ function update(dt){
   }
   // wave clear
   if(waveActive&&!toSpawn.length&&!enemies.length){
-    waveActive=false;money+=15+wave*4;updateHUD();updatePalette();
+    waveActive=false;updatePalette();
   }
 }
 
@@ -282,13 +320,15 @@ function draw(){
   ctx.fillStyle='#e94560';ctx.fillText('🏠',cx(e.c),cy(e.r));
   // tower range (faint, only for selected type preview on towers)
   for(const t of towers){
-    const cfg=TOWERS[t.type];
-    ctx.beginPath();ctx.arc(cx(t.c),cy(t.r),cfg.range*cell,0,Math.PI*2);
-    ctx.fillStyle=cfg.color+'14';ctx.fill();
-    // body
+    const cfg=TOWERS[t.type],X=cx(t.c),Y=cy(t.r);
+    ctx.beginPath();ctx.arc(X,Y,tRangePx(t),0,Math.PI*2);
+    ctx.fillStyle=cfg.color+'12';ctx.fill();
     ctx.fillStyle=cfg.color;
-    ctx.beginPath();ctx.arc(cx(t.c),cy(t.r),cell*0.34,0,Math.PI*2);ctx.fill();
-    ctx.fillStyle='rgba(0,0,0,.35)';ctx.beginPath();ctx.arc(cx(t.c),cy(t.r),cell*0.16,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.arc(X,Y,cell*0.34,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='rgba(0,0,0,.35)';ctx.beginPath();ctx.arc(X,Y,cell*0.15,0,Math.PI*2);ctx.fill();
+    // level pips
+    ctx.fillStyle='#fff';
+    for(let k=0;k<t.lvl;k++)ctx.fillRect(X-(t.lvl*5-2)/2+k*5,Y+cell*0.23,3,3);
   }
   // bullets
   for(const b of bullets){ctx.fillStyle=b.color;ctx.beginPath();ctx.arc(b.x,b.y,cell*0.08,0,Math.PI*2);ctx.fill();}
@@ -312,7 +352,7 @@ function place(c,r){
   if(pathSet.has(c+','+r)||towerAt(c,r))return;
   const cfg=TOWERS[selected];
   if(money<cfg.cost){flashHint(L()==='sr'?'Нема довољно 💰':'Not enough 💰');return;}
-  money-=cfg.cost;towers.push({c,r,type:selected,cd:0});
+  money-=cfg.cost;towers.push({c,r,type:selected,cd:0,lvl:1,spent:cfg.cost});
   SFX.place();updateHUD();updatePalette();draw();
 }
 
@@ -327,28 +367,65 @@ function updateHUD(){
 }
 function updatePalette(){
   const sr=L()==='sr';
-  document.getElementById('tRapid').textContent='⚡ '+TOWERS.rapid.cost;
-  document.getElementById('tCannon').textContent='💣 '+TOWERS.cannon.cost;
-  document.getElementById('tRapid').classList.toggle('active',selected==='rapid');
-  document.getElementById('tCannon').classList.toggle('active',selected==='cannon');
-  document.getElementById('tRapid').disabled=money<TOWERS.rapid.cost;
-  document.getElementById('tCannon').disabled=money<TOWERS.cannon.cost;
+  const ids={rapid:'tRapid',cannon:'tCannon',frost:'tFrost',sniper:'tSniper'};
+  for(const k of TORDER){const b=document.getElementById(ids[k]),cfg=TOWERS[k];
+    b.textContent=cfg.icon+' '+cfg.cost;
+    b.classList.toggle('active',selected===k);
+    b.disabled=money<cfg.cost;}
   const wb=document.getElementById('waveBtn');
   wb.textContent='🌊 '+(sr?'Талас ':'Wave ')+(wave+1);
-  wb.disabled=waveActive;
+  wb.disabled=false; // waves can be queued; never locked
 }
 
-// input
+// input — tap to place, long-press a tower for upgrade/sell menu
+let menuTower=null,lpTimer=null,lpCell=null,downXY=null,moved=false;
+function cellOf(ev){const rct=canvas.getBoundingClientRect();return{c:Math.floor((ev.clientX-rct.left)/(rct.width/COLS)),r:Math.floor((ev.clientY-rct.top)/(rct.height/ROWS))};}
+function clearLP(){if(lpTimer){clearTimeout(lpTimer);lpTimer=null;}}
 canvas.addEventListener('pointerdown',ev=>{
   ev.preventDefault();
   if(over){newGame();return;}
-  const rct=canvas.getBoundingClientRect();
-  const c=Math.floor((ev.clientX-rct.left)/(rct.width/COLS));
-  const r=Math.floor((ev.clientY-rct.top)/(rct.height/ROWS));
-  if(c>=0&&c<COLS&&r>=0&&r<ROWS)place(c,r);
+  closeMenu();
+  const {c,r}=cellOf(ev);lpCell={c,r};downXY=[ev.clientX,ev.clientY];moved=false;
+  if(c>=0&&c<COLS&&r>=0&&r<ROWS&&towerAt(c,r))lpTimer=setTimeout(()=>{lpTimer=null;openMenu(c,r);},420);
 });
+canvas.addEventListener('pointermove',ev=>{if(downXY&&Math.hypot(ev.clientX-downXY[0],ev.clientY-downXY[1])>10){moved=true;clearLP();}});
+canvas.addEventListener('pointerup',()=>{
+  const wasLong=!lpTimer&&menuTower; clearLP();
+  if(lpCell&&!moved&&!wasLong){const {c,r}=lpCell;if(c>=0&&c<COLS&&r>=0&&r<ROWS&&!towerAt(c,r))place(c,r);}
+  lpCell=null;downXY=null;
+});
+canvas.addEventListener('pointercancel',()=>{clearLP();lpCell=null;downXY=null;});
+
+function openMenu(c,r){
+  const t=towerAt(c,r);if(!t)return;menuTower=t;
+  const m=document.getElementById('towerMenu');populateMenu();m.classList.add('show');
+  const rct=canvas.getBoundingClientRect();
+  const px=rct.left+(c+0.5)*(rct.width/COLS), py=rct.top+r*(rct.height/ROWS);
+  const mw=m.offsetWidth,mh=m.offsetHeight;
+  let left=clamp(px-mw/2,6,window.innerWidth-mw-6);
+  let top=py-mh-8;if(top<6)top=py+(rct.height/ROWS)+8;
+  m.style.left=left+'px';m.style.top=top+'px';
+}
+function closeMenu(){menuTower=null;document.getElementById('towerMenu').classList.remove('show');}
+function populateMenu(){
+  const t=menuTower;if(!t)return;const cfg=TOWERS[t.type],sr=L()==='sr';
+  document.getElementById('tmTitle').textContent=cfg.icon+' '+(sr?cfg.sr:cfg.en)+' · '+(sr?'Ниво ':'Lvl ')+t.lvl;
+  const up=document.getElementById('tmUpgrade');
+  if(t.lvl>=MAXLVL){up.textContent=sr?'Макс. ниво':'Max level';up.disabled=true;}
+  else{const c=upCost(t);up.textContent='⬆️ '+(sr?'Ниво ':'Lvl ')+(t.lvl+1)+' · '+c+'💰';up.disabled=money<c;}
+  document.getElementById('tmSell').textContent='💲 '+(sr?'Продај':'Sell')+' +'+sellRefund(t)+'💰';
+}
+window.upgradeTower=function(){
+  const t=menuTower;if(!t||t.lvl>=MAXLVL)return;const c=upCost(t);if(money<c)return;
+  money-=c;t.lvl++;t.spent+=c;SFX.place();updateHUD();updatePalette();populateMenu();draw();
+};
+window.sellTower=function(){
+  const t=menuTower;if(!t)return;money+=sellRefund(t);
+  const i=towers.indexOf(t);if(i>=0)towers.splice(i,1);
+  SFX.leak();closeMenu();updateHUD();updatePalette();draw();
+};
 document.getElementById('againBtn').addEventListener('click',newGame);
-window.addEventListener('resize',resize);
+window.addEventListener('resize',()=>{closeMenu();resize();});
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&started&&!over)draw();});
 
 resize();setHint();newGame();
