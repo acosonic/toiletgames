@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Најезда — Тоалет Игрице</title>
+<meta name="theme-color" content="#e94560">
+<script>(function(){var t=localStorage.getItem('tg-theme')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');if(t==='light')document.documentElement.classList.add('light');})()</script>
+<!--
+  Најезда — a lane-defense game in the plants-vs-zombies style: zombies march
+  down lanes toward your house; plant shooters, sunflowers and walls to stop
+  them. Original implementation for this hub (shares the grid/entity/economy
+  patterns of the Tower Defense game). Genre inspired by Plants vs. Zombies.
+-->
+<style>
+:root{--bg:#0f0f1a;--surface:#1a1a2e;--surface2:#16213e;--accent:#e94560;--text:#e0e0e0;--dim:#888}
+html.light{--bg:#f0f2f5;--surface:#fff;--surface2:#e2e5ea;--text:#1a1a2e;--dim:#666}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:18px}html.xl{font-size:22px}
+body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,sans-serif;min-height:100dvh;-webkit-tap-highlight-color:transparent;touch-action:none;overflow:hidden;transition:background .2s,color .2s}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--surface);gap:6px;border-bottom:1px solid var(--surface2)}
+.topbar a{color:var(--accent);text-decoration:none;font-size:.95rem;font-weight:700;white-space:nowrap}
+.topbar h2{font-size:.95rem;font-weight:700;flex:1;text-align:center}
+.topbar-btns{display:flex;gap:4px;flex-shrink:0}
+.icon-btn{background:none;border:1px solid var(--dim);color:var(--text);border-radius:6px;padding:5px 8px;font-size:.78rem;cursor:pointer;white-space:nowrap;line-height:1}
+.wrap{padding:6px 4px 6px;display:flex;flex-direction:column;align-items:center;gap:6px}
+.hud{display:flex;align-items:center;justify-content:space-between;width:100%;max-width:460px;font-size:.98rem;font-weight:700;padding:0 8px}
+canvas{display:block;border-radius:8px;touch-action:none}
+.palette{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+.pbtn{background:var(--surface);border:1px solid var(--surface2);color:var(--text);border-radius:10px;padding:8px 12px;font-size:.9rem;font-weight:800;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+.pbtn.active{background:var(--accent);border-color:var(--accent);color:#fff}
+.pbtn.go{background:var(--surface2)}
+.pbtn:disabled{opacity:.45;cursor:default}
+.hint{font-size:.72rem;color:var(--dim);text-align:center;min-height:1.1em}
+.modal{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.62);display:none;align-items:center;justify-content:center;padding:20px}
+.modal.show{display:flex;animation:moFade .2s ease}
+@keyframes moFade{from{opacity:0}to{opacity:1}}
+.modal-card{background:var(--surface);border:1px solid var(--surface2);border-radius:18px;padding:22px 26px;max-width:320px;width:100%;text-align:center;display:flex;flex-direction:column;gap:8px;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+.mo-title{font-size:1.4rem;font-weight:800}
+.mo-big #moKills{font-size:3.2rem;font-weight:900;color:var(--accent)}
+.mo-unit{font-size:1rem;font-weight:700;color:var(--dim)}
+.mo-comment{font-size:1.02rem;font-weight:800;min-height:1.2em;margin-top:2px}
+.modal-card .pbtn{margin-top:10px;align-self:center;padding:12px 28px;font-size:1.05rem}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <a href="../" class="i18n" data-sr="← Назад" data-en="← Back">← Назад</a>
+  <h2 class="i18n" data-sr="🧟 Најезда" data-en="🧟 Onslaught">🧟 Најезда</h2>
+  <div class="topbar-btns">
+    <button class="icon-btn theme-btn" onclick="toggleTheme()">🌙</button>
+    <button class="icon-btn lang-btn" onclick="toggleLang()">EN</button>
+    <button class="icon-btn sound-btn" onclick="toggleSound()">🔊</button>
+    <button class="icon-btn" onclick="toggleFont()">Аа</button>
+  </div>
+</div>
+<div class="wrap">
+  <div class="hud">
+    <span id="sunEl">☀️ 0</span>
+    <span id="livesEl">❤️ 0</span>
+    <span id="killedEl">🧟 0</span>
+    <span id="bestEl">🏆 0</span>
+  </div>
+  <canvas id="game"></canvas>
+  <div class="palette">
+    <button class="pbtn" id="pSun" onclick="selectType('sun')"></button>
+    <button class="pbtn" id="pPea" onclick="selectType('pea')"></button>
+    <button class="pbtn" id="pNut" onclick="selectType('nut')"></button>
+    <button class="pbtn" id="pChili" onclick="selectType('chili')"></button>
+    <button class="pbtn go" id="newBtn" onclick="newGame()">↻</button>
+  </div>
+  <p class="hint" id="hint"></p>
+</div>
+<div class="modal" id="overModal">
+  <div class="modal-card">
+    <div class="mo-title" id="moTitle"></div>
+    <div class="mo-big"><span id="moKills">0</span> <span class="mo-unit" id="moUnit"></span></div>
+    <div class="mo-comment" id="moComment"></div>
+    <button class="pbtn" id="againBtn"></button>
+  </div>
+</div>
+<script>
+(function(){
+  const _lang=()=>localStorage.getItem('tg-lang')||(/^(sr|hr|bs)/i.test(navigator.language)?'sr':'en');
+  const _theme=()=>localStorage.getItem('tg-theme')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');
+  function applyTheme(){const d=_theme()==='dark';document.documentElement.classList.toggle('light',!d);document.querySelectorAll('.theme-btn').forEach(b=>b.textContent=d?'☀️':'🌙');}
+  function applyI18n(){const L=_lang();document.querySelectorAll('[data-'+L+']').forEach(el=>el.textContent=el.dataset[L]);document.querySelectorAll('.lang-btn').forEach(b=>b.textContent=L==='sr'?'EN':'СР');document.documentElement.lang=L;}
+  window.toggleTheme=()=>{localStorage.setItem('tg-theme',_theme()==='dark'?'light':'dark');applyTheme();};
+  window.toggleLang=()=>{localStorage.setItem('tg-lang',_lang()==='sr'?'en':'sr');location.reload();};
+  window.toggleFont=()=>{const xl=document.documentElement.classList.toggle('xl');localStorage.setItem('tg-xl',xl?'1':'0');};
+  window.toggleSound=()=>{const on=localStorage.getItem('tg-sound')!=='0';localStorage.setItem('tg-sound',on?'0':'1');document.querySelectorAll('.sound-btn').forEach(b=>b.textContent=on?'🔇':'🔊');};
+  if(localStorage.getItem('tg-xl')==='1')document.documentElement.classList.add('xl');
+  applyTheme();applyI18n();document.querySelectorAll('.sound-btn').forEach(b=>b.textContent=localStorage.getItem('tg-sound')==='0'?'🔇':'🔊');
+})();
+
+function statRec(g,inc,hi){const j=JSON.parse(localStorage.getItem('tg-stats')||'{}');const e=j[g]||{};for(const[k,v]of Object.entries(inc||{}))e[k]=(e[k]||0)+v;for(const[k,v]of Object.entries(hi||{}))if(v!=null&&(!e[k]||v>e[k]))e[k]=v;j[g]=e;localStorage.setItem('tg-stats',JSON.stringify(j));}
+const SFX=(()=>{let ac;const A=()=>(ac=ac||new(window.AudioContext||window.webkitAudioContext)());const t=(f,d,tp,v)=>{if(localStorage.getItem('tg-sound')==='0')return;try{const c=A(),o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.type=tp||'sine';o.frequency.value=f;g.gain.setValueAtTime(v||.18,c.currentTime);g.gain.exponentialRampToValueAtTime(.001,c.currentTime+d);o.start();o.stop(c.currentTime+d);}catch(e){}};
+return{shoot:()=>t(620,.05,'square',.05),sun:()=>{t(880,.08);setTimeout(()=>t(1175,.1),70);},place:()=>t(440,.07,'square',.12),boom:()=>{t(200,.18,'sawtooth',.18);setTimeout(()=>t(120,.2,'sawtooth',.15),90);},leak:()=>t(140,.2,'sawtooth',.2)};})();
+
+const L=()=>localStorage.getItem('tg-lang')||'sr';
+const canvas=document.getElementById('game');
+const ctx=canvas.getContext('2d');
+const isLight=()=>(localStorage.getItem('tg-theme')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light'))==='light';
+
+const COLS=5, ROWS=8;
+const PLANTS={
+  sun:  {cost:50, icon:'🌻', sr:'Сунцокрет', en:'Sunflower', hp:60,  kind:'sun', sunEvery:6, sunAmt:25},
+  pea:  {cost:100,icon:'🌱', sr:'Грашак',     en:'Peashooter',hp:60, kind:'shooter', fireEvery:1.4, dmg:20, pspd:6.5},
+  nut:  {cost:50, icon:'🥜', sr:'Орах',       en:'Wall-nut',  hp:400, kind:'wall'},
+  chili:{cost:125,icon:'🌶️', sr:'Љута',       en:'Chili',     hp:1,   kind:'bomb'},
+};
+const PORDER=['sun','pea','nut','chili'];
+
+let cell, plants, zombies, peas, sun, lives, killed, best, startBest, elapsed, spawnTimer, skyTimer, over, started, selected, flashLane, flashT, raf, lastTs;
+best=+localStorage.getItem('tg-onslaught-best')||0;
+
+const cx=c=>c*cell+cell/2;
+
+function resize(){
+  const wrap=document.querySelector('.wrap');
+  const topbar=document.querySelector('.topbar').offsetHeight;
+  const hud=document.querySelector('.hud').offsetHeight;
+  const pal=document.querySelector('.palette').offsetHeight;
+  const hint=document.querySelector('.hint').offsetHeight;
+  const cs=getComputedStyle(wrap);
+  const extra=(parseFloat(cs.rowGap)||0)*3+parseFloat(cs.paddingTop)+parseFloat(cs.paddingBottom)+8;
+  const maxW=Math.min(440,window.innerWidth-8);
+  const availH=window.innerHeight-topbar-hud-pal-hint-extra;
+  cell=Math.max(30,Math.floor(Math.min(maxW/COLS, availH/ROWS)));
+  canvas.width=cell*COLS;canvas.height=cell*ROWS;
+  canvas.style.width=canvas.width+'px';canvas.style.height=canvas.height+'px';
+  if(plants)draw();
+}
+
+function newGame(){
+  document.getElementById('overModal').classList.remove('show');
+  plants=new Map();zombies=[];peas=[];
+  sun=150;lives=3;killed=0;elapsed=0;over=false;started=true;
+  spawnTimer=2.5;skyTimer=7;selected=null;flashLane=-1;flashT=0;startBest=best;
+  updateHUD();updatePalette();
+  if(raf)cancelAnimationFrame(raf);
+  lastTs=performance.now();raf=requestAnimationFrame(loop);
+}
+
+window.selectType=function(t){if(over)return;selected=selected===t?null:t;updatePalette();};
+
+function zTemplate(kind){
+  if(kind==='bucket')return{kind,hp:260,maxHp:260,spd:0.45,color:'#9aa4b0',face:2};
+  if(kind==='cone')return{kind,hp:140,maxHp:140,spd:0.5,color:'#c78bff',face:2};
+  return{kind:'normal',hp:60,maxHp:60,spd:0.58,color:'#7ec850',face:0};
+}
+function spawnZombie(){
+  const lane=Math.floor(Math.random()*COLS),rr=Math.random();
+  let kind='normal';
+  if(elapsed>60&&rr<0.2)kind='bucket';else if(elapsed>30&&rr<0.38)kind='cone';
+  const z=zTemplate(kind);z.lane=lane;z.y=-0.5;z.eating=null;zombies.push(z);
+}
+
+function loop(ts){const dt=Math.min((ts-lastTs)/1000,0.05);lastTs=ts;if(!over){update(dt);draw();raf=requestAnimationFrame(loop);}}
+
+function update(dt){
+  elapsed+=dt;
+  if(flashT>0)flashT-=dt;
+  skyTimer-=dt;if(skyTimer<=0){sun+=25;skyTimer=7;updateHUD();}
+  // plants act
+  for(const p of plants.values()){
+    const cfg=PLANTS[p.type];
+    if(cfg.kind==='sun'){p.cd-=dt;if(p.cd<=0){sun+=cfg.sunAmt;p.cd=cfg.sunEvery;SFX.sun();updateHUD();}}
+    else if(cfg.kind==='shooter'){p.cd-=dt;if(p.cd<=0){let has=false;for(const z of zombies)if(z.lane===p.c&&z.y<=p.r+0.7){has=true;break;}if(has){peas.push({lane:p.c,y:p.r+0.4,dmg:cfg.dmg,spd:cfg.pspd});p.cd=cfg.fireEvery;SFX.shoot();}else p.cd=0.2;}}
+  }
+  // zombies
+  for(const z of zombies){
+    if(z.dead)continue;
+    if(z.eating){const pl=z.eating;if(!plants.has(pl.key))z.eating=null;else{pl.hp-=55*dt;if(pl.hp<=0){plants.delete(pl.key);z.eating=null;}}}
+    if(!z.eating){
+      z.y+=z.spd*dt;
+      const row=Math.floor(z.y),k=z.lane+','+row;
+      if(row>=0&&row<ROWS&&plants.has(k)){z.eating=plants.get(k);z.y=row+0.5;}
+      else if(z.y>=ROWS){z.dead=true;lives--;SFX.leak();flashLane=z.lane;flashT=0.5;updateHUD();if(lives<=0){endGame();return;}}
+    }
+  }
+  zombies=zombies.filter(z=>!z.dead);
+  // peas
+  for(let i=peas.length-1;i>=0;i--){const p=peas[i];p.y-=p.spd*dt;if(p.y<-0.6){peas.splice(i,1);continue;}
+    let hit=null;for(const z of zombies)if(z.lane===p.lane&&Math.abs(z.y-p.y)<0.45&&(!hit||z.y>hit.y))hit=z;
+    if(hit){hit.hp-=p.dmg;if(hit.hp<=0&&!hit.dead){hit.dead=true;killed++;updateHUD();}peas.splice(i,1);}
+  }
+  zombies=zombies.filter(z=>!z.dead);
+  // spawn
+  spawnTimer-=dt;if(spawnTimer<=0){spawnZombie();spawnTimer=Math.max(0.85,3.6-elapsed*0.03);}
+}
+
+function endGame(){over=true;statRec('onslaught',{played:1},{bestKills:killed});failSound();draw();showOver();}
+function failSound(){if(localStorage.getItem('tg-sound')!=='0'){try{var a=new Audio('./whah.wav');a.volume=0.8;a.play().catch(function(){});}catch(e){}}}
+
+function showOver(){
+  const sr=L()==='sr';
+  document.getElementById('moTitle').textContent=sr?'💀 Пробили су се!':'💀 They broke through!';
+  document.getElementById('moKills').textContent=killed;
+  document.getElementById('moUnit').textContent=sr?'зомбија':'zombies';
+  const cm=document.getElementById('moComment');
+  if(killed>startBest){cm.textContent=sr?'🎉 Нови рекорд!':'🎉 New record!';cm.style.color='#ffd166';}
+  else if(killed>0&&killed===startBest){cm.textContent=sr?'🤝 Изједначио рекорд!':'🤝 Tied the record!';cm.style.color='var(--text)';}
+  else if(startBest>0){const d=startBest-killed;cm.textContent=sr?('Испод рекорда за '+d):('Below record by '+d);cm.style.color='var(--dim)';}
+  else cm.textContent='';
+  document.getElementById('againBtn').textContent=sr?'Нова игра':'Play again';
+  document.getElementById('overModal').classList.add('show');
+}
+
+// ── draw ──
+function draw(){
+  const light=isLight();
+  for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
+    const even=(r+c)%2===0;
+    ctx.fillStyle=light?(even?'#bfe3a0':'#b2da92'):(even?'#23351f':'#1d2c1a');
+    ctx.fillRect(c*cell,r*cell,cell,cell);
+  }
+  // house line (bottom)
+  ctx.fillStyle=light?'#8a6f5a':'#5a4636';ctx.fillRect(0,canvas.height-3,canvas.width,3);
+  // lane flash (zombie got in / chili)
+  if(flashT>0&&flashLane>=0){ctx.fillStyle='rgba(233,69,96,'+(flashT*0.6)+')';ctx.fillRect(flashLane*cell,0,cell,canvas.height);}
+  // plants
+  for(const p of plants.values()){
+    const X=cx(p.c),Y=p.r*cell+cell/2,cfg=PLANTS[p.type];
+    ctx.font=Math.round(cell*0.66)+'px system-ui';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText(cfg.icon,X,Y+cell*0.04);
+    if(p.hp<p.maxHp){const w=cell*0.7,h=cfg.hp/p.maxHp;const hpc=Math.max(0,p.hp/p.maxHp);ctx.fillStyle='rgba(0,0,0,.45)';ctx.fillRect(X-w/2,Y+cell*0.32,w,3);ctx.fillStyle=hpc>0.4?'#5cdb7a':'#e94560';ctx.fillRect(X-w/2,Y+cell*0.32,w*hpc,3);}
+  }
+  // peas
+  ctx.fillStyle='#5cdb7a';
+  for(const p of peas){ctx.beginPath();ctx.arc(cx(p.lane),p.y*cell,cell*0.1,0,Math.PI*2);ctx.fill();}
+  // zombies
+  for(const z of zombies){
+    const X=cx(z.lane),Y=z.y*cell,R=cell*0.36;
+    ctx.fillStyle=z.color;ctx.beginPath();ctx.arc(X,Y,R,0,Math.PI*2);ctx.fill();
+    zface(X,Y,R,z.face);
+    const w=cell*0.66,hpc=Math.max(0,z.hp/z.maxHp);
+    ctx.fillStyle='rgba(0,0,0,.5)';ctx.fillRect(X-w/2,Y-R-6,w,4);
+    ctx.fillStyle=hpc>0.5?'#5cdb7a':hpc>0.25?'#ffd166':'#e94560';ctx.fillRect(X-w/2,Y-R-6,w*hpc,4);
+  }
+  // placement hint highlight
+  if(selected&&PLANTS[selected].kind!=='bomb'){ctx.fillStyle='rgba(255,255,255,.06)';for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)if(!plants.has(c+','+r))ctx.fillRect(c*cell+2,r*cell+2,cell-4,cell-4);}
+}
+function zface(x,y,R,face){
+  const ex=R*0.34,ey=-R*0.06,er=R*0.24;
+  ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(x-ex,y+ey,er,0,7);ctx.fill();ctx.beginPath();ctx.arc(x+ex,y+ey,er,0,7);ctx.fill();
+  ctx.fillStyle='#101019';ctx.beginPath();ctx.arc(x-ex,y+ey+er*0.15,er*0.5,0,7);ctx.fill();ctx.beginPath();ctx.arc(x+ex,y+ey+er*0.15,er*0.5,0,7);ctx.fill();
+  ctx.strokeStyle='#101019';ctx.lineWidth=Math.max(1.4,R*0.12);ctx.lineCap='round';ctx.lineJoin='round';
+  ctx.beginPath();ctx.moveTo(x-ex*1.4,y-R*0.46);ctx.lineTo(x-ex*0.25,y-R*0.2);ctx.moveTo(x+ex*1.4,y-R*0.46);ctx.lineTo(x+ex*0.25,y-R*0.2);ctx.stroke();
+  if(face===2){ctx.beginPath();ctx.arc(x,y+R*0.14,R*0.4,0.18*Math.PI,0.82*Math.PI);ctx.stroke();ctx.fillStyle='#fff';for(const fx of[-R*0.16,R*0.16]){ctx.beginPath();ctx.moveTo(x+fx-R*0.08,y+R*0.27);ctx.lineTo(x+fx+R*0.08,y+R*0.27);ctx.lineTo(x+fx,y+R*0.46);ctx.closePath();ctx.fill();}}
+  else{ctx.beginPath();ctx.arc(x,y+R*0.16,R*0.42,0.18*Math.PI,0.82*Math.PI);ctx.stroke();}
+}
+
+function updateHUD(){
+  if(killed>best){best=killed;localStorage.setItem('tg-onslaught-best',best);}
+  document.getElementById('sunEl').textContent='☀️ '+sun;
+  document.getElementById('livesEl').textContent='🏠 '+Math.max(0,lives);
+  document.getElementById('killedEl').textContent='🧟 '+killed;
+  document.getElementById('bestEl').textContent='🏆 '+best;
+}
+function updatePalette(){
+  const ids={sun:'pSun',pea:'pPea',nut:'pNut',chili:'pChili'};
+  for(const k of PORDER){const b=document.getElementById(ids[k]),cfg=PLANTS[k];b.textContent=cfg.icon+' '+cfg.cost;b.classList.toggle('active',selected===k);b.disabled=sun<cfg.cost;}
+}
+
+let hintTimer;
+function flash(msg){const h=document.getElementById('hint');h.textContent=msg;clearTimeout(hintTimer);hintTimer=setTimeout(setHint,1200);}
+function setHint(){const sr=L()==='sr';document.getElementById('hint').textContent=sr?'Изабери биљку па тапни поље · дуги притисак брише':'Pick a plant, tap a tile · long-press removes';}
+
+function place(c,r){
+  if(over||!selected)return;
+  const cfg=PLANTS[selected];
+  if(cfg.kind==='bomb'){
+    if(sun<cfg.cost){flash(L()==='sr'?'Нема ☀️':'Not enough ☀️');return;}
+    sun-=cfg.cost;let n=0;for(const z of zombies)if(z.lane===c&&!z.dead){z.dead=true;n++;}zombies=zombies.filter(z=>!z.dead);killed+=n;flashLane=c;flashT=0.5;SFX.boom();updateHUD();updatePalette();draw();return;
+  }
+  const k=c+','+r;if(plants.has(k))return;
+  if(sun<cfg.cost){flash(L()==='sr'?'Нема ☀️':'Not enough ☀️');return;}
+  sun-=cfg.cost;
+  plants.set(k,{c,r,key:k,type:selected,hp:cfg.hp,maxHp:cfg.hp,cd:(cfg.kind==='sun'?cfg.sunEvery*0.5:cfg.kind==='shooter'?0.3:0)});
+  SFX.place();updateHUD();updatePalette();draw();
+}
+
+// input — tap to plant, long-press a plant to remove
+let lpTimer=null,lpCell=null,downXY=null,moved=false,longFired=false;
+function cellOf(ev){const r=canvas.getBoundingClientRect();return{c:Math.floor((ev.clientX-r.left)/(r.width/COLS)),r:Math.floor((ev.clientY-r.top)/(r.height/ROWS))};}
+function clearLP(){if(lpTimer){clearTimeout(lpTimer);lpTimer=null;}}
+canvas.addEventListener('pointerdown',ev=>{
+  ev.preventDefault();if(over){newGame();return;}
+  const {c,r}=cellOf(ev);lpCell={c,r};downXY=[ev.clientX,ev.clientY];moved=false;longFired=false;
+  if(c>=0&&c<COLS&&r>=0&&r<ROWS&&plants.has(c+','+r))lpTimer=setTimeout(()=>{lpTimer=null;longFired=true;plants.delete(c+','+r);SFX.boom();updatePalette();draw();},450);
+});
+canvas.addEventListener('pointermove',ev=>{if(downXY&&Math.hypot(ev.clientX-downXY[0],ev.clientY-downXY[1])>10){moved=true;clearLP();}});
+canvas.addEventListener('pointerup',()=>{clearLP();if(lpCell&&!moved&&!longFired){const {c,r}=lpCell;if(c>=0&&c<COLS&&r>=0&&r<ROWS&&!plants.has(c+','+r))place(c,r);}lpCell=null;downXY=null;});
+canvas.addEventListener('pointercancel',()=>{clearLP();lpCell=null;downXY=null;});
+document.getElementById('againBtn').addEventListener('click',newGame);
+window.addEventListener('resize',resize);
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&started&&!over)draw();});
+
+resize();setHint();newGame();
+</script>
+</body>
+</html>
