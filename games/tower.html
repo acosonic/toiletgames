@@ -32,6 +32,17 @@ canvas{display:block;border-radius:10px;touch-action:none}
 .drop-btn{background:var(--accent);color:#fff;border:none;border-radius:12px;padding:12px 30px;font-size:1.1rem;font-weight:800;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation;letter-spacing:.04em}
 .credit{font-size:.68rem;color:var(--dim);text-align:center;line-height:1.3}
 .credit a{color:var(--dim)}
+.modal{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.62);display:none;align-items:center;justify-content:center;padding:20px}
+.modal.show{display:flex;animation:moFade .2s ease}
+@keyframes moFade{from{opacity:0}to{opacity:1}}
+.modal-card{background:var(--surface);border:1px solid var(--surface2);border-radius:18px;padding:22px 26px;max-width:320px;width:100%;text-align:center;display:flex;flex-direction:column;gap:8px;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+.mo-title{font-size:1.4rem;font-weight:800}
+.mo-big{line-height:1;margin:4px 0}
+.mo-big #moFloors{font-size:3.2rem;font-weight:900;color:var(--accent)}
+.mo-unit{font-size:1rem;font-weight:700;color:var(--dim)}
+.mo-score{font-size:1rem;font-weight:700;color:var(--dim)}
+.mo-comment{font-size:1.02rem;font-weight:800;min-height:1.2em;margin-top:2px}
+.modal-card .drop-btn{margin-top:10px;align-self:center}
 </style>
 </head>
 <body>
@@ -57,6 +68,15 @@ canvas{display:block;border-radius:10px;touch-action:none}
     <span class="i18n" data-sr="Идеја:" data-en="Concept:">Идеја:</span>
     <a href="https://github.com/iamkun/tower_game" target="_blank" rel="noopener">iamkun/tower_game</a> · MIT
   </p>
+</div>
+<div class="modal" id="overModal">
+  <div class="modal-card">
+    <div class="mo-title" id="moTitle"></div>
+    <div class="mo-big"><span id="moFloors">0</span> <span class="mo-unit" id="moUnit"></span></div>
+    <div class="mo-score" id="moScore"></div>
+    <div class="mo-comment" id="moComment"></div>
+    <button class="drop-btn" id="againBtn"></button>
+  </div>
 </div>
 <script>
 (function(){
@@ -91,7 +111,7 @@ const isLight=()=>(localStorage.getItem('tg-theme')||(window.matchMedia('(prefer
 // ── sizes (set in resize) ──────────────────────────────────────
 let W,H,BH,ANCHOR,DROPH,PTHRESH;
 // ── state ──────────────────────────────────────────────────────
-let blocks,incoming,offcuts,camY,score,best,lives,combo,over,started,raf,lastTs;
+let blocks,incoming,offcuts,camY,score,best,lives,combo,over,started,raf,lastTs,startBest;
 
 best=+localStorage.getItem('tg-tower-best')||0;
 
@@ -118,11 +138,13 @@ function resize(){
     if(incoming){incoming.x*=r;incoming.w*=r;if(!incoming.falling)incoming.ib=blocks.length*BH+DROPH;}
     offcuts=[];
     camY=blocks.length*BH;
-    if(!over)draw();else drawOver();
+    if(!over)draw();else showOver();
   }
 }
 
 function newGame(){
+  document.getElementById('overModal').classList.remove('show');
+  startBest=best; // record to beat this run (best updates live during play)
   const bw=W*0.5;
   blocks=[{x:(W-bw)/2,w:bw}];
   offcuts=[];
@@ -211,7 +233,24 @@ function land(){
 function endGame(){
   over=true;
   statRec('tower',{played:1},{bestScore:score});
-  drawOver();
+  draw();
+  showOver();
+}
+
+function showOver(){
+  const sr=L()==='sr';
+  const floors=blocks.length-1;
+  document.getElementById('moTitle').textContent=sr?'💥 Срушио се!':'💥 Toppled!';
+  document.getElementById('moFloors').textContent=floors;
+  document.getElementById('moUnit').textContent=sr?(floors===1?'спрат':'спратова'):(floors===1?'floor':'floors');
+  document.getElementById('moScore').textContent=(sr?'Поени: ':'Score: ')+score;
+  const cm=document.getElementById('moComment');
+  if(score>startBest){cm.textContent=sr?'🎉 Нови рекорд!':'🎉 New record!';cm.style.color='#ffd166';}
+  else if(score>0&&score===startBest){cm.textContent=sr?'🤝 Изједначио рекорд!':'🤝 Tied the record!';cm.style.color='var(--text)';}
+  else if(startBest>0){const d=startBest-score;cm.textContent=sr?('Испод рекорда за '+d+' '+(d===1?'поен':'поена')):('Below record by '+d);cm.style.color='var(--dim)';}
+  else{cm.textContent='';}
+  document.getElementById('againBtn').textContent=sr?'Нова игра':'Play again';
+  document.getElementById('overModal').classList.add('show');
 }
 
 // ── coordinate mapping: worldY (bottom of a block) -> screen top edge ──
@@ -274,18 +313,6 @@ function drawBlock(x,y,w,col){
   for(let c=0;c<cols;c++){ctx.fillRect(x+pad+c*gw+gw*0.2,y+BH*0.28,gw*0.5,BH*0.4);}
 }
 
-function drawOver(){
-  draw();
-  ctx.fillStyle='rgba(0,0,0,0.72)';
-  ctx.fillRect(0,H/2-58,W,116);
-  ctx.fillStyle='#fff';ctx.textAlign='center';ctx.textBaseline='middle';
-  ctx.font='bold '+Math.round(W*0.085)+'px system-ui';
-  ctx.fillText(L()==='sr'?'💥 Срушио се!':'💥 Toppled!',W/2,H/2-22);
-  ctx.font=Math.round(W*0.05)+'px system-ui';
-  ctx.fillText((L()==='sr'?'Спратова: ':'Floors: ')+(blocks.length-1)+'  ·  '+score,W/2,H/2+8);
-  ctx.fillText(L()==='sr'?'Тапни за нову':'Tap to restart',W/2,H/2+36);
-}
-
 function updateHUD(){
   document.getElementById('livesEl').textContent='❤️'.repeat(Math.max(0,lives))||'—';
   document.getElementById('scoreEl').textContent=score;
@@ -294,6 +321,7 @@ function updateHUD(){
 
 // ── input ──────────────────────────────────────────────────────
 document.getElementById('dropBtn').addEventListener('click',drop);
+document.getElementById('againBtn').addEventListener('click',newGame);
 canvas.addEventListener('pointerdown',e=>{e.preventDefault();drop();});
 document.addEventListener('keydown',e=>{if(e.code==='Space'||e.code==='ArrowDown'){e.preventDefault();drop();}});
 window.addEventListener('resize',resize);
