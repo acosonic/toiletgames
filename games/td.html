@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Одбрана — Тоалет Игрице</title>
+<meta name="theme-color" content="#e94560">
+<script>(function(){var t=localStorage.getItem('tg-theme')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');if(t==='light')document.documentElement.classList.add('light');})()</script>
+<!--
+  Одбрана куле (Tower Defense) — randomly generated path each game, place
+  towers to stop waves of enemies. Inspired by the concept of
+  "td-game" by Steve Taggart — https://github.com/stevetaggart/td-game (MIT).
+  This is an independent clean-room re-implementation written for this hub
+  (no original code, engine or assets used); credit to the original author.
+-->
+<style>
+:root{--bg:#0f0f1a;--surface:#1a1a2e;--surface2:#16213e;--accent:#e94560;--text:#e0e0e0;--dim:#888}
+html.light{--bg:#f0f2f5;--surface:#fff;--surface2:#e2e5ea;--text:#1a1a2e;--dim:#666}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:18px}html.xl{font-size:22px}
+body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,sans-serif;min-height:100dvh;-webkit-tap-highlight-color:transparent;touch-action:none;overflow:hidden;transition:background .2s,color .2s}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--surface);gap:6px;border-bottom:1px solid var(--surface2)}
+.topbar a{color:var(--accent);text-decoration:none;font-size:.95rem;font-weight:700;white-space:nowrap}
+.topbar h2{font-size:.95rem;font-weight:700;flex:1;text-align:center}
+.topbar-btns{display:flex;gap:4px;flex-shrink:0}
+.icon-btn{background:none;border:1px solid var(--dim);color:var(--text);border-radius:6px;padding:5px 8px;font-size:.78rem;cursor:pointer;white-space:nowrap;line-height:1}
+.wrap{padding:6px 4px 6px;display:flex;flex-direction:column;align-items:center;gap:6px}
+.hud{display:flex;align-items:center;justify-content:space-between;width:100%;max-width:460px;font-size:1rem;font-weight:700;padding:0 8px}
+canvas{display:block;border-radius:8px;touch-action:none}
+.palette{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+.pbtn{background:var(--surface);border:1px solid var(--surface2);color:var(--text);border-radius:10px;padding:8px 14px;font-size:.9rem;font-weight:800;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+.pbtn.active{background:var(--accent);border-color:var(--accent);color:#fff}
+.pbtn.go{background:var(--surface2)}
+.pbtn:disabled{opacity:.45;cursor:default}
+.hint{font-size:.72rem;color:var(--dim);text-align:center;min-height:1.1em}
+.credit{font-size:.66rem;color:var(--dim);text-align:center}
+.credit a{color:var(--dim)}
+.modal{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.62);display:none;align-items:center;justify-content:center;padding:20px}
+.modal.show{display:flex;animation:moFade .2s ease}
+@keyframes moFade{from{opacity:0}to{opacity:1}}
+.modal-card{background:var(--surface);border:1px solid var(--surface2);border-radius:18px;padding:22px 26px;max-width:320px;width:100%;text-align:center;display:flex;flex-direction:column;gap:8px;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+.mo-title{font-size:1.4rem;font-weight:800}
+.mo-big #moWave{font-size:3.2rem;font-weight:900;color:var(--accent)}
+.mo-unit{font-size:1rem;font-weight:700;color:var(--dim)}
+.mo-comment{font-size:1.02rem;font-weight:800;min-height:1.2em;margin-top:2px}
+.modal-card .pbtn{margin-top:10px;align-self:center;padding:12px 28px;font-size:1.05rem}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <a href="../" class="i18n" data-sr="← Назад" data-en="← Back">← Назад</a>
+  <h2 class="i18n" data-sr="🛡️ Одбрана" data-en="🛡️ Tower Defense">🛡️ Одбрана</h2>
+  <div class="topbar-btns">
+    <button class="icon-btn theme-btn" onclick="toggleTheme()">🌙</button>
+    <button class="icon-btn lang-btn" onclick="toggleLang()">EN</button>
+    <button class="icon-btn sound-btn" onclick="toggleSound()">🔊</button>
+    <button class="icon-btn" onclick="toggleFont()">Аа</button>
+  </div>
+</div>
+<div class="wrap">
+  <div class="hud">
+    <span id="moneyEl">💰 0</span>
+    <span id="livesEl">❤️ 0</span>
+    <span id="waveEl">🌊 0</span>
+  </div>
+  <canvas id="game"></canvas>
+  <div class="palette">
+    <button class="pbtn" id="tRapid" onclick="selectType('rapid')"></button>
+    <button class="pbtn" id="tCannon" onclick="selectType('cannon')"></button>
+    <button class="pbtn go" id="waveBtn" onclick="startWave()"></button>
+  </div>
+  <p class="hint" id="hint"></p>
+  <p class="credit">
+    <span class="i18n" data-sr="Идеја:" data-en="Concept:">Идеја:</span>
+    <a href="https://github.com/stevetaggart/td-game" target="_blank" rel="noopener">stevetaggart/td-game</a> · MIT
+  </p>
+</div>
+<div class="modal" id="overModal">
+  <div class="modal-card">
+    <div class="mo-title" id="moTitle"></div>
+    <div class="mo-big"><span id="moWave">0</span> <span class="mo-unit" id="moUnit"></span></div>
+    <div class="mo-comment" id="moComment"></div>
+    <button class="pbtn" id="againBtn"></button>
+  </div>
+</div>
+<script>
+(function(){
+  const _lang=()=>localStorage.getItem('tg-lang')||(/^(sr|hr|bs)/i.test(navigator.language)?'sr':'en');
+  const _theme=()=>localStorage.getItem('tg-theme')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');
+  function applyTheme(){const d=_theme()==='dark';document.documentElement.classList.toggle('light',!d);document.querySelectorAll('.theme-btn').forEach(b=>b.textContent=d?'☀️':'🌙');}
+  function applyI18n(){const L=_lang();document.querySelectorAll('[data-'+L+']').forEach(el=>el.textContent=el.dataset[L]);document.querySelectorAll('.lang-btn').forEach(b=>b.textContent=L==='sr'?'EN':'СР');document.documentElement.lang=L;}
+  window.toggleTheme=()=>{localStorage.setItem('tg-theme',_theme()==='dark'?'light':'dark');applyTheme();};
+  window.toggleLang=()=>{localStorage.setItem('tg-lang',_lang()==='sr'?'en':'sr');location.reload();};
+  window.toggleFont=()=>{const xl=document.documentElement.classList.toggle('xl');localStorage.setItem('tg-xl',xl?'1':'0');};
+  window.toggleSound=()=>{const on=localStorage.getItem('tg-sound')!=='0';localStorage.setItem('tg-sound',on?'0':'1');document.querySelectorAll('.sound-btn').forEach(b=>b.textContent=on?'🔇':'🔊');};
+  if(localStorage.getItem('tg-xl')==='1')document.documentElement.classList.add('xl');
+  applyTheme();applyI18n();document.querySelectorAll('.sound-btn').forEach(b=>b.textContent=localStorage.getItem('tg-sound')==='0'?'🔇':'🔊');
+})();
+
+function statRec(g,inc,hi){const j=JSON.parse(localStorage.getItem('tg-stats')||'{}');const e=j[g]||{};for(const[k,v]of Object.entries(inc||{}))e[k]=(e[k]||0)+v;for(const[k,v]of Object.entries(hi||{}))if(v!=null&&(!e[k]||v>e[k]))e[k]=v;j[g]=e;localStorage.setItem('tg-stats',JSON.stringify(j));}
+const SFX=(()=>{let ac;const A=()=>(ac=ac||new(window.AudioContext||window.webkitAudioContext)());const t=(f,d,tp,v)=>{if(localStorage.getItem('tg-sound')==='0')return;try{const c=A(),o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.type=tp||'sine';o.frequency.value=f;g.gain.setValueAtTime(v||.18,c.currentTime);g.gain.exponentialRampToValueAtTime(.001,c.currentTime+d);o.start();o.stop(c.currentTime+d);}catch(e){}};
+return{shoot:()=>t(720,.04,'square',.04),boom:()=>t(180,.12,'sawtooth',.12),place:()=>t(520,.07,'square',.12),leak:()=>t(140,.18,'sawtooth',.18),wave:()=>{t(440,.1);setTimeout(()=>t(660,.12),90);}};})();
+function failSound(){if(localStorage.getItem('tg-sound')!=='0'){try{var a=new Audio('./whah.wav');a.volume=0.8;a.play().catch(function(){});}catch(e){}}}
+
+const L=()=>localStorage.getItem('tg-lang')||'sr';
+const canvas=document.getElementById('game');
+const ctx=canvas.getContext('2d');
+const isLight=()=>(localStorage.getItem('tg-theme')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light'))==='light';
+
+const COLS=7, ROWS=11;
+const TOWERS={
+  rapid:{cost:40,range:2.4,fireCd:0.32,dmg:6,color:'#4dd0e1',bspd:11},
+  cannon:{cost:80,range:3.1,fireCd:1.05,dmg:30,color:'#ff7043',bspd:8},
+};
+const ri=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
+const clamp=(v,a,b)=>v<a?a:v>b?b:v;
+
+let cell, order, pathSet, towers, enemies, bullets, money, lives, wave, best, startBest, over, started, selected, waveActive, toSpawn, spawnTimer, raf, lastTs;
+
+best=+localStorage.getItem('tg-td-best')||0;
+
+function resize(){
+  const wrap=document.querySelector('.wrap');
+  const topbar=document.querySelector('.topbar').offsetHeight;
+  const hud=document.querySelector('.hud').offsetHeight;
+  const pal=document.querySelector('.palette').offsetHeight;
+  const hint=document.querySelector('.hint').offsetHeight;
+  const cr=document.querySelector('.credit').offsetHeight;
+  const cs=getComputedStyle(wrap);
+  const extra=(parseFloat(cs.rowGap)||0)*4+parseFloat(cs.paddingTop)+parseFloat(cs.paddingBottom)+8;
+  const maxW=Math.min(440,window.innerWidth-8);
+  const availH=window.innerHeight-topbar-hud-pal-hint-cr-extra;
+  cell=Math.max(24,Math.floor(Math.min(maxW/COLS, availH/ROWS)));
+  canvas.width=cell*COLS;canvas.height=cell*ROWS;
+  canvas.style.width=canvas.width+'px';canvas.style.height=canvas.height+'px';
+  if(order)draw();
+}
+
+const cx=c=>c*cell+cell/2, cy=r=>r*cell+cell/2;
+
+function genPath(){
+  order=[];pathSet=new Set();
+  const add=(c,r)=>{const k=c+','+r;if(!pathSet.has(k)){pathSet.add(k);order.push({c,r});}};
+  let col=ri(1,COLS-2);
+  add(col,0);
+  for(let r=1;r<ROWS;r++){
+    let nc=clamp(col+ri(-2,2),0,COLS-1);
+    const dir=nc>col?1:nc<col?-1:0;
+    for(let c=col+dir;dir&&c!==nc;c+=dir)add(c,r-1);
+    if(dir)add(nc,r-1);
+    add(nc,r);
+    col=nc;
+  }
+}
+
+function newGame(){
+  document.getElementById('overModal').classList.remove('show');
+  genPath();
+  towers=[];enemies=[];bullets=[];
+  money=130;lives=15;wave=0;over=false;started=true;
+  selected=null;waveActive=false;toSpawn=[];spawnTimer=0;
+  startBest=best;
+  updateHUD();updatePalette();
+  if(raf)cancelAnimationFrame(raf);
+  lastTs=performance.now();
+  raf=requestAnimationFrame(loop);
+}
+
+window.selectType=function(t){
+  if(over)return;
+  selected=selected===t?null:t;
+  updatePalette();
+};
+
+window.startWave=function(){
+  if(over){newGame();return;}
+  if(waveActive)return;
+  wave++;
+  if(wave>best){best=wave;localStorage.setItem('tg-td-best',best);}
+  const hp=1+(wave-1)*0.22;
+  const list=[];
+  const n=4+wave*2;
+  for(let i=0;i<n;i++){
+    const strong=wave>=3 && i%3===2;
+    list.push(strong?{type:'strong',hp:46*hp,spd:1.05,r:0.34,reward:16,color:'#9b6bff',life:1}
+                    :{type:'basic',hp:18*hp,spd:1.5,r:0.30,reward:8,color:'#e94560',life:1});
+  }
+  if(wave%5===0)list.push({type:'boss',hp:340*hp,spd:0.8,r:0.46,reward:90,color:'#ffd166',life:5});
+  toSpawn=list;spawnTimer=0;waveActive=true;
+  SFX.wave();updateHUD();updatePalette();
+}
+
+function spawn(tpl){
+  enemies.push({type:tpl.type,hp:tpl.hp,maxHp:tpl.hp,spd:tpl.spd,r:tpl.r,reward:tpl.reward,color:tpl.color,life:tpl.life,
+    x:cx(order[0].c),y:cy(order[0].r),target:1});
+}
+
+function loop(ts){
+  const dt=Math.min((ts-lastTs)/1000,0.05);lastTs=ts;
+  if(!over){update(dt);draw();raf=requestAnimationFrame(loop);}
+}
+
+function update(dt){
+  // spawning
+  if(waveActive&&toSpawn.length){
+    spawnTimer-=dt;
+    if(spawnTimer<=0){spawn(toSpawn.shift());spawnTimer=0.75;}
+  }
+  // enemies move
+  for(const e of enemies){
+    if(e.dead||e.leaked)continue;
+    const tg=order[e.target];const tx=cx(tg.c),ty=cy(tg.r);
+    const dx=tx-e.x,dy=ty-e.y,d=Math.hypot(dx,dy),step=e.spd*cell*dt;
+    if(d<=step){e.x=tx;e.y=ty;
+      if(e.target>=order.length-1){e.leaked=true;lives-=e.life;SFX.leak();updateHUD();if(lives<=0){endGame();return;}}
+      else e.target++;
+    }else{e.x+=dx/d*step;e.y+=dy/d*step;}
+  }
+  enemies=enemies.filter(e=>!e.dead&&!e.leaked);
+  // towers fire
+  for(const t of towers){
+    t.cd-=dt;
+    if(t.cd>0)continue;
+    const cfg=TOWERS[t.type],rng=cfg.range*cell;
+    let best2=null,bp=-1;
+    for(const e of enemies){const d=Math.hypot(e.x-cx(t.c),e.y-cy(t.r));if(d<=rng&&e.target>bp){bp=e.target;best2=e;}}
+    if(best2){t.cd=cfg.fireCd;bullets.push({x:cx(t.c),y:cy(t.r),target:best2,dmg:cfg.dmg,spd:cfg.bspd*cell,color:cfg.color});SFX.shoot();}
+  }
+  // bullets
+  for(let i=bullets.length-1;i>=0;i--){
+    const b=bullets[i];
+    if(!b.target||b.target.dead||b.target.leaked){bullets.splice(i,1);continue;}
+    const dx=b.target.x-b.x,dy=b.target.y-b.y,d=Math.hypot(dx,dy),step=b.spd*dt;
+    if(d<=step+cell*0.18){
+      b.target.hp-=b.dmg;
+      if(b.target.hp<=0&&!b.target.dead){b.target.dead=true;money+=b.target.reward;if(b.target.type==='boss')SFX.boom();updateHUD();}
+      bullets.splice(i,1);
+    }else{b.x+=dx/d*step;b.y+=dy/d*step;}
+  }
+  // wave clear
+  if(waveActive&&!toSpawn.length&&!enemies.length){
+    waveActive=false;money+=15+wave*4;updateHUD();updatePalette();
+  }
+}
+
+function endGame(){
+  over=true;waveActive=false;
+  statRec('td',{played:1},{bestWave:wave});
+  failSound();draw();showOver();
+}
+
+function showOver(){
+  const sr=L()==='sr';
+  document.getElementById('moTitle').textContent=sr?'💥 База пала!':'💥 Base destroyed!';
+  document.getElementById('moWave').textContent=wave;
+  document.getElementById('moUnit').textContent=sr?'талас':'wave';
+  const cm=document.getElementById('moComment');
+  if(wave>startBest){cm.textContent=sr?'🎉 Нови рекорд!':'🎉 New record!';cm.style.color='#ffd166';}
+  else if(wave>0&&wave===startBest){cm.textContent=sr?'🤝 Изједначио рекорд!':'🤝 Tied the record!';cm.style.color='var(--text)';}
+  else if(startBest>0){const d=startBest-wave;cm.textContent=sr?('Испод рекорда за '+d):('Below record by '+d);cm.style.color='var(--dim)';}
+  else cm.textContent='';
+  document.getElementById('againBtn').textContent=sr?'Нова игра':'Play again';
+  document.getElementById('overModal').classList.add('show');
+}
+
+function draw(){
+  const light=isLight();
+  ctx.fillStyle=light?'#cfe6cf':'#0c1a12';ctx.fillRect(0,0,canvas.width,canvas.height);
+  // grid
+  ctx.strokeStyle=light?'rgba(0,0,0,.07)':'rgba(255,255,255,.05)';ctx.lineWidth=1;
+  ctx.beginPath();
+  for(let c=1;c<COLS;c++){ctx.moveTo(c*cell+.5,0);ctx.lineTo(c*cell+.5,canvas.height);}
+  for(let r=1;r<ROWS;r++){ctx.moveTo(0,r*cell+.5);ctx.lineTo(canvas.width,r*cell+.5);}
+  ctx.stroke();
+  // path road
+  ctx.fillStyle=light?'#b08968':'#3a2f28';
+  for(const p of order)ctx.fillRect(p.c*cell,p.r*cell,cell,cell);
+  // start & exit markers
+  const s=order[0],e=order[order.length-1];
+  ctx.fillStyle='#5cdb7a';ctx.font='bold '+Math.round(cell*0.6)+'px system-ui';ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillText('▼',cx(s.c),cy(s.r));
+  ctx.fillStyle='#e94560';ctx.fillText('🏠',cx(e.c),cy(e.r));
+  // tower range (faint, only for selected type preview on towers)
+  for(const t of towers){
+    const cfg=TOWERS[t.type];
+    ctx.beginPath();ctx.arc(cx(t.c),cy(t.r),cfg.range*cell,0,Math.PI*2);
+    ctx.fillStyle=cfg.color+'14';ctx.fill();
+    // body
+    ctx.fillStyle=cfg.color;
+    ctx.beginPath();ctx.arc(cx(t.c),cy(t.r),cell*0.34,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='rgba(0,0,0,.35)';ctx.beginPath();ctx.arc(cx(t.c),cy(t.r),cell*0.16,0,Math.PI*2);ctx.fill();
+  }
+  // bullets
+  for(const b of bullets){ctx.fillStyle=b.color;ctx.beginPath();ctx.arc(b.x,b.y,cell*0.08,0,Math.PI*2);ctx.fill();}
+  // enemies
+  for(const e of enemies){
+    ctx.fillStyle=e.color;ctx.beginPath();ctx.arc(e.x,e.y,cell*e.r,0,Math.PI*2);ctx.fill();
+    if(e.type==='boss'){ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.stroke();}
+    // hp bar
+    const w=cell*0.7,hpc=clamp(e.hp/e.maxHp,0,1);
+    ctx.fillStyle='rgba(0,0,0,.5)';ctx.fillRect(e.x-w/2,e.y-cell*e.r-7,w,4);
+    ctx.fillStyle=hpc>0.5?'#5cdb7a':hpc>0.25?'#ffd166':'#e94560';ctx.fillRect(e.x-w/2,e.y-cell*e.r-7,w*hpc,4);
+  }
+  // placement highlight of selected type
+  if(selected){ctx.fillStyle='rgba(255,255,255,.04)';for(let c=0;c<COLS;c++)for(let r=0;r<ROWS;r++)if(!pathSet.has(c+','+r)&&!towerAt(c,r))ctx.fillRect(c*cell+2,r*cell+2,cell-4,cell-4);}
+}
+
+function towerAt(c,r){return towers.find(t=>t.c===c&&t.r===r);}
+
+function place(c,r){
+  if(over||!selected)return;
+  if(pathSet.has(c+','+r)||towerAt(c,r))return;
+  const cfg=TOWERS[selected];
+  if(money<cfg.cost){flashHint(L()==='sr'?'Нема довољно 💰':'Not enough 💰');return;}
+  money-=cfg.cost;towers.push({c,r,type:selected,cd:0});
+  SFX.place();updateHUD();updatePalette();draw();
+}
+
+let hintTimer;
+function flashHint(msg){const h=document.getElementById('hint');h.textContent=msg;clearTimeout(hintTimer);hintTimer=setTimeout(setHint,1200);}
+function setHint(){const sr=L()==='sr';document.getElementById('hint').textContent=sr?'Изабери кулу па тапни поље · 🌊 пушта талас':'Pick a tower, tap a tile · 🌊 sends a wave';}
+
+function updateHUD(){
+  document.getElementById('moneyEl').textContent='💰 '+money;
+  document.getElementById('livesEl').textContent='❤️ '+Math.max(0,lives);
+  document.getElementById('waveEl').textContent='🌊 '+wave;
+}
+function updatePalette(){
+  const sr=L()==='sr';
+  document.getElementById('tRapid').textContent='⚡ '+TOWERS.rapid.cost;
+  document.getElementById('tCannon').textContent='💣 '+TOWERS.cannon.cost;
+  document.getElementById('tRapid').classList.toggle('active',selected==='rapid');
+  document.getElementById('tCannon').classList.toggle('active',selected==='cannon');
+  document.getElementById('tRapid').disabled=money<TOWERS.rapid.cost;
+  document.getElementById('tCannon').disabled=money<TOWERS.cannon.cost;
+  const wb=document.getElementById('waveBtn');
+  wb.textContent='🌊 '+(sr?'Талас ':'Wave ')+(wave+1);
+  wb.disabled=waveActive;
+}
+
+// input
+canvas.addEventListener('pointerdown',ev=>{
+  ev.preventDefault();
+  if(over){newGame();return;}
+  const rct=canvas.getBoundingClientRect();
+  const c=Math.floor((ev.clientX-rct.left)/(rct.width/COLS));
+  const r=Math.floor((ev.clientY-rct.top)/(rct.height/ROWS));
+  if(c>=0&&c<COLS&&r>=0&&r<ROWS)place(c,r);
+});
+document.getElementById('againBtn').addEventListener('click',newGame);
+window.addEventListener('resize',resize);
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&started&&!over)draw();});
+
+resize();setHint();newGame();
+</script>
+</body>
+</html>
