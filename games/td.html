@@ -133,6 +133,7 @@ const TOWERS={
 };
 const TORDER=['rapid','cannon','frost','sniper'];
 const MAXLVL=3;
+const SPAWN_INT=0.7, WAVE_GAP=2.2; // gap between enemies / between queued waves
 const ri=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
 const clamp=(v,a,b)=>v<a?a:v>b?b:v;
 // effective per-level stats
@@ -142,7 +143,7 @@ const tFireCd=t=>TOWERS[t.type].fireCd*Math.pow(0.85,t.lvl-1);
 const upCost=t=>Math.round(TOWERS[t.type].cost*(0.8+(t.lvl-1)*0.7));
 const sellRefund=t=>Math.round(t.spent*0.6);
 
-let cell, order, pathSet, towers, enemies, bullets, money, lives, wave, best, startBest, over, started, selected, waveActive, toSpawn, spawnTimer, raf, lastTs;
+let cell, order, pathSet, towers, enemies, bullets, money, lives, wave, best, startBest, over, started, selected, waveActive, waveQueue, spawnList, spawnTimer, gapTimer, queuedCount, raf, lastTs;
 
 best=+localStorage.getItem('tg-td-best')||0;
 
@@ -186,7 +187,7 @@ function newGame(){
   genPath();
   towers=[];enemies=[];bullets=[];
   money=130;lives=15;wave=0;over=false;started=true;
-  selected=null;waveActive=false;toSpawn=[];spawnTimer=0;
+  selected=null;waveActive=false;waveQueue=[];spawnList=[];spawnTimer=0;gapTimer=0;queuedCount=0;
   startBest=best;
   updateHUD();updatePalette();
   if(raf)cancelAnimationFrame(raf);
@@ -202,23 +203,20 @@ window.selectType=function(t){
 
 window.startWave=function(){
   if(over){newGame();return;}
-  wave++;
-  if(wave>best){best=wave;localStorage.setItem('tg-td-best',best);}
-  const hp=1+(wave-1)*0.22;
-  const list=[];
-  const n=4+wave*2;
+  queuedCount++;
+  const wn=queuedCount, hp=1+(wn-1)*0.22, list=[], n=4+wn*2;
   for(let i=0;i<n;i++){
-    const strong=wave>=3 && i%3===2;
+    const strong=wn>=3 && i%3===2;
     list.push(strong?{type:'strong',hp:46*hp,spd:1.05,r:0.34,reward:16,color:'#9b6bff',life:1}
                     :{type:'basic',hp:18*hp,spd:1.5,r:0.30,reward:8,color:'#e94560',life:1});
   }
-  if(wave%5===0)list.push({type:'boss',hp:340*hp,spd:0.8,r:0.46,reward:90,color:'#ffd166',life:5});
-  // Queue this wave — you can stack many at once; each early call pays a bonus.
-  const wasEmpty=toSpawn.length===0;
-  toSpawn=toSpawn.concat(list);
-  if(wasEmpty)spawnTimer=0;
+  if(wn%5===0)list.push({type:'boss',hp:340*hp,spd:0.8,r:0.46,reward:90,color:'#ffd166',life:5});
+  // Queue this wave; stacking many is fine — they arrive one at a time with a gap.
+  const idle=!spawnList.length && !waveQueue.length;
+  waveQueue.push({num:wn,enemies:list});
+  if(idle)gapTimer=0; // first queued wave starts right away
   waveActive=true;
-  money+=10+wave*3;
+  money+=10+wn*3; // early-call bonus
   SFX.wave();updateHUD();updatePalette();
 }
 
@@ -233,10 +231,13 @@ function loop(ts){
 }
 
 function update(dt){
-  // spawning
-  if(waveActive&&toSpawn.length){
+  // spawning — queued waves arrive one at a time, with a gap between them
+  if(spawnList.length){
     spawnTimer-=dt;
-    if(spawnTimer<=0){spawn(toSpawn.shift());spawnTimer=0.75;}
+    if(spawnTimer<=0){spawn(spawnList.shift());spawnTimer=SPAWN_INT;}
+  }else if(waveQueue.length){
+    gapTimer-=dt;
+    if(gapTimer<=0){const it=waveQueue.shift();spawnList=it.enemies;wave=it.num;if(wave>best){best=wave;localStorage.setItem('tg-td-best',best);}spawnTimer=0;gapTimer=WAVE_GAP;updateHUD();updatePalette();}
   }
   // enemies move
   for(const e of enemies){
@@ -276,7 +277,7 @@ function update(dt){
     }else{b.x+=dx/d*step;b.y+=dy/d*step;}
   }
   // wave clear
-  if(waveActive&&!toSpawn.length&&!enemies.length){
+  if(waveActive&&!spawnList.length&&!waveQueue.length&&!enemies.length){
     waveActive=false;updatePalette();
   }
 }
@@ -378,7 +379,7 @@ function setHint(){const sr=L()==='sr';document.getElementById('hint').textConte
 function updateHUD(){
   document.getElementById('moneyEl').textContent='💰 '+money;
   document.getElementById('livesEl').textContent='❤️ '+Math.max(0,lives);
-  document.getElementById('waveEl').textContent='🌊 '+wave;
+  document.getElementById('waveEl').textContent='🌊 '+wave+(waveQueue&&waveQueue.length?(' +'+waveQueue.length):'');
 }
 function updatePalette(){
   const sr=L()==='sr';
@@ -388,7 +389,7 @@ function updatePalette(){
     b.classList.toggle('active',selected===k);
     b.disabled=money<cfg.cost;}
   const wb=document.getElementById('waveBtn');
-  wb.textContent='🌊 '+(sr?'Талас ':'Wave ')+(wave+1);
+  wb.textContent='🌊 '+(sr?'Талас ':'Wave ')+(queuedCount+1);
   wb.disabled=false; // waves can be queued; never locked
 }
 
