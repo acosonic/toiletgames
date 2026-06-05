@@ -169,7 +169,7 @@ html.light .hole.win-y{box-shadow:0 0 10px #f1c40f}
     doMove(c);
   }
 
-  function doMove(c){let r=-1;for(let row=ROWS-1;row>=0;row--)if(!board[row][c]){r=row;break;}if(r===-1){dbg('column full',{col:c});return;}board[r][c]=cur;dbg('move applied',{row:r,col:c,player:cur,cellIndex:r*COLS+c});SFX.drop();const wins=checkWin(r,c);if(wins.length){over=true;SFX.win();if(cur===1){sr++;document.getElementById('sr2').textContent=sr;statRec('connect4',{played:1,p1Wins:1});}else{sy++;document.getElementById('sy2').textContent=sy;statRec('connect4',{played:1,p2Wins:1});}document.getElementById('msg').textContent=(cur===1?'🔴':'🟡')+t('won');document.getElementById('turn').textContent='';render(wins);logCellStyle(r,c);return;}if(board[0].every(v=>v)){over=true;SFX.draw();statRec('connect4',{played:1,draws:1});document.getElementById('msg').textContent=t('draw');render();logCellStyle(r,c);return;}cur=cur===1?2:1;document.getElementById('turn').textContent=t('turn')+(cur===1?'🔴':'🟡');render();logCellStyle(r,c);if(mode==='ai'&&cur===2&&!over)setTimeout(aiMove,400);}
+  function doMove(c){let r=-1;for(let row=ROWS-1;row>=0;row--)if(!board[row][c]){r=row;break;}if(r===-1){dbg('column full',{col:c});return;}board[r][c]=cur;dbg('move applied',{row:r,col:c,player:cur,cellIndex:r*COLS+c});SFX.drop();const wins=checkWin(r,c);if(wins.length){over=true;SFX.win();if(!(mode==='ai'&&cur===2))celebrate();if(cur===1){sr++;document.getElementById('sr2').textContent=sr;statRec('connect4',{played:1,p1Wins:1});}else{sy++;document.getElementById('sy2').textContent=sy;statRec('connect4',{played:1,p2Wins:1});}document.getElementById('msg').textContent=(cur===1?'🔴':'🟡')+t('won');document.getElementById('turn').textContent='';render(wins);logCellStyle(r,c);return;}if(board[0].every(v=>v)){over=true;SFX.draw();statRec('connect4',{played:1,draws:1});document.getElementById('msg').textContent=t('draw');render();logCellStyle(r,c);return;}cur=cur===1?2:1;document.getElementById('turn').textContent=t('turn')+(cur===1?'🔴':'🟡');render();logCellStyle(r,c);if(mode==='ai'&&cur===2&&!over)setTimeout(aiMove,400);}
 
   function logCellStyle(r,c){
     const cell=cells[r*COLS+c];
@@ -277,6 +277,32 @@ html.light .hole.win-y{box-shadow:0 0 10px #f1c40f}
   window.newGame=newGame;window.setMode=setMode;window.drop=drop;
   newGame();
 })();
+</script>
+<script>
+// Victory fireworks — bursts of stars + sparks across the screen, then auto-removes.
+window.celebrate=function(){
+  if(window.matchMedia&&window.matchMedia("(prefers-reduced-motion:reduce)").matches)return;
+  var cv=document.createElement("canvas");
+  cv.style.cssText="position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none;z-index:99999";
+  function size(){cv.width=window.innerWidth;cv.height=window.innerHeight;}
+  size();window.addEventListener("resize",size);
+  document.body.appendChild(cv);
+  var cx=cv.getContext("2d");
+  var COL=["#e94560","#ffd166","#06d6a0","#4dd0e1","#9b6bff","#ff7043","#ffffff"];
+  var ps=[],frame=0,bursts=0,MAX=7,nextAt=0;
+  function star(x,y,r,rot){cx.beginPath();for(var i=0;i<10;i++){var rr=i%2?r*0.45:r,a=rot+i*Math.PI/5;cx.lineTo(x+Math.cos(a)*rr,y+Math.sin(a)*rr);}cx.closePath();cx.fill();}
+  function burst(x,y){var hue=COL[Math.random()*COL.length|0],n=40+(Math.random()*22|0);for(var i=0;i<n;i++){var a=Math.random()*Math.PI*2,sp=Math.random()*4.6+1.2;ps.push({x:x,y:y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-1.2,age:0,life:55+Math.random()*35,c:Math.random()<.4?"#fff":hue,sz:Math.random()*2.4+1.4,star:Math.random()<.5,rot:Math.random()*6});}}
+  function loop(){
+    frame++;
+    if(bursts<MAX&&frame>=nextAt){burst(Math.random()*cv.width,cv.height*(0.12+Math.random()*0.45));bursts++;nextAt=frame+6+(Math.random()*16|0);}
+    cx.clearRect(0,0,cv.width,cv.height);
+    for(var i=ps.length-1;i>=0;i--){var p=ps[i];p.age++;p.vy+=0.07;p.vx*=0.99;p.vy*=0.99;p.x+=p.vx;p.y+=p.vy;p.rot+=0.12;var al=1-p.age/p.life;if(al<=0){ps.splice(i,1);continue;}cx.globalAlpha=al;cx.fillStyle=p.c;if(p.star)star(p.x,p.y,p.sz*2,p.rot);else{cx.beginPath();cx.arc(p.x,p.y,p.sz,0,6.283);cx.fill();}}
+    cx.globalAlpha=1;
+    if(ps.length||bursts<MAX)requestAnimationFrame(loop);
+    else{window.removeEventListener("resize",size);cv.remove();}
+  }
+  requestAnimationFrame(loop);
+};
 </script>
 </body>
 </html>
