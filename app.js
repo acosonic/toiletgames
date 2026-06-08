@@ -81,6 +81,19 @@ if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker
       .register('service-worker.js', { updateViaCache: 'none' })
+      .then((reg) => {
+        reg.update();
+        // If a SW already controls this page (returning visitor), reload once when a
+        // newly-installed SW takes over — so updates show up without a manual refresh.
+        if (navigator.serviceWorker.controller) {
+          let reloaded = false;
+          navigator.serviceWorker.addEventListener('controllerchange', () => {
+            if (reloaded) return;
+            reloaded = true;
+            window.location.reload();
+          });
+        }
+      })
       .catch(() => {});
   });
 }
