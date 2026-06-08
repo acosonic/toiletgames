@@ -1,11 +1,11 @@
 # Toilet Games 🚽🎮
 
-18 free, offline-capable browser games as a PWA — built for phones. Large touch targets, dark/light theme toggle, font-size toggle, sound toggle (🔊/🔇), fully bilingual (Serbian / English).
+21 free, offline-capable browser games as a PWA — built for phones. Large touch targets, dark/light theme toggle, font-size toggle, sound toggle (🔊/🔇), fully bilingual (Serbian / English).
 
 **Play now:** https://acosonic.github.io/toiletgames/
 
 <p align="center">
-  <img src="screenshots/hub.png" width="480" alt="Toilet Games — main screen showing all 18 games">
+  <img src="screenshots/hub.png" width="480" alt="Toilet Games — main screen showing all 21 games">
 </p>
 
 ---
@@ -29,9 +29,12 @@
 | 💎 | GemBlast | Match 3+ gems, chain combos before time runs out |
 | 🧱 | Blockfall | Stack the falling tetrominoes, clear lines |
 | 🏓 | Brick Bash | Bounce the ball, smash all the bricks |
-| 🐞 | Ladybug | Guide the ladybug safely across the road |
+| 👾 | Galaga | Blast the swooping alien formation |
+| 🏗️ | Tower | Drop swinging blocks to stack the tower high |
+| 🛡️ | Tower Defense | Build towers on a random path to stop the waves |
+| 🧟 | Onslaught | Plant defenders to stop lanes of zombies |
 | 📦 | Box Pusher | Push all boxes onto their target squares |
-| 🐦 | Flappy Bird | Tap to flap, fly through the gaps in the pipes |
+| 🐦 | Kiky Bird | Tap to flap, fly through the gaps in the pipes |
 
 ---
 
@@ -52,7 +55,7 @@
 
 ## Install as PWA
 
-Open the link in **Chrome** (Android) or **Safari** (iOS) and tap the install banner. Once installed the app runs fully offline — the service worker pre-caches all 18 game files on first visit.
+Open the link in **Chrome** (Android) or **Safari** (iOS) and tap the install banner. Once installed the app runs fully offline — the service worker pre-caches all 21 game files on first visit.
 
 ---
 
@@ -98,10 +101,15 @@ Every game is a from-scratch clone of a classic. No game engines, no copied code
 | GemBlast | Bejeweled | PopCap Games (2001); later *Candy Crush Saga*, King (2012) |
 | Blockfall | Tetris | Alexey Pajitnov, Electronika 60 (1984) |
 | Brick Bash | Breakout | Atari (1976); Nolan Bushnell, with hardware by Steve Wozniak |
-| Ladybug | Frogger | Konami (1981) |
+| Galaga | Galaga | Namco (1981) |
+| Tower | Tower Bloxx | Digital Chocolate (2005) — concept via [iamkun/tower_game](https://github.com/iamkun/tower_game) (MIT) |
+| Tower Defense | Tower-defense genre | concept via [stevetaggart/td-game](https://github.com/stevetaggart/td-game) (MIT) |
+| Onslaught | Plants vs. Zombies | PopCap Games (2009) |
 | Box Pusher | Sokoban (倉庫番) | Hiroyuki Imabayashi, Thinking Rabbit (1981) |
-| Flappy Bird | Flappy Bird | Dong Nguyen / .Gears (2013) |
+| Kiky Bird | Flappy Bird | Dong Nguyen / .Gears (2013) |
 
 The Box Pusher **optimal-move solver** is an original pure-JS A\* implementation — no third-party code. The idea of basing the move limit on a *true optimal solve* (rather than a loose heuristic) was inspired by [dangarfield/sokoban-solver](https://github.com/dangarfield/sokoban-solver), which ports Yaron Shoham's **Festival** solver to Rust/WebAssembly. That project was the inspiration only; none of its code (or the WASM dependency) is used here — the search, heuristic, and dead-square pruning were written from scratch to keep the game a single self-contained, build-free HTML file.
 
-The Flappy Bird game is adapted from [ju-az's *Floppy Bird* CodePen](https://codepen.io/ju-az/pen/eYJQwLx) — same physics and sprite-sheet rendering, wrapped in the hub's conventions (topbar, theme/language/sound/font toggles, `localStorage` best). The sprite sheet is vendored locally so the game runs fully offline with no external assets.
+**Tower** and **Tower Defense** are independent clean-room re-implementations written for this hub — no original code or assets are used. They share the genre/rules of the MIT-licensed [iamkun/tower_game](https://github.com/iamkun/tower_game) and [stevetaggart/td-game](https://github.com/stevetaggart/td-game) respectively, credited above; each game file also carries the attribution in a header comment and a visible on-screen credit.
+
+**Kiky Bird** is adapted from [ju-az's *Floppy Bird* CodePen](https://codepen.io/ju-az/pen/eYJQwLx) — same physics and sprite-sheet rendering, wrapped in the hub's conventions (topbar, theme/language/sound/font toggles, `localStorage` best). The sprite sheet is vendored locally so the game runs fully offline with no external assets. (The win/loss sounds — `cheer.mp3` and `whah.wav` — are likewise vendored locally.)
