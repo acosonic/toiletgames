@@ -40,6 +40,9 @@ html.xl .key.wide{max-width:86px;font-size:.82rem}
 .key.correct{background:#538d4e;color:#fff}
 .key.present{background:#b59f3b;color:#fff}
 .key.absent{background:#3a3a3c;color:#666}
+/* light-theme overrides need higher specificity than `html.light .key` */
+html.light .key.correct{background:#538d4e;color:#fff}
+html.light .key.present{background:#b59f3b;color:#fff}
 html.light .key.absent{background:#787c7e;color:#fff}
 </style>
 </head>
