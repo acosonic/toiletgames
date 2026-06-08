@@ -153,7 +153,7 @@ function newGame(){
   lastTs=performance.now();raf=requestAnimationFrame(loop);
 }
 
-window.selectType=function(t){if(over)return;selected=selected===t?null:t;updatePalette();};
+window.selectType=function(t){if(over)return;selected=selected===t?null:t;updatePalette();if(selected&&sun<PLANTS[selected].cost)flash(L()==='sr'?'Нема довољно ☀️':'Not enough sun ☀️');};
 
 function zTemplate(kind){
   if(kind==='bucket')return{kind,hp:260,maxHp:260,spd:0.42,color:'#9aa4b0',face:2};

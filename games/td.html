@@ -210,6 +210,7 @@ window.selectType=function(t){
   if(over)return;
   selected=selected===t?null:t;
   updatePalette();
+  if(selected&&money<TOWERS[selected].cost)flashHint(L()==='sr'?'Нема довољно 💰':'Not enough money 💰');
 };
 
 window.startWave=function(){
