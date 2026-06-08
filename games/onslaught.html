@@ -271,7 +271,7 @@ function updateHUD(){
 }
 function updatePalette(){
   const ids={sun:'pSun',pea:'pPea',nut:'pNut',chili:'pChili'};
-  for(const k of PORDER){const b=document.getElementById(ids[k]),cfg=PLANTS[k];b.textContent=cfg.icon+' '+cfg.cost;b.classList.toggle('active',selected===k);b.disabled=sun<cfg.cost;}
+  for(const k of PORDER){const b=document.getElementById(ids[k]),cfg=PLANTS[k];b.textContent=cfg.icon+' '+cfg.cost;b.classList.toggle('active',selected===k);} // always selectable; cost checked on placement
 }
 
 let hintTimer;

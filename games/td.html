@@ -423,8 +423,7 @@ function updatePalette(){
   const ids={rapid:'tRapid',cannon:'tCannon',frost:'tFrost',sniper:'tSniper'};
   for(const k of TORDER){const b=document.getElementById(ids[k]),cfg=TOWERS[k];
     b.textContent=cfg.icon+' '+cfg.cost;
-    b.classList.toggle('active',selected===k);
-    b.disabled=money<cfg.cost;}
+    b.classList.toggle('active',selected===k);} // always selectable; cost checked on placement
   const wb=document.getElementById('waveBtn');
   wb.textContent='🌊 '+(sr?'Талас ':'Wave ')+(queuedCount+1);
   wb.disabled=false; // waves can be queued; never locked
