@@ -5,8 +5,11 @@
 **Play now:** https://acosonic.github.io/toiletgames/
 
 <p align="center">
-  <img src="screenshots/hub.png" width="480" alt="Toilet Games — main screen showing all 21 games">
+  <img src="screenshots/hub.png" width="300" alt="Toilet Games — light theme">
+  &nbsp;
+  <img src="screenshots/hub-dark.png" width="300" alt="Toilet Games — dark theme">
 </p>
+<p align="center"><em>Light & dark themes — toggle any time</em></p>
 
 ---
 
@@ -49,6 +52,12 @@
   <img src="screenshots/wordle.png" width="220" alt="Letterbox">
   <img src="screenshots/sudoku.png" width="220" alt="Sudoku">
   <img src="screenshots/snake.png" width="220" alt="Snake">
+</p>
+<p align="center">
+  <img src="screenshots/galaga.png" width="200" alt="Galaga">
+  <img src="screenshots/tower.png" width="200" alt="Tower">
+  <img src="screenshots/td.png" width="200" alt="Tower Defense">
+  <img src="screenshots/onslaught.png" width="200" alt="Onslaught">
 </p>
 
 ---
