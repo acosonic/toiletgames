@@ -203,7 +203,11 @@ html.light .key.used-wrong{background:#787c7e;color:#fff}
 
   let word,category,guessed,wrong,over,wins=0;
 
-  function newGame(){const words=L==='sr'?WORDS_SR:WORDS_EN;const entry=words[Math.floor(Math.random()*words.length)];word=entry.w;category=entry.c;guessed=new Set();wrong=[];over=false;PARTS.forEach(id=>document.getElementById(id).style.display='none');document.getElementById('msg').textContent='';document.getElementById('hintBox').innerHTML=t('hint')+'<strong>'+category+'</strong>';renderWord();renderKeyboard();updateLives();}
+  function newGame(){localStorage.removeItem('tg-hangman-save');const words=L==='sr'?WORDS_SR:WORDS_EN;const entry=words[Math.floor(Math.random()*words.length)];word=entry.w;category=entry.c;guessed=new Set();wrong=[];over=false;PARTS.forEach(id=>document.getElementById(id).style.display='none');document.getElementById('msg').textContent='';document.getElementById('hintBox').innerHTML=t('hint')+'<strong>'+category+'</strong>';renderWord();renderKeyboard();updateLives();}
+
+  // remember an in-progress round so it can be resumed on next visit
+  function saveHM(){if(over||guessed.size===0){localStorage.removeItem('tg-hangman-save');return;}localStorage.setItem('tg-hangman-save',JSON.stringify({lang:L,word,category,guessed:[...guessed],wrong}));}
+  function loadHM(){try{const s=JSON.parse(localStorage.getItem('tg-hangman-save'));if(!s||s.lang!==L||!s.word||!Array.isArray(s.guessed)||!Array.isArray(s.wrong))return false;if(s.wrong.length>=PARTS.length)return false;if(s.word.split('').every(c=>s.guessed.includes(c)))return false;word=s.word;category=s.category;guessed=new Set(s.guessed);wrong=s.wrong;over=false;PARTS.forEach((id,i)=>document.getElementById(id).style.display=i<wrong.length?'':'none');document.getElementById('msg').textContent='';document.getElementById('hintBox').innerHTML=t('hint')+'<strong>'+category+'</strong>';renderWord();renderKeyboard();updateLives();return true;}catch(e){return false;}}
 
   function renderWord(){const el=document.getElementById('wordRow');el.innerHTML='';for(const ch of word){const s=document.createElement('span');s.className='letter'+(guessed.has(ch)?'':' blank');s.textContent=ch;el.appendChild(s);}document.getElementById('wrongLetters').textContent=wrong.join(' ');}
 
@@ -214,7 +218,7 @@ html.light .key.used-wrong{background:#787c7e;color:#fff}
     if(!word.includes(ch)){SFX.miss();wrong.push(ch);if(wrong.length<=PARTS.length)document.getElementById(PARTS[wrong.length-1]).style.display='';if(wrong.length>=PARTS.length){over=true;SFX.die();tgFail();statRec('hangman',{played:1,losses:1});document.getElementById('msg').textContent=t('lose')+word;}}else{SFX.hit();}
     const solved=word.split('').every(c=>guessed.has(c));
     if(solved&&!over){over=true;wins++;document.getElementById('score').textContent='✅ '+wins;SFX.win();celebrate();statRec('hangman',{played:1,wins:1});document.getElementById('msg').textContent=t('win');}
-    renderWord();renderKeyboard();updateLives();
+    renderWord();renderKeyboard();updateLives();saveHM();
   }
 
   function updateLives(){document.getElementById('lives').textContent='❤️ '+(PARTS.length-wrong.length);}
@@ -228,7 +232,7 @@ html.light .key.used-wrong{background:#787c7e;color:#fff}
 
   document.addEventListener('keydown',e=>{const ch=normalizeKey(e.key);if(!over&&ch)guess(ch);});
 
-  window.newGame=newGame;newGame();
+  window.newGame=newGame;if(!loadHM())newGame();
 })();
 </script>
 <script>

@@ -154,7 +154,7 @@ const tFireCd=t=>TOWERS[t.type].fireCd*Math.pow(0.85,t.lvl-1);
 const upCost=t=>Math.round(TOWERS[t.type].cost*(0.8+(t.lvl-1)*0.7));
 const sellRefund=t=>Math.round(t.spent*0.6);
 
-let cell, order, pathSet, towers, enemies, bullets, money, lives, wave, best, startBest, over, started, selected, waveActive, waveQueue, spawnList, spawnTimer, gapTimer, queuedCount, paused, raf, lastTs;
+let cell, order, pathSet, towers, enemies, bullets, money, lives, wave, best, startBest, over, started, selected, waveActive, waveQueue, spawnList, spawnTimer, gapTimer, queuedCount, paused, saveAcc, raf, lastTs;
 
 best=+localStorage.getItem('tg-td-best')||0;
 
@@ -195,6 +195,7 @@ function genPath(){
 function newGame(){
   document.getElementById('overModal').classList.remove('show');
   closeMenu();
+  localStorage.removeItem('tg-td-save');saveAcc=0;
   genPath();
   towers=[];enemies=[];bullets=[];
   money=130;lives=15;wave=0;over=false;started=true;paused=false;
@@ -296,12 +297,37 @@ function update(dt){
   if(waveActive&&!spawnList.length&&!waveQueue.length&&!enemies.length){
     waveActive=false;updatePalette();
   }
+  // periodically snapshot so the game can resume after closing the tab
+  saveAcc=(saveAcc||0)+dt;if(saveAcc>=2){saveAcc=0;saveTD();}
 }
 
 function endGame(){
   over=true;waveActive=false;
+  localStorage.removeItem('tg-td-save');
   statRec('td',{played:1},{bestWave:wave});
   failSound();draw();showOver();
+}
+
+// ── save / resume ──
+function saveTD(){
+  if(over||!started){localStorage.removeItem('tg-td-save');return;}
+  try{localStorage.setItem('tg-td-save',JSON.stringify({order,towers,enemies,money,lives,wave,queuedCount,waveQueue,spawnList,spawnTimer,gapTimer,waveActive,best,startBest}));}catch(e){}
+}
+function loadTD(){
+  try{
+    const s=JSON.parse(localStorage.getItem('tg-td-save'));
+    if(!s||!Array.isArray(s.order)||!s.order.length||!(s.lives>0))return false;
+    order=s.order;pathSet=new Set(order.map(p=>p.c+','+p.r));
+    towers=s.towers||[];enemies=s.enemies||[];bullets=[];
+    money=s.money;lives=s.lives;wave=s.wave||0;queuedCount=s.queuedCount||0;
+    waveQueue=s.waveQueue||[];spawnList=s.spawnList||[];spawnTimer=s.spawnTimer||0;gapTimer=s.gapTimer||0;
+    waveActive=!!s.waveActive;best=s.best||best;startBest=(s.startBest!=null?s.startBest:best);
+    over=false;started=true;paused=false;selected=null;saveAcc=0;
+    document.getElementById('overModal').classList.remove('show');closeMenu();
+    updateHUD();updatePalette();
+    if(raf)cancelAnimationFrame(raf);lastTs=performance.now();raf=requestAnimationFrame(loop);
+    return true;
+  }catch(e){return false;}
 }
 
 function showOver(){
@@ -505,9 +531,11 @@ function closeHelp(){paused=false;lastTs=performance.now();document.getElementBy
 document.getElementById('helpClose').addEventListener('click',closeHelp);
 
 window.addEventListener('resize',()=>{closeMenu();resize();});
-document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&started&&!over)draw();});
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')saveTD();else if(started&&!over)draw();});
+window.addEventListener('pagehide',saveTD);
 
-resize();setHint();newGame();
+resize();setHint();
+if(!loadTD())newGame();
 if(!localStorage.getItem('tg-td-seen')){localStorage.setItem('tg-td-seen','1');showHelp();}
 </script>
 </body>
