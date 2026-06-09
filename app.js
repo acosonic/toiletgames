@@ -75,6 +75,115 @@ applyLang();
   window.addEventListener('appinstalled', () => installBtn.classList.add('hidden'));
 })();
 
+// ── Drag-to-reorder game cards (long-press) ─────────────────────────────────────
+
+(function () {
+  const grid = document.querySelector('.games-grid');
+  if (!grid) return;
+
+  const ORDER_KEY = 'tg-order';
+  const keyOf = (c) => c.getAttribute('href');
+
+  // Restore saved order; any game not in the saved list stays in its DOM spot.
+  try {
+    const saved = JSON.parse(localStorage.getItem(ORDER_KEY) || 'null');
+    if (Array.isArray(saved)) {
+      const byKey = new Map(
+        Array.from(grid.querySelectorAll('.game-card')).map((c) => [keyOf(c), c])
+      );
+      saved.forEach((k) => { const c = byKey.get(k); if (c) grid.appendChild(c); });
+    }
+  } catch (e) {}
+
+  function saveOrder() {
+    const order = Array.from(grid.querySelectorAll('.game-card')).map(keyOf);
+    try { localStorage.setItem(ORDER_KEY, JSON.stringify(order)); } catch (e) {}
+  }
+
+  const HOLD = 300;        // ms to hold before a drag begins
+  const MOVE_CANCEL = 12;  // px of movement that cancels the pending long-press
+  let src = null, ghost = null, longTimer = null;
+  let startX = 0, startY = 0, dragging = false, pointerId = null, suppress = false;
+
+  function cleanup() {
+    clearTimeout(longTimer); longTimer = null;
+    if (ghost) { ghost.remove(); ghost = null; }
+    if (src) src.classList.remove('tg-place');
+    grid.classList.remove('tg-reordering');
+    dragging = false; src = null; pointerId = null;
+  }
+
+  function startDrag(card, x, y) {
+    src = card;
+    const r = card.getBoundingClientRect();
+    ghost = card.cloneNode(true);
+    ghost.classList.add('tg-ghost');
+    ghost.style.width = r.width + 'px';
+    ghost.style.height = r.height + 'px';
+    ghost.style.left = r.left + 'px';
+    ghost.style.top = r.top + 'px';
+    ghost._dx = x - r.left;
+    ghost._dy = y - r.top;
+    document.body.appendChild(ghost);
+    card.classList.add('tg-place');
+    grid.classList.add('tg-reordering');
+    dragging = true;
+    if (navigator.vibrate) { try { navigator.vibrate(15); } catch (e) {} }
+  }
+
+  function moveGhost(x, y) {
+    ghost.style.left = (x - ghost._dx) + 'px';
+    ghost.style.top = (y - ghost._dy) + 'px';
+    const under = document.elementFromPoint(x, y);
+    const target = under && under.closest && under.closest('.game-card');
+    if (target && target !== src && target.parentNode === grid) {
+      const tr = target.getBoundingClientRect();
+      const cy = tr.top + tr.height / 2, cx = tr.left + tr.width / 2;
+      const before = y < cy - 1 || (Math.abs(y - cy) <= tr.height * 0.4 && x < cx);
+      if (before) target.before(src); else target.after(src);
+    }
+  }
+
+  grid.addEventListener('pointerdown', (e) => {
+    if (e.button != null && e.button !== 0) return;
+    const card = e.target.closest('.game-card');
+    if (!card) return;
+    startX = e.clientX; startY = e.clientY; pointerId = e.pointerId;
+    longTimer = setTimeout(() => {
+      startDrag(card, startX, startY);
+      try { grid.setPointerCapture(pointerId); } catch (e) {}
+    }, HOLD);
+  });
+
+  grid.addEventListener('pointermove', (e) => {
+    if (!dragging) {
+      if (longTimer &&
+          (Math.abs(e.clientX - startX) > MOVE_CANCEL ||
+           Math.abs(e.clientY - startY) > MOVE_CANCEL)) {
+        clearTimeout(longTimer); longTimer = null;
+      }
+      return;
+    }
+    e.preventDefault();
+    moveGhost(e.clientX, e.clientY);
+  });
+
+  function endDrag() {
+    if (dragging) { saveOrder(); suppress = true; setTimeout(() => { suppress = false; }, 60); }
+    cleanup();
+  }
+  grid.addEventListener('pointerup', endDrag);
+  grid.addEventListener('pointercancel', cleanup);
+
+  // Stop the click that follows a drag from opening the game.
+  grid.addEventListener('click', (e) => {
+    if (suppress) { e.preventDefault(); e.stopPropagation(); }
+  }, true);
+
+  // Cancel page scrolling while a drag is in progress (touch).
+  grid.addEventListener('touchmove', (e) => { if (dragging) e.preventDefault(); }, { passive: false });
+})();
+
 // ── Service Worker ────────────────────────────────────────────────────────────
 
 if ('serviceWorker' in navigator) {

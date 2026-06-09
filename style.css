@@ -131,6 +131,24 @@ html.light .game-card {
 .game-card:hover { border-color: var(--accent); }
 .game-card:active { transform: scale(0.95); background: var(--surface2); }
 
+/* Drag-to-reorder (long-press) */
+.games-grid.tg-reordering { touch-action: none; }
+.games-grid.tg-reordering .game-card { transition: none; }
+.game-card.tg-place {
+  opacity: 0.3;
+  border: 1px dashed var(--accent);
+}
+.game-card.tg-ghost {
+  position: fixed;
+  z-index: 1000;
+  margin: 0;
+  pointer-events: none;
+  opacity: 0.95;
+  transform: scale(1.06);
+  box-shadow: 0 10px 28px rgba(0,0,0,0.45);
+  border-color: var(--accent);
+}
+
 .game-icon { font-size: 2.4rem; line-height: 1; }
 
 .hangman-icon {
