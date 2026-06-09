@@ -61,6 +61,7 @@ canvas{display:block;max-width:100%;height:auto;border:1px solid var(--surface2)
     <div class="hud-btns">
       <button class="ctrl-btn i18n" data-sr="↩ Поништи" data-en="↩ Undo" onclick="undo()">↩ Поништи</button>
       <button class="ctrl-btn i18n" data-sr="↺ Ресет" data-en="↺ Reset" onclick="resetLevel()">↺ Ресет</button>
+      <button class="ctrl-btn" id="solveBtn" onclick="solveCurrent()" title="Solve" style="display:none">💡</button>
       <button class="ctrl-btn" onclick="shareLevel()" title="Share">🔗</button>
       <button class="ctrl-btn" onclick="startRandom()" title="New random">🎲</button>
     </div>
@@ -299,6 +300,59 @@ function computeForwardMoves(levelStr, moveSeq) {
   return total;
 }
 
+// ── solution string ───────────────────────────────────────────
+// Reconstructs the generator's solution as a playable Sokoban-notation
+// string (lowercase = walk, UPPERCASE = push). Same forward replay as
+// computeForwardMoves, but records each step's direction via path BFS.
+function solutionString(levelStr, moveSeq) {
+  const rows = levelStr.split('\n').filter(r => r.trim() !== '');
+  const H = rows.length, W = Math.max(...rows.map(r => r.length));
+  const walls = new Set(), boxes = new Set();
+  let pr = -1, pc = -1;
+  for (let r = 0; r < H; r++) for (let c = 0; c < W; c++) {
+    const ch = (rows[r]||'')[c]||'#';
+    if (ch === '#') walls.add(r*100+c);
+    if ('@+'.includes(ch)) { pr = r; pc = c; }
+    if ('$*'.includes(ch)) boxes.add(r*100+c);
+  }
+  const isOpen = (r, c) => r>=0&&r<H&&c>=0&&c<W&&!walls.has(r*100+c)&&!boxes.has(r*100+c);
+  const letter = (dr, dc) => dr===-1?'u':dr===1?'d':dc===-1?'l':'r';
+  // shortest walk path from (fr,fc) to (tr,tc) as a string of u/d/l/r, or null
+  const walkPath = (fr, fc, tr, tc) => {
+    if (fr===tr&&fc===tc) return '';
+    const prev = new Map(), seen = new Set([fr*100+fc]), q = [fr*100+fc];
+    for (let i = 0; i < q.length; i++) {
+      const k = q[i], r = (k/100)|0, c = k%100;
+      for (const [dr,dc] of [[-1,0],[1,0],[0,-1],[0,1]]) {
+        const nr = r+dr, nc = c+dc, nk = nr*100+nc;
+        if (seen.has(nk) || !isOpen(nr, nc)) continue;
+        seen.add(nk); prev.set(nk, k);
+        if (nr===tr && nc===tc) {
+          let path = '', cur = nk;
+          while (cur !== fr*100+fc) {
+            const pk = prev.get(cur);
+            path = letter(((cur/100)|0)-((pk/100)|0), (cur%100)-(pk%100)) + path;
+            cur = pk;
+          }
+          return path;
+        }
+        q.push(nk);
+      }
+    }
+    return null;
+  };
+  let out = '';
+  for (let i = moveSeq.length - 1; i >= 0; i--) {
+    const {r, c, bR, bC, pR, pC} = moveSeq[i];
+    const wp = walkPath(pr, pc, pR, pC);
+    if (wp === null) return null;
+    out += wp + letter(bR-pR, bC-pC).toUpperCase();  // walk to spot, then push
+    boxes.delete(bR*100+bC); boxes.add(r*100+c);
+    pr = bR; pc = bC;
+  }
+  return out;
+}
+
 // ── optimal-move solver (runs in a Web Worker) ────────────────
 // A* over push-states that minimizes PLAYER MOVES (walk steps + pushes) —
 // the same metric the HUD counts. Used to base the move limit on the TRUE
@@ -455,6 +509,8 @@ function makeSolver() {
 // ── game state ───────────────────────────────────────────────
 let cells, playerPos, width, moves, won, failed, history;
 let currentLevelStr = '';
+let currentSolution = '';   // generator's known solution (Sokoban notation), '' if unknown
+let _solveTimer = null;     // interval handle while auto-solving
 let sharedLevel = false;
 let sharedScore = 0;
 let moveLimit = 0;
@@ -476,6 +532,7 @@ function updateHUD() {
   const mEl = document.getElementById('movesEl');
   mEl.textContent = moveLimit > 0 ? '🚶 ' + moves + '/' + moveLimit : '🚶 ' + moves;
   mEl.style.color = rem <= 10 ? 'var(--accent)' : '';
+  updateSolveBtn();
 }
 
 function parseLevel() {
@@ -681,9 +738,10 @@ function startRandom() {
 
   setTimeout(() => {
     const result = generateLevel(4, 80);
-    if (!result) { currentLevelStr = FALLBACK; moveLimit = 120; finishRandom(); return; }
+    if (!result) { currentLevelStr = FALLBACK; currentSolution = ''; moveLimit = 120; finishRandom(); return; }
 
     currentLevelStr = result.level;
+    currentSolution = solutionString(result.level, result.moveSeq) || '';
     const fwd = computeForwardMoves(result.level, result.moveSeq) || 120;
 
     // Tight limit = 1.1 × the optimum. Players can undo freely (an undo
@@ -709,20 +767,41 @@ function startRandom() {
   }, 20);
 }
 
-// Console helper: playSolution('RurrddDL...')
-// Lowercase = walk, Uppercase = push (standard Sokoban notation)
+// Animate a solution. Called with no arg, it plays the generator's known
+// solution for the current level. String format: lowercase = walk,
+// UPPERCASE = push (standard Sokoban notation).
 window.playSolution = function(sol, msPerMove) {
-  msPerMove = msPerMove || 180;
+  sol = (sol == null ? currentSolution : sol);
+  if (!sol) return 'No known solution for this level.';
+  if (_solveTimer) { clearInterval(_solveTimer); _solveTimer = null; }
+  msPerMove = msPerMove || 160;
   resetLevel();
   const dir = {r:[1,0],l:[-1,0],u:[0,-1],d:[0,1]};
   let i = 0;
-  const tick = setInterval(() => {
-    if (won || i >= sol.length) { clearInterval(tick); return; }
+  _solveTimer = setInterval(() => {
+    if (won || i >= sol.length) { clearInterval(_solveTimer); _solveTimer = null; updateSolveBtn(); return; }
     const d = dir[sol[i++].toLowerCase()];
     if (d) doMove(d[0], d[1]);
   }, msPerMove);
+  updateSolveBtn();
   return 'Playing ' + sol.length + ' moves...';
 };
+
+// Toggle auto-solve from the 💡 button.
+function solveCurrent() {
+  if (_solveTimer) { clearInterval(_solveTimer); _solveTimer = null; updateSolveBtn(); return; }
+  window.playSolution();
+}
+
+// Reflect availability + play/stop state on the 💡 button.
+function updateSolveBtn() {
+  const b = document.getElementById('solveBtn');
+  if (!b) return;
+  const isSR = L() === 'sr';
+  b.style.display = (currentSolution && !sharedLevel) ? '' : 'none';
+  b.textContent = _solveTimer ? (isSR ? '⏹' : '⏹') : '💡';
+  b.title = _solveTimer ? (isSR ? 'Заустави' : 'Stop') : (isSR ? 'Реши' : 'Solve');
+}
 
 document.addEventListener('keydown', e => {
   if (e.which === 37) { e.preventDefault(); doMove(-1, 0); }
