@@ -100,9 +100,10 @@ applyLang();
     try { localStorage.setItem(ORDER_KEY, JSON.stringify(order)); } catch (e) {}
   }
 
-  const HOLD = 300;        // ms to hold before a drag begins
-  const MOVE_CANCEL = 12;  // px of movement that cancels the pending long-press
-  let src = null, ghost = null, longTimer = null;
+  const HOLD = 300;        // ms to hold (touch) before a drag begins
+  const MOVE_CANCEL = 12;  // px of movement that cancels a pending touch long-press
+  const MOUSE_START = 6;   // px of movement that starts a mouse drag immediately
+  let src = null, ghost = null, longTimer = null, pendingCard = null, pendingMouse = false;
   let startX = 0, startY = 0, dragging = false, pointerId = null, suppress = false;
 
   function cleanup() {
@@ -111,7 +112,11 @@ applyLang();
     if (src) src.classList.remove('tg-place');
     grid.classList.remove('tg-reordering');
     dragging = false; src = null; pointerId = null;
+    pendingCard = null; pendingMouse = false;
   }
+
+  // Browsers natively drag <a> links; kill that so our reorder takes over.
+  grid.addEventListener('dragstart', (e) => e.preventDefault());
 
   function startDrag(card, x, y) {
     src = card;
@@ -144,28 +149,38 @@ applyLang();
     }
   }
 
+  function beginCapturedDrag(card, x, y) {
+    startDrag(card, x, y);
+    try { grid.setPointerCapture(pointerId); } catch (e) {}
+  }
+
   grid.addEventListener('pointerdown', (e) => {
     if (e.button != null && e.button !== 0) return;
     const card = e.target.closest('.game-card');
     if (!card) return;
     startX = e.clientX; startY = e.clientY; pointerId = e.pointerId;
-    longTimer = setTimeout(() => {
-      startDrag(card, startX, startY);
-      try { grid.setPointerCapture(pointerId); } catch (e) {}
-    }, HOLD);
+    pendingCard = card;
+    if (e.pointerType === 'mouse') {
+      // Desktop: grab and drag immediately on a small move — no hold needed.
+      pendingMouse = true;
+    } else {
+      // Touch/pen: hold briefly so a tap still opens the game and lists still scroll.
+      longTimer = setTimeout(() => beginCapturedDrag(card, startX, startY), HOLD);
+    }
   });
 
   grid.addEventListener('pointermove', (e) => {
-    if (!dragging) {
-      if (longTimer &&
-          (Math.abs(e.clientX - startX) > MOVE_CANCEL ||
-           Math.abs(e.clientY - startY) > MOVE_CANCEL)) {
-        clearTimeout(longTimer); longTimer = null;
-      }
+    if (dragging) { e.preventDefault(); moveGhost(e.clientX, e.clientY); return; }
+    const dx = Math.abs(e.clientX - startX), dy = Math.abs(e.clientY - startY);
+    if (pendingMouse && pendingCard && (dx > MOUSE_START || dy > MOUSE_START)) {
+      pendingMouse = false;
+      beginCapturedDrag(pendingCard, e.clientX, e.clientY);
+      moveGhost(e.clientX, e.clientY);
       return;
     }
-    e.preventDefault();
-    moveGhost(e.clientX, e.clientY);
+    if (longTimer && (dx > MOVE_CANCEL || dy > MOVE_CANCEL)) {
+      clearTimeout(longTimer); longTimer = null;
+    }
   });
 
   function endDrag() {
