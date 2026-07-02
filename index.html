@@ -38,6 +38,14 @@ window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();win
       <button class="icon-btn theme-btn" onclick="toggleTheme()" title="Toggle theme">🌙</button>
       <button class="icon-btn lang-btn" onclick="toggleLang()" title="Language">EN</button>
       <button class="icon-btn installbtn" id="installBtn" data-sr="Инсталирај" data-en="Install">Инсталирај</button>
+      <div class="more-menu">
+        <button class="icon-btn" onclick="toggleMore()" title="More">⋯</button>
+        <div class="more-dropdown" id="moreDropdown">
+          <a href="games/stats.html" class="i18n" data-sr="📊 Статистике" data-en="📊 Statistics">📊 Статистике</a>
+          <a href="https://github.com/acosonic/toiletgames" target="_blank" rel="noopener">GitHub ↗</a>
+          <a href="https://js13kgames.com/2025/games" target="_blank" rel="noopener">js13kGames ↗</a>
+        </div>
+      </div>
     </div>
   </header>
 
@@ -160,13 +168,6 @@ window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();win
     </div>
   </main>
 
-  <footer>
-    <a href="games/stats.html" class="i18n" data-sr="📊 Статистике" data-en="📊 Statistics">📊 Статистике</a>
-    <span style="color:var(--text-dim)">·</span>
-    <a href="https://github.com/acosonic/toiletgames" target="_blank" rel="noopener">GitHub ↗</a>
-    <span style="color:var(--text-dim)">·</span>
-    <a href="https://js13kgames.com/2025/games" target="_blank" rel="noopener">js13kGames ↗</a>
-  </footer>
 </div>
 <script src="app.js"></script>
 </body>

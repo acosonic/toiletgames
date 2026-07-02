@@ -39,6 +39,19 @@ function toggleLang() {
 applyTheme();
 applyLang();
 
+// ── More menu ─────────────────────────────────────────────────────────────────
+
+function toggleMore() {
+  document.getElementById('moreDropdown').classList.toggle('open');
+}
+
+document.addEventListener('click', function (e) {
+  if (!e.target.closest('.more-menu')) {
+    const d = document.getElementById('moreDropdown');
+    if (d) d.classList.remove('open');
+  }
+});
+
 // ── PWA install button ────────────────────────────────────────────────────────
 
 (function () {
