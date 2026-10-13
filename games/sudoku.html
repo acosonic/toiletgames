@@ -44,6 +44,10 @@ html.light .cell.correct{color:#27ae60}
 html.xl .num-btn{font-size:1.5rem;padding:14px 0}
 .num-btn:active{background:var(--accent);color:#fff}
 .num-btn.erase{background:var(--surface2);font-size:.9rem}
+.diff{display:flex;width:100%;border:1px solid var(--dim);border-radius:10px;overflow:hidden}
+.diff button{flex:1;background:var(--surface);color:var(--text);border:none;padding:9px 4px;font-size:.88rem;font-weight:700;cursor:pointer;touch-action:manipulation}
+.diff button+button{border-left:1px solid var(--dim)}
+.diff button.on{background:var(--accent);color:#fff}
 .msg{font-size:.95rem;font-weight:700;text-align:center;min-height:1.4em;color:var(--accent)}
 </style>
 </head>
@@ -62,6 +66,11 @@ html.xl .num-btn{font-size:1.5rem;padding:14px 0}
   <div class="hud">
     <button class="new-btn i18n" data-sr="Нова игра" data-en="New game" onclick="newGame()">Нова игра</button>
     <button class="check-btn i18n" data-sr="Провери" data-en="Check" onclick="checkSolution()">Провери</button>
+  </div>
+  <div class="diff" id="diff">
+    <button data-d="easy" class="i18n" data-sr="Лако" data-en="Easy">Лако</button>
+    <button data-d="normal" class="i18n" data-sr="Нормално" data-en="Normal">Нормално</button>
+    <button data-d="hard" class="i18n" data-sr="Тешко" data-en="Hard">Тешко</button>
   </div>
   <div id="sudoku"></div>
   <div class="numpad" id="numpad"></div>
@@ -83,17 +92,72 @@ html.xl .num-btn{font-size:1.5rem;padding:14px 0}
   const T={sr:{fill:'❗ Попуни све ћелије!',ok:'🎉 Тачно! Браво!',err:'❌ Постоје грешке (означено црвеном)'},en:{fill:'❗ Fill all cells!',ok:'🎉 Correct! Well done!',err:'❌ There are errors (shown in red)'}};
   const t=k=>T[L][k];
 
-  const PUZZLES=[
-    {p:[5,3,0,0,7,0,0,0,0,6,0,0,1,9,5,0,0,0,0,9,8,0,0,0,0,6,0,8,0,0,0,6,0,0,0,3,4,0,0,8,0,3,0,0,1,7,0,0,0,2,0,0,0,6,0,6,0,0,0,0,2,8,0,0,0,0,4,1,9,0,0,5,0,0,0,0,8,0,0,7,9],s:[5,3,4,6,7,8,9,1,2,6,7,2,1,9,5,3,4,8,1,9,8,3,4,2,5,6,7,8,5,9,7,6,1,4,2,3,4,2,6,8,5,3,7,9,1,7,1,3,9,2,4,8,5,6,9,6,1,5,3,7,2,8,4,2,8,7,4,1,9,6,3,5,3,4,5,2,8,6,1,7,9]},
-    {p:[0,0,0,2,6,0,7,0,1,6,8,0,0,7,0,0,9,0,1,9,0,0,0,4,5,0,0,8,2,0,1,0,0,0,4,0,0,0,4,6,0,2,9,0,0,0,5,0,0,0,3,0,2,8,0,0,9,3,0,0,0,7,4,0,4,0,0,5,0,0,3,6,7,0,3,0,1,8,0,0,0],s:[4,3,5,2,6,9,7,8,1,6,8,2,5,7,1,4,9,3,1,9,7,8,3,4,5,6,2,8,2,6,1,9,5,3,4,7,3,7,4,6,8,2,9,1,5,9,5,1,7,4,3,6,2,8,5,1,9,3,2,6,8,7,4,2,4,8,9,5,7,1,3,6,7,6,3,4,1,8,2,5,9]},
-    {p:[0,2,0,6,0,8,0,0,0,5,8,0,0,0,9,7,0,0,0,0,0,0,4,0,0,0,0,3,7,0,0,0,0,5,0,0,6,0,0,0,0,0,0,0,4,0,0,8,0,0,0,0,1,3,0,0,0,0,2,0,0,0,0,0,0,9,8,0,0,0,3,6,0,0,0,3,0,6,0,9,0],s:[1,2,3,6,7,8,9,4,5,5,8,4,2,3,9,7,6,1,9,6,7,1,4,5,3,2,8,3,7,2,4,6,1,5,8,9,6,9,1,5,8,3,2,7,4,4,5,8,7,9,2,6,1,3,8,3,6,9,2,4,1,5,7,2,1,9,8,5,7,4,3,6,7,4,5,3,1,6,8,9,2]},
-  ];
+  // ── generator: random full grid → remove clues while the solution stays unique ──
+  // Difficulty = clue count + technique: easy/normal must be solvable with singles only,
+  // hard must need more than singles (guessing or advanced techniques).
+  const DIFF={easy:{clues:38,logic:'naked'},normal:{clues:30,logic:'singles'},hard:{clues:25,logic:'beyond'}};
+  const PEERS=[];
+  for(let i=0;i<81;i++){const r=(i/9)|0,c=i%9,b0=((r/3)|0)*27+((c/3)|0)*3,s=new Set();for(let k=0;k<9;k++){s.add(r*9+k);s.add(k*9+c);s.add(b0+((k/3)|0)*9+k%3);}s.delete(i);PEERS.push([...s]);}
+  const UNITS=[];
+  for(let k=0;k<9;k++){const row=[],col=[],box=[];for(let j=0;j<9;j++){row.push(k*9+j);col.push(j*9+k);box.push(((k/3)|0)*27+(k%3)*3+((j/3)|0)*9+j%3);}UNITS.push(row,col,box);}
+  const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=(Math.random()*(i+1))|0;[a[i],a[j]]=[a[j],a[i]];}return a;};
+  const cands=(g,i)=>{let m=0x3FE;for(const p of PEERS[i])m&=~(1<<g[p]);return m;};
+  const bits=m=>{const r=[];for(let n=1;n<=9;n++)if(m&(1<<n))r.push(n);return r;};
+
+  // Count solutions up to `limit` (backtracking, most-constrained cell first)
+  function countSolutions(g,limit){
+    let best=-1,bm=0,bc=10;
+    for(let i=0;i<81;i++)if(!g[i]){const m=cands(g,i);const c=bits(m).length;if(!c)return 0;if(c<bc){bc=c;best=i;bm=m;if(c===1)break;}}
+    if(best<0)return 1;
+    let n=0;
+    for(const v of bits(bm)){g[best]=v;n+=countSolutions(g,limit-n);if(n>=limit)break;}
+    g[best]=0;return n;
+  }
+  function fullGrid(){
+    const g=new Array(81).fill(0);
+    (function fill(i){if(i===81)return true;if(g[i])return fill(i+1);for(const v of shuffle(bits(cands(g,i)))){g[i]=v;if(fill(i+1))return true;}g[i]=0;return false;})(0);
+    return g;
+  }
+  // Solve with naked singles (and hidden singles unless mode==='naked'); true if fully solved
+  function logicSolves(p,mode){
+    const g=p.slice();
+    for(let progress=true;progress;){
+      progress=false;
+      for(let i=0;i<81;i++)if(!g[i]){const b=bits(cands(g,i));if(!b.length)return false;if(b.length===1){g[i]=b[0];progress=true;}}
+      if(progress||mode==='naked')continue;
+      for(const u of UNITS)for(let n=1;n<=9;n++){
+        let spot=-1,cnt=0;
+        for(const i of u){if(g[i]===n){cnt=2;break;}if(!g[i]&&(cands(g,i)&(1<<n))){spot=i;cnt++;}}
+        if(cnt===1){g[spot]=n;progress=true;}
+      }
+    }
+    return g.every(v=>v);
+  }
+  function generate(diff){
+    const cfg=DIFF[diff];let best=null;
+    for(let attempt=0;attempt<12;attempt++){
+      const sol=fullGrid(),p=sol.slice();let clues=81;
+      for(const i of shuffle([...Array(81).keys()])){
+        if(clues<=cfg.clues)break;
+        const v=p[i];p[i]=0;
+        const ok=countSolutions(p.slice(),2)===1&&(cfg.logic==='beyond'||logicSolves(p,cfg.logic));
+        if(ok)clues--;else p[i]=v;
+      }
+      const cand={p,s:sol,clues};
+      if(cfg.logic==='beyond'?!logicSolves(p,'singles'):clues<=cfg.clues+2)return cand;
+      if(!best||clues<best.clues)best=cand;
+    }
+    return best;
+  }
   function statRec(g,inc,hi,lo){const j=JSON.parse(localStorage.getItem('tg-stats')||'{}');const e=j[g]||{};for(const[k,v]of Object.entries(inc||{}))e[k]=(e[k]||0)+v;for(const[k,v]of Object.entries(hi||{}))if(v!=null&&(!e[k]||v>e[k]))e[k]=v;for(const[k,v]of Object.entries(lo||{}))if(v!=null&&(!e[k]||v<e[k]))e[k]=v;j[g]=e;localStorage.setItem('tg-stats',JSON.stringify(j));}
   const SFX=(()=>{let ac;const A=()=>(ac=ac||new(window.AudioContext||window.webkitAudioContext)());const t=(f,d,tp,v)=>{if(localStorage.getItem('tg-sound')==='0')return;try{const c=A(),o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.type=tp||'sine';o.frequency.value=f;g.gain.setValueAtTime(v||.25,c.currentTime);g.gain.exponentialRampToValueAtTime(.001,c.currentTime+d);o.start();o.stop(c.currentTime+d);}catch(e){}};return{place:()=>t(700,.04,'square',.08),correct(){t(523,.1);setTimeout(()=>t(659,.1),100);setTimeout(()=>t(784,.25),200);},error:()=>t(150,.3,'sawtooth',.15)};})();
 
-  let puzzle,solution,userGrid,selected=null,pi=0;
+  let puzzle,solution,userGrid,selected=null,solved=false;
+  let diff=DIFF[localStorage.getItem('tg-sudoku-diff')]?localStorage.getItem('tg-sudoku-diff'):'normal';
 
-  function newGame(){pi=(pi+1)%PUZZLES.length;puzzle=[...PUZZLES[pi].p];solution=[...PUZZLES[pi].s];userGrid=puzzle.map(v=>v);selected=null;document.getElementById('msg').textContent='';render();}
+  function newGame(){const g=generate(diff);puzzle=g.p;solution=g.s;userGrid=puzzle.slice();selected=null;solved=false;document.getElementById('msg').textContent='';showDiff();render();}
+  function showDiff(){document.querySelectorAll('#diff button').forEach(b=>b.classList.toggle('on',b.dataset.d===diff));}
+  document.querySelectorAll('#diff button').forEach(b=>b.addEventListener('click',()=>{diff=b.dataset.d;localStorage.setItem('tg-sudoku-diff',diff);newGame();}));
 
   function render(){
     const el=document.getElementById('sudoku');el.innerHTML='';
@@ -115,7 +179,7 @@ html.xl .num-btn{font-size:1.5rem;padding:14px 0}
 
   function enter(n){if(selected===null||puzzle[selected])return;userGrid[selected]=n;if(n>0)SFX.place();render();}
 
-  function checkSolution(){const filled=userGrid.every(v=>v>0);const correct=userGrid.every((v,i)=>v===solution[i]);if(!filled)document.getElementById('msg').textContent=t('fill');else if(correct){SFX.correct();celebrate();document.getElementById('msg').textContent=t('ok');statRec('sudoku',{wins:1});}else{SFX.error();tgFail();document.getElementById('msg').textContent=t('err');}}
+  function checkSolution(){const filled=userGrid.every(v=>v>0);const correct=userGrid.every((v,i)=>v===solution[i]);if(!filled)document.getElementById('msg').textContent=t('fill');else if(correct){SFX.correct();celebrate();document.getElementById('msg').textContent=t('ok');if(!solved){solved=true;statRec('sudoku',{wins:1,['wins_'+diff]:1});}}else{SFX.error();tgFail();document.getElementById('msg').textContent=t('err');}}
 
   window.newGame=newGame;window.checkSolution=checkSolution;
   newGame();

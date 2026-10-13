@@ -1,6 +1,6 @@
 // Service worker for Тоалет Игрице.
 // Bump CACHE_VERSION on every shell change.
-const CACHE_VERSION = 'v127';
+const CACHE_VERSION = 'v129';
 const CACHE_NAME = `toiletgames-${CACHE_VERSION}`;
 
 const SCOPE = new URL(self.registration.scope).pathname;
@@ -24,6 +24,7 @@ const SHELL = [
   SCOPE + 'games/dropfour.html',
   SCOPE + 'games/pairs.html',
   SCOPE + 'games/sudoku.html',
+  SCOPE + 'games/sudoku6.html',
   SCOPE + 'games/letterbox.html',
   SCOPE + 'games/hangman.html',
   SCOPE + 'games/blackjack.html',
