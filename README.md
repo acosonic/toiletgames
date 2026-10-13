@@ -1,6 +1,6 @@
 # Toilet Games 🚽🎮
 
-22 free, offline-capable browser games as a PWA — built for phones. Large touch targets, dark/light theme toggle, font-size toggle, sound toggle (🔊/🔇), fully bilingual (Serbian / English).
+23 free, offline-capable browser games as a PWA — built for phones. Large touch targets, dark/light theme toggle, font-size toggle, sound toggle (🔊/🔇), fully bilingual (Serbian / English).
 
 **Play now:** https://acosonic.github.io/toiletgames/
 
@@ -24,7 +24,8 @@
 | 🎵 | Echo | Watch and repeat the colour sequence |
 | 🔴 | Drop Four | Drop discs to get four in a row — 2 players or vs AI |
 | 🧠 | Pairs | Flip cards and find all matching pairs |
-| 9️⃣ | Sudoku | Fill the 9×9 grid with numbers 1–9 |
+| 9️⃣ | Sudoku | Fill the 9×9 grid with numbers 1–9 — easy, normal or hard |
+| 6️⃣ | Sudoku 6×6 | Smaller 6×6 grid with numbers 1–6 — easy, normal or hard |
 | 📝 | Letterbox | Guess the hidden 5-letter word in 6 tries |
 | 🪢 | Hangman | Guess the word letter by letter |
 | 🃏 | Blackjack | Hit or stand — beat the dealer to 21 |
@@ -65,7 +66,7 @@
 
 ## Install as PWA
 
-Open the link in **Chrome** (Android) or **Safari** (iOS) and tap the install banner. Once installed the app runs fully offline — the service worker pre-caches all 22 game files on first visit.
+Open the link in **Chrome** (Android) or **Safari** (iOS) and tap the install banner. Once installed the app runs fully offline — the service worker pre-caches all 23 game files on first visit.
 
 ---
 
