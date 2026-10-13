@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Молекули — Тоалет Игрице</title>
+<meta name="theme-color" content="#e94560">
+<script>(function(){var t=localStorage.getItem('tg-theme')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');if(t==='light')document.documentElement.classList.add('light');})()</script>
+<style>
+:root{--bg:#0f0f1a;--surface:#1a1a2e;--surface2:#16213e;--accent:#e94560;--text:#e0e0e0;--dim:#888;--line:rgba(255,255,255,.06);--wall1:#3b4566;--wall2:#262d47;--c:#4a4a5e}
+html.light{--bg:#f0f2f5;--surface:#fff;--surface2:#e2e5ea;--text:#1a1a2e;--dim:#666;--line:rgba(0,0,0,.07);--wall1:#b8c2d8;--wall2:#8f9bb8;--c:#4c4f69}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:18px}html.xl{font-size:22px}
+body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,sans-serif;min-height:100dvh;-webkit-tap-highlight-color:transparent}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--surface);gap:6px;border-bottom:1px solid var(--surface2)}
+.topbar a{color:var(--accent);text-decoration:none;font-size:.95rem;font-weight:700;white-space:nowrap}
+.topbar h2{font-size:.95rem;font-weight:700;flex:1;text-align:center}
+.topbar-btns{display:flex;gap:4px;flex-shrink:0}
+.icon-btn{background:none;border:1px solid var(--dim);color:var(--text);border-radius:6px;padding:5px 8px;font-size:.78rem;cursor:pointer;white-space:nowrap;line-height:1}
+.wrap{padding:8px 10px 20px;max-width:520px;margin:0 auto;display:flex;flex-direction:column;align-items:center;gap:8px}
+.hud{display:flex;align-items:center;justify-content:space-between;width:100%;font-size:.9rem;font-weight:700;gap:6px;flex-wrap:wrap}
+.lvl-nav{display:flex;align-items:center;gap:4px}
+.lvl-nav button{background:var(--surface2);border:1px solid var(--dim);color:var(--text);border-radius:8px;width:34px;height:34px;font-size:.9rem;cursor:pointer;touch-action:manipulation}
+.lvl-nav button:disabled{opacity:.35;cursor:default}
+#levelEl{min-width:5.5em;text-align:center}
+.hud-btns{display:flex;gap:6px}
+.ctrl-btn{background:var(--surface2);border:1px solid var(--dim);color:var(--text);border-radius:8px;padding:6px 11px;font-size:.85rem;cursor:pointer;touch-action:manipulation;min-height:36px}
+.ctrl-btn.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.target{display:flex;align-items:center;gap:12px;width:100%;background:var(--surface);border:1px solid var(--surface2);border-radius:14px;padding:8px 12px}
+.target-info{flex:1;min-width:0}
+.target-name{font-weight:800;font-size:1rem}
+.target-name .formula{color:var(--accent);margin-left:6px}
+.target-desc{font-size:.78rem;color:var(--dim);margin-top:3px;line-height:1.3}
+.moves{display:flex;justify-content:space-between;width:100%;font-size:.95rem;font-weight:700}
+.moves .par{color:var(--dim)}
+.board{position:relative;width:min(94vw,470px);aspect-ratio:1;border-radius:14px;background:var(--surface);border:2px solid var(--surface2);background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);background-size:calc(100%/7) calc(100%/7);touch-action:none;user-select:none;-webkit-user-select:none;overflow:hidden}
+.cellbox{position:absolute;top:0;left:0;width:calc(100%/7);height:calc(100%/7)}
+.wall::before{content:"";position:absolute;inset:4%;border-radius:18%;background:linear-gradient(135deg,var(--wall1),var(--wall2));box-shadow:inset 2px 2px 0 rgba(255,255,255,.25),inset -2px -2px 0 rgba(0,0,0,.25)}
+.atom{z-index:2;cursor:pointer;transition-property:transform;transition-timing-function:cubic-bezier(.3,.1,.4,1)}
+.ball{position:absolute;inset:14%;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;font-size:calc(min(94vw,470px)/7*.3);z-index:1;background:radial-gradient(circle at 32% 28%,color-mix(in srgb,var(--ac) 50%,white) 0%,var(--ac) 55%,color-mix(in srgb,var(--ac) 65%,black) 100%);box-shadow:0 3px 8px rgba(0,0,0,.4);border:2px solid rgba(255,255,255,.35)}
+.atom.sel .ball{box-shadow:0 0 0 3px var(--bg),0 0 0 6px #ffd166,0 0 16px #ffd166}
+.atom.done .ball{animation:pulse .5s ease 2}
+@keyframes pulse{50%{transform:scale(1.12)}}
+.stub{position:absolute;background:linear-gradient(90deg,#9aa3b5,#e8ebf2 40%,#8a93a8);border-radius:2px;z-index:0}
+.stub.v{width:9%;height:50%;left:45.5%}
+.stub.h{height:9%;width:50%;top:45.5%;background:linear-gradient(180deg,#9aa3b5,#e8ebf2 40%,#8a93a8)}
+.stub.d0{top:0}.stub.d2{bottom:0}.stub.d1{right:0}.stub.d3{left:0}
+.arrow{z-index:3;display:flex;align-items:center;justify-content:center;background:none;border:none;cursor:pointer;touch-action:none;animation:pop .12s ease-out}
+.arrow span{width:56%;height:56%;background:#ffd166;clip-path:polygon(50% 8%,95% 85%,5% 85%);filter:drop-shadow(0 2px 3px rgba(0,0,0,.5))}
+@keyframes pop{from{opacity:0;scale:.5}}
+.preview{position:relative;flex-shrink:0}
+.preview .cellbox{width:var(--pc);height:var(--pc)}
+.preview .ball{font-size:calc(var(--pc)*.32);border-width:1px}
+.help{font-size:.78rem;color:var(--dim);text-align:center;line-height:1.35}
+.msg{font-size:1.05rem;font-weight:700;text-align:center;color:var(--accent);min-height:1.4em}
+.next-btn{background:var(--accent);color:#fff;border:none;border-radius:10px;padding:11px 26px;font-size:1rem;font-weight:700;cursor:pointer;touch-action:manipulation;display:none}
+.loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--dim);font-weight:700}
+@media(prefers-reduced-motion:reduce){.atom{transition-duration:1ms!important}.arrow,.atom.done .ball{animation:none}}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <a href="../" class="i18n" data-sr="← Назад" data-en="← Back">← Назад</a>
+  <h2 class="i18n" data-sr="⚛️ Молекули" data-en="⚛️ Molecules">⚛️ Молекули</h2>
+  <div class="topbar-btns">
+    <button class="icon-btn theme-btn" onclick="toggleTheme()">🌙</button>
+    <button class="icon-btn lang-btn" onclick="toggleLang()">EN</button>
+    <button class="icon-btn sound-btn" onclick="toggleSound()">🔊</button>
+    <button class="icon-btn" onclick="toggleFont()">Аа</button>
+  </div>
+</div>
+<div class="wrap">
+  <div class="hud">
+    <div class="lvl-nav">
+      <button id="prevBtn" onclick="goLevel(-1)" aria-label="prev">◀</button>
+      <span id="levelEl"></span>
+      <button id="nextLvlBtn" onclick="goLevel(1)" aria-label="next">▶</button>
+    </div>
+    <div class="hud-btns">
+      <button class="ctrl-btn" onclick="undo()" title="Undo (U)">↩</button>
+      <button class="ctrl-btn" onclick="resetLevel()" title="Reset (R)">↺</button>
+      <button class="ctrl-btn" id="solveBtn" onclick="toggleSolve()" title="Solve">💡</button>
+      <button class="ctrl-btn" id="dailyBtn" onclick="toggleDaily()" title="Daily">📅</button>
+    </div>
+  </div>
+  <div class="target">
+    <div class="preview" id="preview"></div>
+    <div class="target-info">
+      <div class="target-name" id="molName"></div>
+      <div class="target-desc" id="molDesc"></div>
+    </div>
+  </div>
+  <div class="moves"><span id="movesEl"></span><span class="par" id="parEl"></span></div>
+  <div class="board" id="board"></div>
+  <div class="msg" id="msg"></div>
+  <button class="next-btn i18n" id="nextBtn" onclick="goLevel(1)" data-sr="Следећи ниво →" data-en="Next level →">Следећи ниво →</button>
+  <div class="help i18n" data-sr="Додирни атом па стрелицу, или превуци атом. Атом клизи док не удари у зид или други атом. Сложи молекул са слике било где на табли." data-en="Tap an atom then an arrow, or swipe the atom. It slides until it hits a wall or another atom. Build the pictured molecule anywhere on the board.">Додирни атом па стрелицу, или превуци атом. Атом клизи док не удари у зид или други атом. Сложи молекул са слике било где на табли.</div>
+</div>
+<script>
+(function(){
+  const _lang=()=>localStorage.getItem('tg-lang')||(/^(sr|hr|bs)/i.test(navigator.language)?'sr':'en');
+  const _theme=()=>localStorage.getItem('tg-theme')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');
+  function applyTheme(){const d=_theme()==='dark';document.documentElement.classList.toggle('light',!d);document.querySelectorAll('.theme-btn').forEach(b=>b.textContent=d?'☀️':'🌙');}
+  function applyI18n(){const L=_lang();document.querySelectorAll('[data-'+L+']').forEach(el=>el.textContent=el.dataset[L]);document.querySelectorAll('.lang-btn').forEach(b=>b.textContent=L==='sr'?'EN':'СР');document.documentElement.lang=L;}
+  window.toggleTheme=()=>{localStorage.setItem('tg-theme',_theme()==='dark'?'light':'dark');applyTheme();};
+  window.toggleLang=()=>{localStorage.setItem('tg-lang',_lang()==='sr'?'en':'sr');location.reload();};
+  window.toggleFont=()=>{const xl=document.documentElement.classList.toggle('xl');localStorage.setItem('tg-xl',xl?'1':'0');};
+  window.toggleSound=()=>{const on=localStorage.getItem('tg-sound')!=='0';localStorage.setItem('tg-sound',on?'0':'1');document.querySelectorAll('.sound-btn').forEach(b=>b.textContent=on?'🔇':'🔊');};
+  if(localStorage.getItem('tg-xl')==='1')document.documentElement.classList.add('xl');
+  applyTheme();applyI18n();document.querySelectorAll('.sound-btn').forEach(b=>b.textContent=localStorage.getItem('tg-sound')==='0'?'🔇':'🔊');
+})();
+
+function statRec(g,inc,hi,lo){const j=JSON.parse(localStorage.getItem('tg-stats')||'{}');const e=j[g]||{};for(const[k,v]of Object.entries(inc||{}))e[k]=(e[k]||0)+v;for(const[k,v]of Object.entries(hi||{}))if(v!=null&&(!e[k]||v>e[k]))e[k]=v;for(const[k,v]of Object.entries(lo||{}))if(v!=null&&(!e[k]||v<e[k]))e[k]=v;j[g]=e;localStorage.setItem('tg-stats',JSON.stringify(j));}
+const SFX=(()=>{let ac;const A=()=>(ac=ac||new(window.AudioContext||window.webkitAudioContext)());const t=(f,d,tp,v)=>{if(localStorage.getItem('tg-sound')==='0')return;try{const c=A(),o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.type=tp||'sine';o.frequency.value=f;g.gain.setValueAtTime(v||.25,c.currentTime);g.gain.exponentialRampToValueAtTime(.001,c.currentTime+d);o.start();o.stop(c.currentTime+d);}catch(e){}};return{select:()=>t(660,.05,'sine',.12),slide:()=>t(300,.08,'triangle',.15),bump:()=>t(140,.08,'square',.1),win(){t(523,.1);setTimeout(()=>t(659,.1),100);setTimeout(()=>t(784,.25),200);}};})();
+const L = () => localStorage.getItem('tg-lang') || (/^(sr|hr|bs)/i.test(navigator.language) ? 'sr' : 'en');
+const T = (sr, en) => L() === 'sr' ? sr : en;
+
+// ── engine: molecules, sliding rules, A* solver, level generator ──
+const W = 7, H = 7, N = W * H;
+const DIRS = [[0,-1],[1,0],[0,1],[-1,0]];          // up, right, down, left
+const DKEY = ['up','right','down','left'];
+
+// Molecules: atoms [element, x, y]; bonds [i, j, order]. Bonds are orthogonal neighbours only.
+const MOLS = [
+  {id:'hcl',  f:'HCl',   sr:'Хлороводоник', en:'Hydrogen chloride', a:[['H',0,0],['Cl',1,0]], b:[[0,1,1]],
+   dsr:'У води даје хлороводоничну (сону) киселину — има је и у желудачном соку.', den:'Dissolved in water it becomes hydrochloric acid — also found in stomach acid.'},
+  {id:'nacl', f:'NaCl',  sr:'Кухињска со', en:'Table salt', a:[['Na',0,0],['Cl',1,0]], b:[[0,1,1]],
+   dsr:'Натријум-хлорид — со коју свакодневно стављамо у храну.', den:'Sodium chloride — the salt we put on our food every day.'},
+  {id:'h2o',  f:'H₂O',   sr:'Вода', en:'Water', a:[['H',0,0],['O',1,0],['H',1,1]], b:[[0,1,1],[1,2,1]],
+   dsr:'Најважнији молекул за живот; покрива око 71% Земљине површине.', den:'The molecule of life; covers about 71% of Earth\'s surface.'},
+  {id:'co2',  f:'CO₂',   sr:'Угљен-диоксид', en:'Carbon dioxide', a:[['O',0,0],['C',1,0],['O',2,0]], b:[[0,1,2],[1,2,2]],
+   dsr:'Издишемо га, биљке га користе за фотосинтезу; даје мехуриће газираним пићима.', den:'We breathe it out, plants use it for photosynthesis; it puts the fizz in soda.'},
+  {id:'hcn',  f:'HCN',   sr:'Цијановодоник', en:'Hydrogen cyanide', a:[['H',0,0],['C',1,0],['N',2,0]], b:[[0,1,1],[1,2,3]],
+   dsr:'Изузетно отрован гас мириса горког бадема.', den:'An extremely toxic gas that smells of bitter almonds.'},
+  {id:'h2s',  f:'H₂S',   sr:'Сумпорводоник', en:'Hydrogen sulfide', a:[['H',0,0],['S',1,0],['H',1,1]], b:[[0,1,1],[1,2,1]],
+   dsr:'Гас који мирише на покварена јаја; има га у сумпоровитим бањама.', den:'The gas that smells of rotten eggs; found in sulphur spas.'},
+  {id:'naoh', f:'NaOH',  sr:'Каустична сода', en:'Caustic soda', a:[['Na',0,0],['O',1,0],['H',2,0]], b:[[0,1,1],[1,2,1]],
+   dsr:'Натријум-хидроксид — јака база, користи се за прављење сапуна.', den:'Sodium hydroxide — a strong base used to make soap.'},
+  {id:'so2',  f:'SO₂',   sr:'Сумпор-диоксид', en:'Sulfur dioxide', a:[['O',0,0],['S',1,0],['O',2,0]], b:[[0,1,2],[1,2,2]],
+   dsr:'Настаје сагоревањем угља; чува вино од кварења.', den:'Released by burning coal; also used to preserve wine.'},
+  {id:'hocl', f:'HOCl',  sr:'Хипохлораста киселина', en:'Hypochlorous acid', a:[['H',0,0],['O',1,0],['Cl',2,0]], b:[[0,1,1],[1,2,1]],
+   dsr:'Настаје кад се хлор раствори у води — дезинфикује базене.', den:'Forms when chlorine dissolves in water — it disinfects pools.'},
+  {id:'c2h2', f:'C₂H₂',  sr:'Ацетилен', en:'Acetylene', a:[['H',0,0],['C',1,0],['C',2,0],['H',3,0]], b:[[0,1,1],[1,2,3],[2,3,1]],
+   dsr:'Гас за варење — гори пламеном преко 3000 °C.', den:'Welding gas — burns at over 3000 °C.'},
+  {id:'nh3',  f:'NH₃',   sr:'Амонијак', en:'Ammonia', a:[['H',0,1],['N',1,1],['H',2,1],['H',1,0]], b:[[0,1,1],[1,2,1],[1,3,1]],
+   dsr:'Оштар мирис; основа за вештачка ђубрива.', den:'Sharp smell; the basis of artificial fertilisers.'},
+  {id:'ph3',  f:'PH₃',   sr:'Фосфин', en:'Phosphine', a:[['H',0,0],['P',1,0],['H',2,0],['H',1,1]], b:[[0,1,1],[1,2,1],[1,3,1]],
+   dsr:'Отрован гас који се користи за заштиту ускладиштеног жита.', den:'A toxic gas used to protect stored grain from pests.'},
+  {id:'ch2o', f:'CH₂O',  sr:'Формалдехид', en:'Formaldehyde', a:[['O',1,0],['H',0,1],['C',1,1],['H',2,1]], b:[[0,2,2],[1,2,1],[2,3,1]],
+   dsr:'Као раствор (формалин) чува биолошке узорке.', den:'As formalin, it preserves biological specimens.'},
+  {id:'h2o2', f:'H₂O₂',  sr:'Водоник-пероксид', en:'Hydrogen peroxide', a:[['H',0,0],['O',1,0],['O',1,1],['H',2,1]], b:[[0,1,1],[1,2,1],[2,3,1]],
+   dsr:'Избељује косу и дезинфикује ране.', den:'Bleaches hair and disinfects wounds.'},
+  {id:'ch4',  f:'CH₄',   sr:'Метан', en:'Methane', a:[['H',1,0],['H',0,1],['C',1,1],['H',2,1],['H',1,2]], b:[[0,2,1],[1,2,1],[2,3,1],[2,4,1]],
+   dsr:'Главни састојак природног гаса.', den:'The main component of natural gas.'},
+  {id:'ch3cl',f:'CH₃Cl', sr:'Хлорметан', en:'Chloromethane', a:[['H',1,0],['H',0,1],['C',1,1],['Cl',2,1],['H',1,2]], b:[[0,2,1],[1,2,1],[2,3,1],[2,4,1]],
+   dsr:'Некада расхладни гас у фрижидерима.', den:'Once used as a refrigerant gas.'},
+  {id:'hcooh',f:'HCOOH', sr:'Мравља киселина', en:'Formic acid', a:[['O',1,0],['H',0,1],['C',1,1],['O',2,1],['H',3,1]], b:[[0,2,2],[1,2,1],[2,3,1],[3,4,1]],
+   dsr:'Њом нас пеку мрави и коприва.', den:'What makes ant bites and nettles sting.'},
+  {id:'hno3', f:'HNO₃',  sr:'Азотна киселина', en:'Nitric acid', a:[['O',1,0],['O',0,1],['N',1,1],['O',2,1],['H',3,1]], b:[[0,2,2],[1,2,1],[2,3,1],[3,4,1]],
+   dsr:'Јака киселина — сировина за ђубрива и експлозиве.', den:'A strong acid — raw material for fertilisers and explosives.'},
+  {id:'ch3oh',f:'CH₃OH', sr:'Метанол', en:'Methanol', a:[['H',1,0],['H',0,1],['C',1,1],['O',2,1],['H',3,1],['H',1,2]], b:[[0,2,1],[1,2,1],[2,3,1],[3,4,1],[2,5,1]],
+   dsr:'Дрвени алкохол — отрован, може изазвати слепило.', den:'Wood alcohol — poisonous, can cause blindness.'},
+  {id:'c2h4', f:'C₂H₄',  sr:'Етилен', en:'Ethylene', a:[['H',1,0],['H',2,0],['H',0,1],['C',1,1],['C',2,1],['H',3,1]], b:[[0,3,1],[1,4,1],[2,3,1],[3,4,2],[4,5,1]],
+   dsr:'Биљни хормон који убрзава зрење воћа.', den:'A plant hormone that makes fruit ripen.'},
+  {id:'h2so3',f:'H₂SO₃', sr:'Сумпораста киселина', en:'Sulfurous acid', a:[['O',2,0],['H',0,1],['O',1,1],['S',2,1],['O',3,1],['H',4,1]], b:[[0,3,2],[1,2,1],[2,3,1],[3,4,1],[4,5,1]],
+   dsr:'Настаје кад се SO₂ раствори у кишници — узрок киселих киша.', den:'Forms when SO₂ dissolves in rain — a cause of acid rain.'},
+];
+
+// Build per-atom connector signatures: element + sorted "dir:order" list.
+function buildMol(m) {
+  const conns = m.a.map(() => []);
+  for (const [i, j, o] of m.b) {
+    const dx = m.a[j][1] - m.a[i][1], dy = m.a[j][2] - m.a[i][2];
+    const d = DIRS.findIndex(v => v[0] === dx && v[1] === dy);
+    conns[i].push([d, o]); conns[j].push([(d + 2) % 4, o]);
+  }
+  m.atoms = m.a.map(([el, x, y], i) => {
+    const c = conns[i].sort((p, q) => p[0] - q[0]);
+    return {el, x, y, conns: c, sig: el + ':' + c.map(v => v.join('=')).join(',')};
+  });
+  m.w = Math.max(...m.a.map(v => v[1])) + 1;
+  m.h = Math.max(...m.a.map(v => v[2])) + 1;
+  // Groups of interchangeable atoms (same element + same connectors)
+  const gm = new Map();
+  m.atoms.forEach((a, i) => { if (!gm.has(a.sig)) gm.set(a.sig, []); gm.get(a.sig).push(i); });
+  m.groups = [...gm.values()];
+  m.groupOf = m.atoms.map((_, i) => m.groups.find(g => g.includes(i)));
+  return m;
+}
+MOLS.forEach(buildMol);
+
+function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+
+// Slide atom i of pos in direction d; returns end cell (== start if blocked).
+function slide(walls, pos, i, d) {
+  let p = pos[i], x = p % W, y = (p / W) | 0;
+  const [dx, dy] = DIRS[d];
+  for (;;) {
+    const nx = x + dx, ny = y + dy;
+    if (nx < 0 || ny < 0 || nx >= W || ny >= H) break;
+    const q = ny * W + nx;
+    if (walls[q] || pos.includes(q)) break;
+    x = nx; y = ny;
+  }
+  return y * W + x;
+}
+
+function stateKey(mol, pos) {
+  let s = '';
+  for (const g of mol.groups) {
+    if (g.length === 1) s += String.fromCharCode(48 + pos[g[0]]);
+    else s += g.map(i => pos[i]).sort((a, b) => a - b).map(p => String.fromCharCode(48 + p)).join('');
+  }
+  return s;
+}
+
+// Every board offset where the whole molecule fits without hitting a wall
+function placements(mol, walls) {
+  const res = [];
+  for (let oy = 0; oy + mol.h <= H; oy++) for (let ox = 0; ox + mol.w <= W; ox++) {
+    const cells = mol.atoms.map(a => (a.y + oy) * W + a.x + ox);
+    if (!cells.some(c => walls[c])) res.push(cells);
+  }
+  return res;
+}
+
+function isSolved(mol, pos) {
+  const at = mol.atoms, a0 = at[0];
+  const bySig = new Map();
+  pos.forEach((p, i) => bySig.set(p, at[i].sig));
+  for (const j of mol.groups.find(g => g.includes(0))) {
+    const ox = pos[j] % W - a0.x, oy = ((pos[j] / W) | 0) - a0.y;
+    let ok = true;
+    for (const t of at) {
+      const x = t.x + ox, y = t.y + oy;
+      if (x < 0 || y < 0 || x >= W || y >= H || bySig.get(y * W + x) !== t.sig) { ok = false; break; }
+    }
+    if (ok) return true;
+  }
+  return false;
+}
+
+// Lower bound on moves left: per placement, each atom needs 0 (on a matching target),
+// 1 (shares a row/column with one) or 2 moves; take the cheapest placement.
+function heuristic(mol, places, pos) {
+  let best = 99;
+  for (const cells of places) {
+    let sum = 0;
+    for (let i = 0; i < pos.length && sum < best; i++) {
+      const p = pos[i], x = p % W, y = (p / W) | 0;
+      let c = 2;
+      for (const j of mol.groupOf[i]) {
+        const t = cells[j];
+        if (t === p) { c = 0; break; }
+        if (t % W === x || ((t / W) | 0) === y) c = 1;
+      }
+      sum += c;
+    }
+    if (sum < best) best = sum;
+  }
+  return best;
+}
+
+// A* search for the shortest solution. Returns [[atom, dir], ...] or null when the cap is hit.
+function solve(mol, walls, start, cap) {
+  if (isSolved(mol, start)) return [];
+  const places = placements(mol, walls);
+  const k0 = stateKey(mol, start);
+  const info = new Map([[k0, {g: 0, parent: null, move: null}]]);
+  const heap = [];   // binary heap of [f, g, key, pos]
+  const push = n => { heap.push(n); let i = heap.length - 1; while (i) { const p = (i - 1) >> 1; if (heap[p][0] < n[0] || (heap[p][0] === n[0] && heap[p][1] >= n[1])) break; heap[i] = heap[p]; i = p; } heap[i] = n; };
+  const pop = () => { const top = heap[0], last = heap.pop(); if (heap.length) { let i = 0; for (;;) { let c = 2 * i + 1; if (c >= heap.length) break; if (c + 1 < heap.length && (heap[c + 1][0] < heap[c][0] || (heap[c + 1][0] === heap[c][0] && heap[c + 1][1] > heap[c][1]))) c++; if (heap[c][0] > last[0] || (heap[c][0] === last[0] && heap[c][1] <= last[1])) break; heap[i] = heap[c]; i = c; } heap[i] = last; } return top; };
+  push([heuristic(mol, places, start), 0, k0, start]);
+  let expanded = 0;
+  while (heap.length) {
+    const [, g, key, pos] = pop();
+    if (info.get(key).g < g) continue;
+    if (isSolved(mol, pos)) {
+      const path = [];
+      for (let cur = key; info.get(cur).parent !== null; cur = info.get(cur).parent) path.unshift(info.get(cur).move);
+      return path;
+    }
+    if (++expanded > cap) return null;
+    for (let i = 0; i < pos.length; i++) for (let d = 0; d < 4; d++) {
+      const e = slide(walls, pos, i, d);
+      if (e === pos[i]) continue;
+      const np = pos.slice(); np[i] = e;
+      const k = stateKey(mol, np);
+      const old = info.get(k);
+      if (old && old.g <= g + 1) continue;
+      info.set(k, {g: g + 1, parent: key, move: [i, d]});
+      push([g + 1 + heuristic(mol, places, np), g + 1, k, np]);
+    }
+  }
+  return null;
+}
+
+// Difficulty curve by level number
+function tierFor(level) {
+  if (level <= 3)  return {minAtoms: 2, maxAtoms: 3, lo: 3, hi: 5};
+  if (level <= 8)  return {minAtoms: 3, maxAtoms: 4, lo: 4, hi: 7};
+  if (level <= 15) return {minAtoms: 3, maxAtoms: 4, lo: 6, hi: 9};
+  if (level <= 25) return {minAtoms: 4, maxAtoms: 5, lo: 7, hi: 11};
+  if (level <= 40) return {minAtoms: 4, maxAtoms: 5, lo: 9, hi: 13};
+  return {minAtoms: 5, maxAtoms: 6, lo: 9, hi: 14};
+}
+
+// Generate a level: random walls, molecule assembled somewhere, then scrambled with
+// reverse moves (always solvable), then BFS gives the optimal move count (par).
+function generate(seed, level) {
+  const rng = mulberry32(seed);
+  const ri = n => (rng() * n) | 0;
+  const tier = tierFor(level);
+  const pool = MOLS.filter(m => m.atoms.length >= tier.minAtoms && m.atoms.length <= tier.maxAtoms);
+  let best = null;
+  for (let attempt = 0; attempt < 80; attempt++) {
+    const mol = pool[ri(pool.length)];
+    const walls = new Uint8Array(N);
+    const nw = 5 + ri(6);
+    for (let k = 0; k < nw; k++) walls[ri(N)] = 1;
+    // place molecule
+    const ox = ri(W - mol.w + 1), oy = ri(H - mol.h + 1);
+    const pos = mol.atoms.map(a => (a.y + oy) * W + a.x + ox);
+    if (pos.some(p => walls[p])) continue;
+    // scramble with reverse moves
+    const steps = tier.hi + 4 + ri(8);
+    for (let s = 0; s < steps; s++) {
+      const i = ri(pos.length), d = ri(4);
+      const p = pos[i], x = p % W, y = (p / W) | 0;
+      const [dx, dy] = DIRS[d];
+      const bx = x + dx, by = y + dy;
+      const blocked = bx < 0 || by < 0 || bx >= W || by >= H || walls[by * W + bx] || pos.includes(by * W + bx);
+      if (!blocked) { s--; if (rng() < 0.02) break; continue; }
+      const cands = [];
+      for (let k = 1; ; k++) {
+        const qx = x - dx * k, qy = y - dy * k;
+        if (qx < 0 || qy < 0 || qx >= W || qy >= H) break;
+        const q = qy * W + qx;
+        if (walls[q] || pos.includes(q)) break;
+        cands.push(q);
+      }
+      if (!cands.length) continue;
+      pos[i] = cands[ri(cands.length)];
+    }
+    if (isSolved(mol, pos)) continue;
+    const sol = solve(mol, walls, pos, 40000);
+    if (!sol) continue;
+    const cand = {mol, walls, start: pos, sol, par: sol.length};
+    if (sol.length >= tier.lo && sol.length <= tier.hi) return cand;
+    if (!best || Math.abs(sol.length - tier.lo) < Math.abs(best.par - tier.lo)) best = cand;
+  }
+  return best;
+}
+
+// ── game state ──────────────────────────────────────────────
+const ELEM_COLOR = {H:'#eceff4', O:'#e94560', C:'var(--c)', N:'#3d6bff', Cl:'#2fae5a', S:'#f2c94c', Na:'#9b5cff', P:'#ff8a3d'};
+const DARK_TEXT = {H:1, S:1};
+const boardEl = document.getElementById('board');
+let lvl = null;          // {mol, walls, start, sol, par}
+let pos = [], history = [], selected = -1, won = false, helped = false;
+let daily = false, level = +localStorage.getItem('tg-molecules-level') || 1;
+let maxLevel = Math.max(level, +localStorage.getItem('tg-molecules-max') || 1);
+let atomEls = [], solveTimer = null, animUntil = 0;
+
+function todayStr() { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+function seedFor() {
+  if (daily) return +todayStr().replace(/-/g, '') * 31 + 7;
+  return (level * 2654435761) >>> 0;
+}
+function bestKey() { return daily ? 'tg-molecules-daily-' + todayStr() : 'tg-molecules-best-' + level; }
+
+function atomHTML(a) {
+  let s = '';
+  for (const [d, o] of a.conns) {
+    const vert = d % 2 === 0;
+    for (let k = 0; k < o; k++) {
+      const off = (k - (o - 1) / 2) * 16;   // spread double/triple bonds
+      s += `<i class="stub ${vert ? 'v' : 'h'} d${d}" style="${vert ? 'margin-left:' : 'margin-top:'}${off}%"></i>`;
+    }
+  }
+  const dark = DARK_TEXT[a.el] ? 'color:#222;border-color:rgba(0,0,0,.2);' : '';
+  return s + `<div class="ball" style="--ac:${ELEM_COLOR[a.el]};${dark}">${a.el}</div>`;
+}
+function place(el, p) { el.style.transform = `translate(${(p % W) * 100}%, ${((p / W) | 0) * 100}%)`; }
+
+function renderPreview() {
+  const m = lvl.mol, pv = document.getElementById('preview');
+  const pc = Math.min(40, Math.floor(150 / Math.max(m.w, m.h)));
+  pv.style.cssText = `--pc:${pc}px;width:${pc * m.w}px;height:${pc * m.h}px`;
+  pv.innerHTML = '';
+  for (const a of m.atoms) {
+    const el = document.createElement('div');
+    el.className = 'cellbox';
+    el.innerHTML = atomHTML(a);
+    el.style.transform = `translate(${a.x * 100}%, ${a.y * 100}%)`;
+    pv.appendChild(el);
+  }
+  document.getElementById('molName').innerHTML = `${T(m.sr, m.en)}<span class="formula">${m.f}</span>`;
+  document.getElementById('molDesc').textContent = T(m.dsr, m.den);
+}
+
+function renderBoard() {
+  boardEl.innerHTML = '';
+  for (let p = 0; p < N; p++) if (lvl.walls[p]) {
+    const w = document.createElement('div');
+    w.className = 'cellbox wall';
+    place(w, p);
+    boardEl.appendChild(w);
+  }
+  atomEls = lvl.mol.atoms.map((a, i) => {
+    const el = document.createElement('div');
+    el.className = 'cellbox atom';
+    el.dataset.i = i;
+    el.innerHTML = atomHTML(a);
+    place(el, pos[i]);
+    boardEl.appendChild(el);
+    return el;
+  });
+}
+
+function updateHud() {
+  document.getElementById('levelEl').textContent = daily ? T('📅 Дневни', '📅 Daily') : T('Ниво ', 'Level ') + level;
+  document.getElementById('prevBtn').disabled = daily || level <= 1;
+  document.getElementById('nextLvlBtn').disabled = daily || level >= maxLevel;
+  document.getElementById('dailyBtn').classList.toggle('on', daily);
+  document.getElementById('movesEl').textContent = T('Потези: ', 'Moves: ') + history.length;
+  const best = localStorage.getItem(bestKey());
+  document.getElementById('parEl').textContent = '🎯 ' + lvl.par + (best ? '  🏆 ' + best : '');
+  const sb = document.getElementById('solveBtn');
+  sb.textContent = solveTimer ? '⏹' : '💡';
+  sb.title = solveTimer ? T('Заустави', 'Stop') : T('Реши', 'Solve');
+}
+
+function canMove(i, d) { return slide(lvl.walls, pos, i, d) !== pos[i]; }
+
+function showArrows() {
+  boardEl.querySelectorAll('.arrow').forEach(a => a.remove());
+  atomEls.forEach((el, i) => el.classList.toggle('sel', i === selected));
+  if (selected < 0 || won) return;
+  const p = pos[selected];
+  for (let d = 0; d < 4; d++) {
+    if (!canMove(selected, d)) continue;
+    const a = document.createElement('button');
+    a.className = 'cellbox arrow';
+    a.dataset.d = d;
+    a.setAttribute('aria-label', DKEY[d]);
+    a.innerHTML = `<span style="rotate:${d * 90}deg"></span>`;
+    place(a, (((p / W) | 0) + DIRS[d][1]) * W + p % W + DIRS[d][0]);
+    boardEl.appendChild(a);
+  }
+}
+
+function select(i) {
+  if (won) return;
+  selected = i;
+  if (i >= 0) SFX.select();
+  showArrows();
+}
+
+function move(i, d, fromSolver) {
+  if (won || i < 0) return;
+  if (!fromSolver) stopSolve();
+  const e = slide(lvl.walls, pos, i, d);
+  if (e === pos[i]) { SFX.bump(); return; }
+  const dist = Math.abs(e % W - pos[i] % W) + Math.abs(((e / W) | 0) - ((pos[i] / W) | 0));
+  history.push(pos.slice());
+  pos[i] = e;
+  const ms = 60 + dist * 55;
+  atomEls[i].style.transitionDuration = ms + 'ms';
+  place(atomEls[i], e);
+  animUntil = Date.now() + ms;
+  SFX.slide();
+  selected = i;
+  updateHud();
+  if (isSolved(lvl.mol, pos)) { won = true; selected = -1; showArrows(); setTimeout(onWin, ms); }
+  else showArrows();
+}
+
+function onWin() {
+  stopSolve();
+  const n = history.length;
+  atomEls.forEach(el => el.classList.add('done'));
+  const msg = document.getElementById('msg');
+  if (helped) {
+    msg.textContent = T('Решено уз помоћ 💡', 'Solved with help 💡');
+  } else {
+    const stars = n <= lvl.par ? 3 : n <= lvl.par + Math.ceil(lvl.par / 2) ? 2 : 1;
+    const best = +localStorage.getItem(bestKey()) || 0;
+    if (!best || n < best) localStorage.setItem(bestKey(), n);
+    msg.textContent = '⭐'.repeat(stars) + ' ' + (n <= lvl.par ? T('Савршено! ' + n + ' потеза', 'Perfect! ' + n + ' moves') : T(n + ' потеза (идеално ' + lvl.par + ')', n + ' moves (ideal ' + lvl.par + ')'));
+    statRec('molecules', {played: 1, wins: 1, perfect: n <= lvl.par ? 1 : 0, daily: daily ? 1 : 0}, {bestLevel: daily ? null : level});
+    SFX.win();
+    if (window.celebrate) celebrate();
+  }
+  if (!daily) {
+    maxLevel = Math.max(maxLevel, level + 1);
+    localStorage.setItem('tg-molecules-max', maxLevel);
+    document.getElementById('nextBtn').style.display = 'block';
+  }
+  updateHud();
+}
+
+function undo() {
+  if (!history.length || won) return;
+  stopSolve();
+  pos = history.pop();
+  atomEls.forEach((el, i) => { el.style.transitionDuration = '120ms'; place(el, pos[i]); });
+  updateHud(); showArrows();
+}
+
+function resetLevel() {
+  stopSolve();
+  pos = lvl.start.slice(); history = []; won = false; helped = false; selected = -1;
+  document.getElementById('msg').textContent = '';
+  document.getElementById('nextBtn').style.display = 'none';
+  renderBoard(); updateHud(); showArrows();
+}
+
+function loadLevel() {
+  stopSolve();
+  boardEl.innerHTML = `<div class="loading">${T('Мешам атоме…', 'Mixing atoms…')}</div>`;
+  // Let the loading text paint before the (up to ~0.5 s) generator runs
+  setTimeout(() => {
+    lvl = generate(seedFor(), daily ? 20 : level);
+    renderPreview();
+    resetLevel();
+  }, 30);
+}
+
+function goLevel(delta) {
+  if (daily) return;
+  const n = level + delta;
+  if (n < 1 || n > maxLevel) return;
+  level = n;
+  localStorage.setItem('tg-molecules-level', level);
+  loadLevel();
+}
+
+function toggleDaily() { daily = !daily; loadLevel(); }
+
+// ── 💡 solver playback: solves from the current position ──
+function stopSolve() { if (solveTimer) { clearInterval(solveTimer); solveTimer = null; updateHud(); } }
+function toggleSolve() {
+  if (won) return;
+  if (solveTimer) { stopSolve(); return; }
+  let plan = solve(lvl.mol, lvl.walls, pos, 40000);
+  if (!plan) { resetLevel(); plan = lvl.sol.slice(); }
+  helped = true;
+  selected = -1;
+  solveTimer = setInterval(() => {
+    if (!plan.length || won) { stopSolve(); return; }
+    const [i, d] = plan.shift();
+    move(i, d, true);
+  }, 520);
+  updateHud();
+}
+
+// ── input: tap atom → arrows, tap arrow → move, or swipe an atom ──
+let drag = null;
+boardEl.addEventListener('pointerdown', e => {
+  const ar = e.target.closest('.arrow');
+  if (ar) { e.preventDefault(); move(selected, +ar.dataset.d); return; }
+  const at = e.target.closest('.atom');
+  if (!at) { select(-1); return; }
+  drag = {i: +at.dataset.i, x: e.clientX, y: e.clientY};
+});
+window.addEventListener('pointerup', e => {
+  if (!drag) return;
+  const dx = e.clientX - drag.x, dy = e.clientY - drag.y, i = drag.i;
+  drag = null;
+  if (Math.max(Math.abs(dx), Math.abs(dy)) < 18) { select(selected === i ? -1 : i); return; }
+  const d = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 1 : 3) : (dy > 0 ? 2 : 0);
+  move(i, d);
+});
+window.addEventListener('pointercancel', () => { drag = null; });
+
+document.addEventListener('keydown', e => {
+  const k = e.key.toLowerCase();
+  const dirs = {arrowup: 0, w: 0, arrowright: 1, d: 1, arrowdown: 2, s: 2, arrowleft: 3, a: 3};
+  if (k in dirs) {
+    e.preventDefault();
+    if (selected < 0) select(0); else move(selected, dirs[k]);
+  } else if (k === ' ' || k === 'tab') {
+    e.preventDefault();
+    select((selected + (e.shiftKey ? lvl.mol.atoms.length - 1 : 1)) % lvl.mol.atoms.length);
+  } else if (k === 'u' || (k === 'z' && (e.ctrlKey || e.metaKey))) { e.preventDefault(); undo(); }
+  else if (k === 'r') resetLevel();
+  else if (k === 'escape') select(-1);
+});
+
+loadLevel();
+</script>
+<script>
+// Victory — boxed VICTORY banner (stays until next interaction) + cheer + fireworks.
+// Offline & self-contained; sound honors tg-sound, motion honors reduced-motion.
+window.celebrate=function(){
+  if(localStorage.getItem("tg-sound")!=="0"){try{var au=new Audio("./cheer.mp3");au.volume=0.85;au.play().catch(function(){});}catch(e){}}
+  (function(){var L=localStorage.getItem("tg-lang")||"sr";var old=document.getElementById("tg-banner");if(old)old.remove();var b=document.createElement("div");b.id="tg-banner";b.textContent=L==="sr"?"ПОБЕДА":"VICTORY";var base="translate(-50%,-50%)";b.style.cssText="position:fixed;top:36%;left:50%;z-index:99998;pointer-events:none;white-space:nowrap;padding:.22em .6em;border-radius:20px;border:5px solid #ffd166;background:rgba(15,15,26,.86);box-shadow:0 14px 44px rgba(0,0,0,.55),0 0 0 3px rgba(0,0,0,.25) inset;-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);font:900 clamp(2rem,12vw,5.5rem)/1 system-ui,-apple-system,sans-serif;letter-spacing:.05em;color:#ffd166;text-shadow:0 3px 14px rgba(0,0,0,.6);opacity:0;transform:"+base+" scale(.6);transition:opacity .25s ease,transform .35s cubic-bezier(.2,1.4,.3,1)";document.body.appendChild(b);requestAnimationFrame(function(){b.style.opacity="1";b.style.transform=base+" scale(1)";});var armed=false;setTimeout(function(){armed=true;},400);function dismiss(){if(!armed)return;document.removeEventListener("pointerdown",dismiss,true);document.removeEventListener("keydown",dismiss,true);b.style.opacity="0";b.style.transform=base+" scale(1.12)";setTimeout(function(){b.remove();},220);}document.addEventListener("pointerdown",dismiss,true);document.addEventListener("keydown",dismiss,true);})();
+  if(window.matchMedia&&window.matchMedia("(prefers-reduced-motion:reduce)").matches)return;
+  var cv=document.createElement("canvas");
+  cv.style.cssText="position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none;z-index:99999";
+  function size(){cv.width=window.innerWidth;cv.height=window.innerHeight;}
+  size();window.addEventListener("resize",size);
+  document.body.appendChild(cv);
+  var cx=cv.getContext("2d");
+  var COL=["#e94560","#ffd166","#06d6a0","#4dd0e1","#9b6bff","#ff7043","#ffffff"];
+  var ps=[],frame=0,bursts=0,MAX=7,nextAt=0;
+  function star(x,y,r,rot){cx.beginPath();for(var i=0;i<10;i++){var rr=i%2?r*0.45:r,a=rot+i*Math.PI/5;cx.lineTo(x+Math.cos(a)*rr,y+Math.sin(a)*rr);}cx.closePath();cx.fill();}
+  function burst(x,y){var hue=COL[Math.random()*COL.length|0],n=40+(Math.random()*22|0);for(var i=0;i<n;i++){var a=Math.random()*Math.PI*2,sp=Math.random()*4.6+1.2;ps.push({x:x,y:y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-1.2,age:0,life:55+Math.random()*35,c:Math.random()<.4?"#fff":hue,sz:Math.random()*2.4+1.4,star:Math.random()<.5,rot:Math.random()*6});}}
+  function loop(){
+    frame++;
+    if(bursts<MAX&&frame>=nextAt){burst(Math.random()*cv.width,cv.height*(0.12+Math.random()*0.45));bursts++;nextAt=frame+6+(Math.random()*16|0);}
+    cx.clearRect(0,0,cv.width,cv.height);
+    for(var i=ps.length-1;i>=0;i--){var p=ps[i];p.age++;p.vy+=0.07;p.vx*=0.99;p.vy*=0.99;p.x+=p.vx;p.y+=p.vy;p.rot+=0.12;var al=1-p.age/p.life;if(al<=0){ps.splice(i,1);continue;}cx.globalAlpha=al;cx.fillStyle=p.c;if(p.star)star(p.x,p.y,p.sz*2,p.rot);else{cx.beginPath();cx.arc(p.x,p.y,p.sz,0,6.283);cx.fill();}}
+    cx.globalAlpha=1;
+    if(ps.length||bursts<MAX)requestAnimationFrame(loop);
+    else{window.removeEventListener("resize",size);cv.remove();}
+  }
+  requestAnimationFrame(loop);
+};
+</script>
+</body>
+</html>

@@ -1,6 +1,6 @@
 # Toilet Games 🚽🎮
 
-21 free, offline-capable browser games as a PWA — built for phones. Large touch targets, dark/light theme toggle, font-size toggle, sound toggle (🔊/🔇), fully bilingual (Serbian / English).
+22 free, offline-capable browser games as a PWA — built for phones. Large touch targets, dark/light theme toggle, font-size toggle, sound toggle (🔊/🔇), fully bilingual (Serbian / English).
 
 **Play now:** https://acosonic.github.io/toiletgames/
 
@@ -38,6 +38,7 @@
 | 🧟 | Onslaught | Plant defenders to stop lanes of zombies |
 | 📦 | Box Pusher | Push all boxes onto their target squares |
 | 🐦 | Kiky Bird | Tap to flap, fly through the gaps in the pipes |
+| ⚛️ | Molecules | Slide atoms until they stop and assemble the target molecule |
 
 ---
 
@@ -64,7 +65,7 @@
 
 ## Install as PWA
 
-Open the link in **Chrome** (Android) or **Safari** (iOS) and tap the install banner. Once installed the app runs fully offline — the service worker pre-caches all 21 game files on first visit.
+Open the link in **Chrome** (Android) or **Safari** (iOS) and tap the install banner. Once installed the app runs fully offline — the service worker pre-caches all 22 game files on first visit.
 
 ---
 
